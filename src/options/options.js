@@ -612,12 +612,12 @@ function setupListManager(inputId, btnId, listId, stateKey) {
         // registrable domains: localhost, a LAN address, a container name, an
         // IPv6 literal, each with an optional port.
         if (stateKey === 'CUSTOM_ALLOWED_DOMAINS') {
-            const entry = normaliseHostEntry(val);
-            if (!entry) {
-                showToast('Not a valid host. Try example.com, localhost:3000 or 192.168.1.10.');
+            const rule = parseScanExclusion(val);
+            if (!rule) {
+                showToast('Not a valid site, section or page.');
                 return;
             }
-            val = entry.value;
+            val = rule.value;
         }
 
         // Domain Sanitization & Strict Validation
@@ -721,13 +721,14 @@ function setupListManager(inputId, btnId, listId, stateKey) {
         }
 
         if (stateKey === 'CUSTOM_ALLOWED_DOMAINS') {
-            if (state.CUSTOM_DOMAINS.includes(val)) {
+            const rule = parseScanExclusion(val);
+            const host = rule ? rule.host : val;
+            if (matchesAnyHostEntry(host, rule && rule.port, state.CUSTOM_DOMAINS)) {
                 showToast("Cannot whitelist a domain that is in your custom blocklist.");
                 return;
             }
             // The master list is keyed by hostname, so ask about the host alone.
-            const bareHost = (normaliseHostEntry(val) || {}).host || val;
-            chrome.runtime.sendMessage({ action: 'isMasterBlocked', domain: bareHost }, (response) => {
+            chrome.runtime.sendMessage({ action: 'isMasterBlocked', domain: host }, (response) => {
                 if (response && response.blocked) {
                     showToast("Cannot whitelist globally restricted sites.");
                 } else {
@@ -789,7 +790,7 @@ function buildRow(listId, stateKey, item) {
  * cannot be mistaken for a single page at a glance.
  */
 function describeEntry(stateKey, item) {
-    if (stateKey !== 'CUSTOM_SCAN_EXCLUDED') return null;
+    if (stateKey !== 'CUSTOM_SCAN_EXCLUDED' && stateKey !== 'CUSTOM_ALLOWED_DOMAINS') return null;
     const rule = parseScanExclusion(item);
     return rule ? SCAN_EXCLUSION_LABELS[rule.kind] : null;
 }

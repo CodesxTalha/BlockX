@@ -369,6 +369,7 @@ function parseScanExclusion(raw) {
 
   text = text.replace(/^[a-z][a-z0-9+.-]*:\/\//, '');   // scheme
   text = text.replace(/^[^@/]*@/, '');                  // credentials
+  text = text.replace(/^\*\.?/, '');                   // leading wildcard e.g. *.example.com
   text = text.split('#')[0];                            // fragment
   if (!text) return null;
 
@@ -418,12 +419,11 @@ function scanExclusionMatches(hostname, port, pathname, search, entry) {
   const host = String(hostname || '').toLowerCase().replace(/^www\./, '');
   if (!host) return false;
 
-  if (rule.kind === 'site') {
-    if (host === rule.host) return true;
-    return classifyHost(rule.host) === 'domain' && host.endsWith('.' + rule.host);
-  }
+  const hostMatches = (host === rule.host) ||
+    (classifyHost(rule.host) === 'domain' && host.endsWith('.' + rule.host));
+  if (!hostMatches) return false;
 
-  if (host !== rule.host) return false;
+  if (rule.kind === 'site') return true;
 
   const rawPath = (String(pathname || '/')).replace(/\/+$/, '') || '/';
   let decodedPath = rawPath;

@@ -290,18 +290,25 @@
                     <div class="settings-group">
                         <div class="group-header">
                             <h3>Allowed Destinations</h3>
-                            <p>Traffic to these bypasses every blocking rule, but will still be scanned by the live scanner unless added to Scan Exclusions.</p>
+                            <p>Traffic to these bypasses every blocking rule, but will still be scanned by the live scanner unless added to Scan Exclusions. Adding a section or single page allows only that path and automatically blocks the rest of the site.</p>
                         </div>
 
                         <div class="interactive-list-manager">
+                            <table class="help-table exclusion-forms">
+                                <tbody>
+                                    <tr><th><code>kaggle.com</code></th><td>the whole site, subdomains included</td></tr>
+                                    <tr><th><code>kaggle.com/user/notebook/*</code></th><td>that section only (rest of site is blocked)</td></tr>
+                                    <tr><th><code>kaggle.com/competitions/overview</code></th><td>that one page only (rest of site is blocked)</td></tr>
+                                </tbody>
+                            </table>
                             <div class="input-row">
-                                <input type="text" id="allowed-domain-input" placeholder="Domain, IP address, or hostname (e.g. localhost:3000)">
+                                <input type="text" id="allowed-domain-input" placeholder="Site, section/*, or a single page">
                                 <button id="add-allowed-domain-btn" class="btn btn-secondary">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                     Add
                                 </button>
                             </div>
-                            <p class="help-text">Accepts domains, IPv4 and IPv6 addresses, <code>localhost</code>, <code>*.local</code> and other single-label hosts, with an optional port.</p>
+                            <p class="help-text">Accepts whole sites, wildcard sections (<code>/*</code>), or single pages, with an optional port.</p>
                             <div id="allowed-domain-list" class="tag-cloud">
                                 <!-- Populated by JS -->
                             </div>

@@ -40,6 +40,7 @@
   // 📦 TOP-LEVEL STATE VARIABLES (DECLARED FIRST TO PREVENT TDZ ERRORS)
   // ------------------------------------------------------------------
   let tabUnlocked = false;
+  let isBlocked = false;
   let scanPrompted = false;
   let scanAcknowledged = false;
   let scanThrottleId = null;
@@ -60,7 +61,7 @@
   }
 
   function dropBarrier() {
-    if (scanPrompted) return;
+    if (scanPrompted || isBlocked) return;
     if (securityBarrier.parentNode) securityBarrier.parentNode.removeChild(securityBarrier);
   }
 
@@ -104,11 +105,94 @@
     return false;
   }
 
-  function isWhitelisted(ignoreSearch = false) {
+  function blockPage(url) {
+    if (isBlocked) return;
+    isBlocked = true;
+
+    if (realtimeInputInterval) {
+      clearInterval(realtimeInputInterval);
+      realtimeInputInterval = null;
+    }
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+    if (activeTamperObserver) {
+      activeTamperObserver.disconnect();
+      activeTamperObserver = null;
+    }
+    if (activeTamperInterval) {
+      clearInterval(activeTamperInterval);
+      activeTamperInterval = null;
+    }
+    if (typeof cancelRescan === 'function') {
+      cancelRescan();
+    }
+
+    let hostname = window.location.hostname;
+    try {
+      if (url) hostname = new URL(url, window.location.href).hostname;
+    } catch {}
+
+    const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, hostname);
+
+    if (window.location.href.includes('chrome-extension://')) return;
+
+    if (window.top === window.self) {
+      if (CONFIG.BLOCK_METHOD === 'blocked_page') {
+        chrome.runtime.sendMessage({ action: 'triggerBlock' });
+      }
+    }
+
+    window.location.href = targetUrl;
+  }
+
+  function isWhitelisted(ignoreSearch = false, customUrl = null) {
     if (!CONFIG) return false;
     if (tabUnlocked) return true;
     if (!ignoreSearch && isSearchPage()) return false;
-    return matchesAnyHostEntry(window.location.hostname, window.location.port, CONFIG.ALLOWED_DOMAINS);
+    if (!Array.isArray(CONFIG.ALLOWED_DOMAINS) || CONFIG.ALLOWED_DOMAINS.length === 0) return false;
+
+    let targetUrl;
+    try {
+      targetUrl = customUrl ? new URL(customUrl, window.location.href) : window.location;
+    } catch {
+      targetUrl = window.location;
+    }
+
+    if (targetUrl.protocol === 'chrome-extension:' || targetUrl.protocol === 'chrome:') return false;
+
+    const host = String(targetUrl.hostname || '').toLowerCase().replace(/^www\./, '');
+    if (!host) return false;
+
+    // Find all whitelist rules that apply to this host
+    const domainRules = [];
+    for (const entry of CONFIG.ALLOWED_DOMAINS) {
+      const rule = (entry && typeof entry === 'object') ? entry : parseScanExclusion(entry);
+      if (!rule) continue;
+      const hostMatches = (host === rule.host) ||
+        (classifyHost(rule.host) === 'domain' && host.endsWith('.' + rule.host));
+      if (hostMatches) {
+        domainRules.push(rule);
+      }
+    }
+
+    // If the host is not in the whitelist at all, standard blocking/scanning checks proceed
+    if (domainRules.length === 0) return false;
+
+    // Check if the current URL matches the whitelisted site, page, or child page / section
+    const isAllowed = domainRules.some(rule =>
+      scanExclusionMatches(targetUrl.hostname, targetUrl.port, targetUrl.pathname, targetUrl.search, rule)
+    );
+
+    if (isAllowed) {
+      return true; // Whitelisted! Let it go.
+    }
+
+    // The domain is in the whitelist with specific page/section rules,
+    // but this specific page is not allowed. Instantly block it!
+    blockPage(targetUrl.href);
+    return false;
   }
 
   function dismissScanPrompt() {
@@ -408,39 +492,8 @@
     });
   }
 
-  function handleBlock() {
-    if (isWhitelisted()) return;
-
-    if (realtimeInputInterval) {
-      clearInterval(realtimeInputInterval);
-      realtimeInputInterval = null;
-    }
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
-    if (activeTamperObserver) {
-      activeTamperObserver.disconnect();
-      activeTamperObserver = null;
-    }
-    if (activeTamperInterval) {
-      clearInterval(activeTamperInterval);
-      activeTamperInterval = null;
-    }
-    cancelRescan();
-
-    const hostname = window.location.hostname;
-    const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, hostname);
-
-    if (window.location.href.includes('chrome-extension://')) return;
-
-    if (window.top === window.self) {
-        if (CONFIG.BLOCK_METHOD === 'blocked_page') {
-          chrome.runtime.sendMessage({ action: 'triggerBlock' });
-        }
-    }
-    
-    window.location.href = targetUrl;
+  function handleBlock(url) {
+    blockPage(url || window.location.href);
   }
 
   function isExplicit(text) {
@@ -1084,6 +1137,15 @@
     } catch { return false; }
   }
 
+  // --- PHASE 0: Whitelist check & enforcement ---
+  if (isWhitelisted()) {
+    dropBarrier();
+    return;
+  }
+  if (isBlocked) {
+    return;
+  }
+
   // --- PHASE 1: Instant synchronous checks ---
   const currentHostname = window.location.hostname;
   if (!isWhitelisted() && (isBlockedDomain(currentHostname) || isBlockedPage(window.location.href) || isExactBlockedPage(window.location.href))) {
@@ -1119,6 +1181,12 @@
     try {
       if (customUrl) currentHost = new URL(customUrl, window.location.href).hostname;
     } catch {}
+
+    if (isWhitelisted(false, currentUrl)) {
+      dropBarrier();
+      return false;
+    }
+    if (isBlocked) return true;
 
     // If this URL is scan excluded, live content and input scanning must never touch it.
     if (isScanExcluded(currentUrl)) {
