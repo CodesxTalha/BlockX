@@ -29,7 +29,12 @@
     document.documentElement.appendChild(securityBarrier);
   }
 
-  const isTopFrame = window.top === window.self;
+  let isTopFrame = true;
+  try {
+    isTopFrame = window.top === window.self;
+  } catch {
+    isTopFrame = false;
+  }
 
   // ------------------------------------------------------------------
   // 📦 TOP-LEVEL STATE VARIABLES (DECLARED FIRST TO PREVENT TDZ ERRORS)
@@ -55,6 +60,7 @@
   }
 
   function dropBarrier() {
+    if (scanPrompted) return;
     if (securityBarrier.parentNode) securityBarrier.parentNode.removeChild(securityBarrier);
   }
 
@@ -108,6 +114,7 @@
   function dismissScanPrompt() {
     scanPrompted = false;
     scanAcknowledged = false;
+    tamperNotes.clear();
     if (activeTamperObserver) {
       activeTamperObserver.disconnect();
       activeTamperObserver = null;
@@ -181,6 +188,7 @@
   }
 
   function triggerInputBlocked(hit, target) {
+    if (!isTopFrame) return;
     if (isScanExcluded()) return;
     if (scanPrompted || scanAcknowledged) return;
     console.log(`⚡ [BlockX] Flagged keyword "${hit}" detected in input! Prompting immediately.`);
@@ -199,6 +207,7 @@
   }
 
   function checkAllInputsOnPage() {
+    if (!isTopFrame) return false;
     if (isScanExcluded()) return false;
     if (scanPrompted || scanAcknowledged) return false;
     const inputs = document.querySelectorAll('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"]');
@@ -216,6 +225,7 @@
   }
 
   function handleRealtimeInput(e) {
+    if (!isTopFrame) return;
     if (isScanExcluded()) return;
     if (scanPrompted || scanAcknowledged) return;
     const target = e.target;
@@ -236,75 +246,81 @@
     }
   }
 
-  // Attach capture-phase input listeners
-  ['input', 'beforeinput', 'keyup', 'change', 'paste', 'focusin'].forEach(type => {
-    window.addEventListener(type, handleRealtimeInput, true);
-  });
+  // Attach capture-phase input listeners & active polling (top frame only)
+  if (isTopFrame) {
+    ['input', 'beforeinput', 'keyup', 'change', 'paste', 'focusin'].forEach(type => {
+      window.addEventListener(type, handleRealtimeInput, true);
+    });
 
-  window.addEventListener('keydown', (e) => {
-    if (isScanExcluded()) return;
-    if (e.key === 'Enter') {
-      const active = document.activeElement;
-      const text = active ? (active.value || active.innerText || active.textContent || '') : '';
-      const hit = checkTextForFlaggedKeywords(text);
-      if (hit) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        triggerInputBlocked(hit, active);
-      }
-    }
-  }, true);
-
-  window.addEventListener('submit', (e) => {
-    if (isScanExcluded()) return;
-    const form = e.target;
-    if (form && form.querySelectorAll) {
-      const inputs = form.querySelectorAll('input, textarea, [contenteditable]');
-      for (const input of inputs) {
-        const text = input.value || input.innerText || input.textContent || '';
+    window.addEventListener('keydown', (e) => {
+      if (!isTopFrame) return;
+      if (isScanExcluded()) return;
+      if (e.key === 'Enter') {
+        const active = document.activeElement;
+        const text = active ? (active.value || active.innerText || active.textContent || '') : '';
         const hit = checkTextForFlaggedKeywords(text);
         if (hit) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
-          triggerInputBlocked(hit, input);
-          return;
+          triggerInputBlocked(hit, active);
         }
       }
-    }
-  }, true);
+    }, true);
 
-  window.addEventListener('click', (e) => {
-    if (isScanExcluded()) return;
-    const target = e.target;
-    if (!target) return;
-    const isSearchBtn = target.closest && target.closest('button, [role="button"], input[type="submit"], [aria-label*="search" i], [aria-label*="Search" i]');
-    if (isSearchBtn) {
-      if (checkAllInputsOnPage()) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-      }
-    }
-  }, true);
-
-  // Active polling: scans the active element and all inputs every 80ms
-  realtimeInputInterval = setInterval(() => {
-    if (isScanExcluded()) return;
-    if (scanPrompted || scanAcknowledged) return;
-    if (document.activeElement) {
-      const el = document.activeElement;
-      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) {
-        const text = el.value || el.innerText || el.textContent || '';
-        const hit = checkTextForFlaggedKeywords(text);
-        if (hit) {
-          triggerInputBlocked(hit, el);
-          return;
+    window.addEventListener('submit', (e) => {
+      if (!isTopFrame) return;
+      if (isScanExcluded()) return;
+      const form = e.target;
+      if (form && form.querySelectorAll) {
+        const inputs = form.querySelectorAll('input, textarea, [contenteditable]');
+        for (const input of inputs) {
+          const text = input.value || input.innerText || input.textContent || '';
+          const hit = checkTextForFlaggedKeywords(text);
+          if (hit) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            triggerInputBlocked(hit, input);
+            return;
+          }
         }
       }
-    }
-  }, 80);
+    }, true);
+
+    window.addEventListener('click', (e) => {
+      if (!isTopFrame) return;
+      if (isScanExcluded()) return;
+      const target = e.target;
+      if (!target) return;
+      const isSearchBtn = target.closest && target.closest('button, [role="button"], input[type="submit"], [aria-label*="search" i], [aria-label*="Search" i]');
+      if (isSearchBtn) {
+        if (checkAllInputsOnPage()) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
+      }
+    }, true);
+
+    // Active polling: scans the active element and all inputs every 80ms
+    realtimeInputInterval = setInterval(() => {
+      if (!isTopFrame) return;
+      if (isScanExcluded()) return;
+      if (scanPrompted || scanAcknowledged) return;
+      if (document.activeElement) {
+        const el = document.activeElement;
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) {
+          const text = el.value || el.innerText || el.textContent || '';
+          const hit = checkTextForFlaggedKeywords(text);
+          if (hit) {
+            triggerInputBlocked(hit, el);
+            return;
+          }
+        }
+      }
+    }, 80);
+  }
 
   // --- 2. YOUTUBE SHORTS CSS INJECTION ---
   if (window.location.hostname.includes('youtube.com')) {
@@ -820,8 +836,22 @@
    * sits behind the overlay's backdrop-filter and gets blurred out.
    */
   function showScanPrompt() {
+    if (!isTopFrame) return;
     if (isScanExcluded()) return;
+    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
     scanPrompted = true;
+
+    // Clean up any stale prompt host, observers or intervals
+    const existingHost = document.getElementById('blockx-scan-prompt');
+    if (existingHost) existingHost.remove();
+    if (activeTamperObserver) {
+      activeTamperObserver.disconnect();
+      activeTamperObserver = null;
+    }
+    if (activeTamperInterval) {
+      clearInterval(activeTamperInterval);
+      activeTamperInterval = null;
+    }
 
     const host = document.createElement('div');
     host.id = 'blockx-scan-prompt';
@@ -945,6 +975,7 @@
     const reveal = () => {
       scanAcknowledged = true;
       scanPrompted = false;
+      tamperNotes.clear();
       if (tamperObserver) { tamperObserver.disconnect(); tamperObserver = null; }
       if (tamperInterval) { clearInterval(tamperInterval); tamperInterval = null; }
       activeTamperObserver = null;
@@ -1106,6 +1137,26 @@
       return false;
     }
 
+    // Subframes only check domain/url block rules, never content scanning or prompts
+    if (!isTopFrame) {
+      if (
+        !isWhitelisted() && (
+          isBlockedDomain(currentHost) ||
+          isBlockedPage(currentUrl) ||
+          isExactBlockedPage(currentUrl) ||
+          isExplicit(currentUrl)
+        )
+      ) {
+        if (observer) observer.disconnect();
+        handleBlock();
+        return true;
+      }
+      return false;
+    }
+
+    // If top frame is already prompted, page is actively blocked/blurred; do NOT report safe!
+    if (scanPrompted) return true;
+
     // Check all inputs on the page right now as part of safety check
     if (checkAllInputsOnPage()) return true;
 
@@ -1152,6 +1203,7 @@
   verifyPageSafety();
 
   const cleanup = () => {
+    if (scanPrompted) return;
     if (!verifyPageSafety()) {
       dropBarrier();
     }
