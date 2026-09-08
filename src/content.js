@@ -70,6 +70,17 @@
   // ------------------------------------------------------------------
   await loadConfig();
 
+  // If there is an active temporary grant, ask the service worker
+  if (hasTempGrant(window.location.hostname, CONFIG.TEMP_GRANTS)) {
+    try {
+      const reply = await chrome.runtime.sendMessage({
+        action: 'isTabUnlocked',
+        host: window.location.hostname
+      });
+      tabUnlocked = !!(reply && reply.unlocked);
+    } catch { /* service worker asleep or reloading */ }
+  }
+
   function isScanExcluded(customUrl) {
     if (!CONFIG || !Array.isArray(CONFIG.SCAN_EXCLUDED) || CONFIG.SCAN_EXCLUDED.length === 0) {
       return false;
@@ -82,16 +93,6 @@
       return matchesAnyScanExclusion(at.hostname, at.port, at.pathname, at.search, CONFIG.SCAN_EXCLUDED);
     }
   }
-
-  // A pass belongs to one tab, and only the service worker knows which tab
-  // this is, so it is asked once per page load.
-  try {
-    const reply = await chrome.runtime.sendMessage({
-      action: 'isTabUnlocked',
-      host: window.location.hostname
-    });
-    tabUnlocked = !!(reply && reply.unlocked);
-  } catch { /* service worker asleep or reloading */ }
 
   function isSearchPage() {
     const at = window.location;
@@ -108,6 +109,8 @@
   function blockPage(url) {
     if (isBlocked) return;
     isBlocked = true;
+
+    try { window.stop(); } catch {}
 
     if (realtimeInputInterval) {
       clearInterval(realtimeInputInterval);
@@ -144,7 +147,11 @@
       }
     }
 
-    window.location.href = targetUrl;
+    try {
+      window.location.replace(targetUrl);
+    } catch {
+      window.location.href = targetUrl;
+    }
   }
 
   function isWhitelisted(ignoreSearch = false, customUrl = null) {
@@ -193,6 +200,15 @@
     // but this specific page is not allowed. Instantly block it!
     blockPage(targetUrl.href);
     return false;
+  }
+
+  // --- IMMEDIATE WHITELIST CHECK & ENFORCEMENT ---
+  if (isWhitelisted()) {
+    dropBarrier();
+    return;
+  }
+  if (isBlocked) {
+    return;
   }
 
   function dismissScanPrompt() {

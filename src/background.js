@@ -249,18 +249,18 @@ async function updateBlockingRules() {
     const addAllowRule = (priority, filter) => {
       if (rules.length >= DYNAMIC_RULE_LIMIT) return false;
 
-      const entry = normaliseHostEntry(filter);
-      if (!entry) return false;
+      const rule = (filter && typeof filter === 'object') ? filter : parseScanExclusion(filter);
+      if (!rule || rule.kind !== 'site') return false;
 
-      const asciiHost = toPunycode(entry.host);
+      const asciiHost = toPunycode(rule.host);
       if (!isAscii(asciiHost)) return false;
 
       // The || anchor only understands plain domain names, so a port or an
       // address literal needs an explicit pattern instead.
-      const condition = (entry.port || entry.kind === 'ipv6')
+      const condition = (rule.port || classifyHost(rule.host) === 'ipv6')
         ? {
             regexFilter: `^https?://${escapeRegExp(asciiHost)}`
-              + (entry.port ? `:${entry.port}` : '(?::\\d+)?')
+              + (rule.port ? `:${rule.port}` : '(?::\\d+)?')
               + '(?:[/?#]|$)',
             resourceTypes: ['main_frame', 'sub_frame']
           }
@@ -531,10 +531,36 @@ function blockReason(urlStr, config, tabId) {
     }
   }
 
-  // Everything from here down can be waived by an allowed destination.
+  // Check allowed destinations (whitelist)
   try {
     const parsed = new URL(urlStr);
-    if (matchesAnyHostEntry(parsed.hostname, parsed.port, config.ALLOWED_DOMAINS)) return null;
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+
+    const domainRules = [];
+    if (Array.isArray(config.ALLOWED_DOMAINS)) {
+      for (const entry of config.ALLOWED_DOMAINS) {
+        const rule = (entry && typeof entry === 'object') ? entry : parseScanExclusion(entry);
+        if (!rule) continue;
+        const hostMatches = (host === rule.host) ||
+          (classifyHost(rule.host) === 'domain' && host.endsWith('.' + rule.host));
+        if (hostMatches) {
+          domainRules.push(rule);
+        }
+      }
+    }
+
+    if (domainRules.length > 0) {
+      const isAllowed = domainRules.some(rule =>
+        scanExclusionMatches(parsed.hostname, parsed.port, parsed.pathname, parsed.search, rule)
+      );
+      if (isAllowed) {
+        return null; // Whitelisted! Bypasses all blocks below.
+      } else {
+        // This domain is restricted to specific whitelisted pages/sections;
+        // any other path on it is blocked instantly.
+        return 'scoped_whitelist';
+      }
+    }
   } catch { /* ignore */ }
 
   if (config.DOMAINS && config.DOMAINS.length > 0) {
