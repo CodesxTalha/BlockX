@@ -7,10 +7,9 @@
   // Loading state: nothing is painted at all.
   const BARRIER_OPAQUE = 'html { visibility: hidden !important; opacity: 0 !important; background: #ffffff !important; }';
 
-  // Prompt state: an 80px blur & freeze on body (where every bit of page
-  // content lives) so it stays completely unreadable even if overlay
-  // elements are tampered with. The warning host sits on <html>, outside
-  // body, which is what keeps it sharp while the page behind it is not.
+  // Prompt state: an 80px blur and freeze on body so it stays completely
+  // unreadable even if overlay elements are tampered with. The warning host
+  // sits on <html>, outside body, which keeps it sharp while the page behind it is not.
   const BARRIER_FROZEN = `
     html { overflow: hidden !important; }
     body {
@@ -37,12 +36,64 @@
   }
 
   // ------------------------------------------------------------------
-  // TOP-LEVEL STATE VARIABLES (DECLARED FIRST TO PREVENT TDZ ERRORS)
+  // 2. CORE FLAGGED KEYWORDS & TOP-LEVEL STATE VARIABLES
+  // Declared first to completely eliminate any TDZ (Temporal Dead Zone) risks
   // ------------------------------------------------------------------
+  const CORE_FLAGGED_WORDS = Object.freeze([
+    'porn', 'porno', 'pornography', 'pornhub',
+    'sex', 'sexy', 'sexual', 'sexo', 'sexcam', 'sexdoll',
+    'nude', 'nudes', 'nudity', 'naked', 'barenaked',
+    'nsfw', 'xxx', 'xnxx', 'hentai', 'milf', 'lewd', 'erotic', 'erotica',
+    'boobs', 'boob', 'tits', 'titties', 'titty', 'breasts',
+    'cock', 'cocks', 'dick', 'pussy', 'vagina', 'penis', 'clit', 'clitoris',
+    'ass', 'assmunch', 'butt', 'butthole', 'buttcheeks',
+    'blowjob', 'handjob', 'footjob', 'cum', 'cumming', 'cumshot',
+    'fuck', 'fucking', 'fuckin', 'masturbat', 'masturbation',
+    'dildo', 'vibrator', 'bondage', 'bdsm', 'fetish',
+    'orgasm', 'topless', 'upskirt', 'thong', 'lingerie'
+  ]);
+
+  let badwordsSet = new Set(CORE_FLAGGED_WORDS);
+  let testRegex = createBoundedFilter(CORE_FLAGGED_WORDS);
+  let filterRegex = null;
+  let scanRegex = createBoundedFilter(CORE_FLAGGED_WORDS);
+  let pageRegex = null;
+  let cachedBadwords = null;
+
+  function buildFilters(badwords = []) {
+    const customKws = (CONFIG && CONFIG.KEYWORDS) ? CONFIG.KEYWORDS : [];
+    const pageKws = (CONFIG && CONFIG.PAGE_KEYWORDS) ? CONFIG.PAGE_KEYWORDS : [];
+    const allKeywords = customKws.concat(badwords || []).concat(CORE_FLAGGED_WORDS);
+
+    filterRegex = createOptimizedFilter(allKeywords);
+    scanRegex = createBoundedFilter(allKeywords);
+    pageRegex = createBoundedFilter(pageKws);
+
+    badwordsSet = new Set(allKeywords.map(k => String(k || '').trim().toLowerCase()).filter(k => k.length > 0));
+    const validForTest = [...badwordsSet].sort((a, b) => b.length - a.length);
+    testRegex = createBoundedFilter(validForTest);
+  }
+
+  async function prepareFilter() {
+    if (cachedBadwords && cachedBadwords.length > 0) {
+      buildFilters(cachedBadwords);
+      return;
+    }
+    try {
+      const r = await fetch(chrome.runtime.getURL('assets/data/badwords.json'));
+      cachedBadwords = await r.json();
+    } catch (e) {
+      cachedBadwords = [];
+    }
+    buildFilters(cachedBadwords);
+  }
+
   let tabUnlocked = false;
   let isBlocked = false;
   let scanPrompted = false;
   let scanAcknowledged = false;
+  const acknowledgedKeywords = new Set();
+  const pendingPromptKeywords = new Set();
   let scanThrottleId = null;
   let scanDeadline = 0;
   let scanUrl = window.location.href;
@@ -65,22 +116,6 @@
     if (securityBarrier.parentNode) securityBarrier.parentNode.removeChild(securityBarrier);
   }
 
-  // ------------------------------------------------------------------
-  // CONFIG & INITIALIZATION
-  // ------------------------------------------------------------------
-  await loadConfig();
-
-  // If there is an active temporary grant, ask the service worker
-  if (hasTempGrant(window.location.hostname, CONFIG.TEMP_GRANTS)) {
-    try {
-      const reply = await chrome.runtime.sendMessage({
-        action: 'isTabUnlocked',
-        host: window.location.hostname
-      });
-      tabUnlocked = !!(reply && reply.unlocked);
-    } catch { /* service worker asleep or reloading */ }
-  }
-
   function isScanExcluded(customUrl) {
     if (!CONFIG || !Array.isArray(CONFIG.SCAN_EXCLUDED) || CONFIG.SCAN_EXCLUDED.length === 0) {
       return false;
@@ -92,6 +127,622 @@
       const at = window.location;
       return matchesAnyScanExclusion(at.hostname, at.port, at.pathname, at.search, CONFIG.SCAN_EXCLUDED);
     }
+  }
+
+  function cancelRescan() {
+    if (scanThrottleId) clearTimeout(scanThrottleId);
+    scanThrottleId = null;
+    scanDeadline = 0;
+  }
+
+  // ------------------------------------------------------------------
+  // 3. PROMPT STYLES & OVERLAY RENDERING (AVAILABLE SYNCHRONOUSLY)
+  // ------------------------------------------------------------------
+  const PROMPT_STYLES = `
+    :host { all: initial; }
+
+    .wrap {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-backdrop-filter: blur(64px) saturate(0.4) brightness(0.72);
+      backdrop-filter: blur(64px) saturate(0.4) brightness(0.72);
+      background: rgba(9, 9, 11, 0.55);
+      animation: blockx-fade 220ms ease-out;
+    }
+
+    .card {
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 480px;
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+      padding: 24px;
+      text-align: left;
+      border-radius: 16px;
+      border: 1px solid #3f3f46;
+      background: #1c1c1c;
+      color: #f9fafb;
+      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.7);
+      animation: blockx-rise 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .warning-text {
+      margin: 0 0 22px 0;
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.7;
+      color: inherit;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      unicode-bidi: plaintext;
+      text-align: start;
+    }
+
+    .view[hidden] { display: none !important; }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: inherit;
+      text-align: start;
+    }
+
+    .hint {
+      margin: 0 0 20px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #a1a1aa;
+      text-align: start;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    button:focus-visible { outline: 2px solid #1900FF; outline-offset: 2px; }
+
+    .leave { background: #f9fafb; color: #111827; margin-bottom: 10px; }
+    .leave:hover { background: #ffffff; }
+
+    .show { background: transparent; color: #a1a1aa; border-color: #3f3f46; }
+    .show:hover { color: #f9fafb; border-color: #71717a; }
+
+    :host([data-theme="light"]) .wrap {
+      background: rgba(249, 250, 251, 0.72);
+      -webkit-backdrop-filter: blur(64px) saturate(0.35) brightness(1.15);
+      backdrop-filter: blur(64px) saturate(0.35) brightness(1.15);
+    }
+    :host([data-theme="light"]) .card {
+      background: #ffffff;
+      border-color: #e5e7eb;
+      color: #111827;
+      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
+    }
+    :host([data-theme="light"]) .warning-text { color: #111827; }
+    :host([data-theme="light"]) .hint { color: #6b7280; }
+    :host([data-theme="light"]) .leave { background: #111827; color: #ffffff; }
+    :host([data-theme="light"]) .leave:hover { background: #000000; }
+    :host([data-theme="light"]) .show { color: #6b7280; border-color: #e5e7eb; }
+    :host([data-theme="light"]) .show:hover { color: #111827; border-color: #9ca3af; }
+
+    @keyframes blockx-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes blockx-rise {
+      from { opacity: 0; transform: translateY(8px) scale(0.97); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .wrap, .card { animation: none; }
+    }
+  `;
+
+  function freezeMedia() {
+    for (const el of document.querySelectorAll('video, audio')) {
+      mutedMedia.push([el, el.muted]);
+      el.muted = true;
+      try { el.pause(); } catch { /* ignore */ }
+    }
+  }
+
+  function thawMedia() {
+    for (const [el, wasMuted] of mutedMedia) el.muted = wasMuted;
+    mutedMedia.length = 0;
+  }
+
+  function resolveTheme() {
+    const theme = (CONFIG && CONFIG.THEME) || 'system';
+    if (theme === 'light' || theme === 'dark') return theme;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+      ? 'light'
+      : 'dark';
+  }
+
+  function noteTamper(key, msg) {
+    if (tamperNotes.has(key)) return;
+    tamperNotes.add(key);
+    console.warn(msg);
+  }
+
+  function showScanPrompt(triggerKeywords) {
+    if (!isTopFrame) return;
+    if (isScanExcluded()) return;
+    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
+    scanPrompted = true;
+
+    pendingPromptKeywords.clear();
+    if (triggerKeywords) {
+      if (typeof triggerKeywords === 'string') {
+        const clean = triggerKeywords.toLowerCase().trim();
+        if (clean) pendingPromptKeywords.add(clean);
+      } else if (triggerKeywords instanceof Set || Array.isArray(triggerKeywords)) {
+        for (const k of triggerKeywords) {
+          const clean = String(k || '').toLowerCase().trim();
+          if (clean) pendingPromptKeywords.add(clean);
+        }
+      }
+    }
+
+    const existingHost = document.getElementById('blockx-scan-prompt');
+    if (existingHost) existingHost.remove();
+    if (activeTamperObserver) {
+      activeTamperObserver.disconnect();
+      activeTamperObserver = null;
+    }
+    if (activeTamperInterval) {
+      clearInterval(activeTamperInterval);
+      activeTamperInterval = null;
+    }
+
+    const host = document.createElement('div');
+    host.id = 'blockx-scan-prompt';
+    host.setAttribute('data-theme', resolveTheme());
+    host.style.setProperty('all', 'initial', 'important');
+    host.style.setProperty('display', 'block', 'important');
+    host.style.setProperty('position', 'fixed', 'important');
+    host.style.setProperty('inset', '0', 'important');
+    host.style.setProperty('z-index', '2147483647', 'important');
+    host.style.setProperty('visibility', 'visible', 'important');
+
+    const root = host.attachShadow({ mode: 'closed' });
+
+    const style = document.createElement('style');
+    style.textContent = PROMPT_STYLES;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'wrap';
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const view1 = document.createElement('div');
+    view1.className = 'view';
+
+    const message = document.createElement('p');
+    message.className = 'warning-text';
+    message.dir = 'auto';
+    message.textContent = ((CONFIG && CONFIG.WEAKENING_MESSAGE) || '').trim()
+      || 'This page looks explicit. Do you still want to open it?';
+
+    view1.appendChild(message);
+
+    const view2 = document.createElement('div');
+    view2.className = 'view';
+    view2.hidden = true;
+
+    const heading2 = document.createElement('h2');
+    heading2.textContent = 'Are you sure?';
+
+    const hint = document.createElement('p');
+    hint.className = 'hint';
+    hint.textContent = 'This page will be unblurred and shown. Only continue if you truly mean to.';
+
+    view2.appendChild(heading2);
+    view2.appendChild(hint);
+
+    const leaveBtn = document.createElement('button');
+    leaveBtn.className = 'leave';
+    leaveBtn.type = 'button';
+    leaveBtn.textContent = 'No, close this tab';
+    leaveBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'closeTab' });
+    });
+
+    const showBtn = document.createElement('button');
+    showBtn.className = 'show';
+    showBtn.type = 'button';
+    showBtn.textContent = 'Yes, show it';
+
+    const keepKeys = (event) => {
+      if (event.composedPath().includes(host)) event.stopPropagation();
+    };
+    const KEY_EVENTS = ['keydown', 'keypress', 'keyup'];
+    KEY_EVENTS.forEach(type => window.addEventListener(type, keepKeys, true));
+
+    let tamperObserver = null;
+    let tamperInterval = null;
+
+    function enforceOverlayIntegrity() {
+      if (!scanPrompted || scanAcknowledged) return;
+
+      if (!host.parentNode || !document.documentElement.contains(host)) {
+        noteTamper('host', '[BlockX] Warning overlay removed: re-attaching.');
+        document.documentElement.appendChild(host);
+      }
+
+      const style = window.getComputedStyle(host);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' || style.pointerEvents === 'none') {
+        noteTamper('host-style', '[BlockX] Warning overlay hidden: restoring visibility.');
+        host.style.setProperty('all', 'initial', 'important');
+        host.style.setProperty('position', 'fixed', 'important');
+        host.style.setProperty('inset', '0', 'important');
+        host.style.setProperty('z-index', '2147483647', 'important');
+        host.style.setProperty('visibility', 'visible', 'important');
+        host.style.setProperty('display', 'block', 'important');
+        host.style.setProperty('opacity', '1', 'important');
+        host.style.setProperty('pointer-events', 'auto', 'important');
+      }
+
+      const hasBarrier = document.contains(securityBarrier);
+      const bodyStyle = document.body ? window.getComputedStyle(document.body) : null;
+      const blurred = document.body ? !!(bodyStyle && (bodyStyle.filter || bodyStyle.webkitFilter || '').includes('blur')) : true;
+      if (!hasBarrier || !blurred) {
+        noteTamper('barrier', '[BlockX] Security barrier removed or weakened: re-attaching.');
+        raiseBarrier(BARRIER_FROZEN);
+      }
+
+      const HEAD_LEVEL = { STYLE: 1, LINK: 1, META: 1, SCRIPT: 1, TITLE: 1 };
+      for (const node of [...document.documentElement.children]) {
+        if (node === document.head || node === document.body) continue;
+        if (node === securityBarrier || node === host) continue;
+        if (HEAD_LEVEL[node.nodeName]) continue;
+        noteTamper('stray', '[BlockX] Content moved outside <body>: moving back.');
+        if (document.body) document.body.appendChild(node);
+      }
+    }
+
+    const reveal = () => {
+      scanAcknowledged = true;
+      scanPrompted = false;
+      for (const kw of pendingPromptKeywords) {
+        acknowledgedKeywords.add(kw);
+      }
+      pendingPromptKeywords.clear();
+      tamperNotes.clear();
+      if (tamperObserver) { tamperObserver.disconnect(); tamperObserver = null; }
+      if (tamperInterval) { clearInterval(tamperInterval); tamperInterval = null; }
+      activeTamperObserver = null;
+      activeTamperInterval = null;
+      KEY_EVENTS.forEach(type => window.removeEventListener(type, keepKeys, true));
+      if (host.parentNode) host.parentNode.removeChild(host);
+      thawMedia();
+      dropBarrier();
+    };
+
+    const sureBtn = document.createElement('button');
+    sureBtn.className = 'leave';
+    sureBtn.type = 'button';
+    sureBtn.textContent = "Yes, I'm sure: show it";
+
+    const backBtn = document.createElement('button');
+    backBtn.className = 'show';
+    backBtn.type = 'button';
+    backBtn.textContent = 'No, go back';
+
+    showBtn.addEventListener('click', () => {
+      view1.hidden = true;
+      view2.hidden = false;
+      sureBtn.focus();
+    });
+    backBtn.addEventListener('click', () => {
+      view2.hidden = true;
+      view1.hidden = false;
+      leaveBtn.focus();
+    });
+    sureBtn.addEventListener('click', reveal);
+
+    view1.appendChild(leaveBtn);
+    view1.appendChild(showBtn);
+    view2.appendChild(sureBtn);
+    view2.appendChild(backBtn);
+    card.appendChild(view1);
+    card.appendChild(view2);
+    wrap.appendChild(card);
+    root.appendChild(style);
+    root.appendChild(wrap);
+
+    document.documentElement.appendChild(host);
+    raiseBarrier(BARRIER_FROZEN);
+    freezeMedia();
+    leaveBtn.focus();
+
+    setTimeout(() => {
+      if (!scanPrompted || scanAcknowledged) return;
+
+      tamperObserver = new MutationObserver(() => {
+        enforceOverlayIntegrity();
+      });
+
+      tamperObserver.observe(document.documentElement, {
+        childList: true,
+        attributes: true,
+        subtree: true,
+        attributeFilter: ['style', 'class', 'hidden', 'id']
+      });
+
+      tamperInterval = setInterval(enforceOverlayIntegrity, 300);
+      activeTamperObserver = tamperObserver;
+      activeTamperInterval = tamperInterval;
+    }, 100);
+  }
+
+  function dismissScanPrompt() {
+    scanPrompted = false;
+    scanAcknowledged = false;
+    pendingPromptKeywords.clear();
+    tamperNotes.clear();
+    if (activeTamperObserver) {
+      activeTamperObserver.disconnect();
+      activeTamperObserver = null;
+    }
+    if (activeTamperInterval) {
+      clearInterval(activeTamperInterval);
+      activeTamperInterval = null;
+    }
+    cancelRescan();
+    const promptHost = document.getElementById('blockx-scan-prompt');
+    if (promptHost) promptHost.remove();
+    dropBarrier();
+    try { thawMedia(); } catch {}
+  }
+
+  // ------------------------------------------------------------------
+  // 4. REAL-TIME INSTANT KEYSTROKE & INPUT SCANNER (MILLISECOND 0)
+  // Runs synchronously before any async storage delays
+  // ------------------------------------------------------------------
+  function checkTextForFlaggedKeywords(text) {
+    if (!text || typeof text !== 'string') return null;
+    const clean = text.trim();
+    if (clean.length < 1) return null;
+
+    // 1. Direct check for custom keywords with delimiter checking
+    const customList = (CONFIG && CONFIG.KEYWORDS ? CONFIG.KEYWORDS : []).concat(CONFIG && CONFIG.PAGE_KEYWORDS ? CONFIG.PAGE_KEYWORDS : []);
+    for (const kw of customList) {
+      const lower = String(kw || '').toLowerCase().trim();
+      if (lower && !acknowledgedKeywords.has(lower) && matchesUrlKeyword(clean, kw)) {
+        return lower;
+      }
+    }
+
+    // 2. Check compiled regex filters (scanRegex or testRegex)
+    const activeRegex = scanRegex || testRegex;
+    if (activeRegex) {
+      activeRegex.lastIndex = 0;
+      let match;
+      while ((match = activeRegex.exec(clean)) !== null) {
+        const word = match[0].toLowerCase();
+        if (!acknowledgedKeywords.has(word)) {
+          activeRegex.lastIndex = 0;
+          return word;
+        }
+        if (activeRegex.lastIndex === match.index) activeRegex.lastIndex++;
+      }
+      activeRegex.lastIndex = 0;
+    }
+
+    // 3. Fallback set check
+    if (badwordsSet && badwordsSet.size > 0) {
+      const words = clean.toLowerCase().split(/[^a-z0-9]+/i);
+      for (const w of words) {
+        if (w.length >= 2 && badwordsSet.has(w) && !acknowledgedKeywords.has(w)) {
+          return w;
+        }
+      }
+    }
+    return null;
+  }
+
+  function triggerInputBlocked(hit, target) {
+    if (!isTopFrame) return;
+    if (isScanExcluded()) return;
+    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
+
+    const lowerHit = String(hit || '').toLowerCase().trim();
+    if (acknowledgedKeywords.has(lowerHit)) return;
+
+    scanPrompted = false;
+    console.log(`[BlockX] Flagged keyword "${hit}" detected in input! Prompting immediately.`);
+    if (target && target.blur) {
+      try { target.blur(); } catch {}
+    }
+    raiseBarrier(BARRIER_FROZEN);
+    try { freezeMedia(); } catch {}
+    try {
+      showScanPrompt(lowerHit);
+    } catch (e) {
+      console.warn('[BlockX] Prompt failed; keeping page blurred.', e);
+      raiseBarrier(BARRIER_FROZEN);
+      try { freezeMedia(); } catch {}
+    }
+  }
+
+  function checkAllInputsOnPage() {
+    if (!isTopFrame) return false;
+    if (isScanExcluded()) return false;
+    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return false;
+    const inputs = document.querySelectorAll('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"], [role="combobox"], [aria-label*="search" i]');
+    for (const el of inputs) {
+      const text = el.value || (el.isContentEditable ? (el.innerText || el.textContent || '') : (el.innerText || el.textContent || ''));
+      if (text) {
+        const hit = checkTextForFlaggedKeywords(text);
+        if (hit && !acknowledgedKeywords.has(hit.toLowerCase())) {
+          triggerInputBlocked(hit, el);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function handleRealtimeInput(e) {
+    if (!isTopFrame) return;
+    if (isScanExcluded()) return;
+    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
+    const target = e.target;
+    if (!target) return;
+
+    let text = '';
+    if (typeof target.value === 'string') {
+      text = target.value;
+    } else if (target.isContentEditable) {
+      text = target.innerText || target.textContent || '';
+    } else {
+      const inputEl = target.closest && target.closest('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"], [role="combobox"]');
+      if (inputEl) {
+        text = inputEl.value || inputEl.innerText || inputEl.textContent || '';
+      } else if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) {
+        text = document.activeElement.value || document.activeElement.innerText || document.activeElement.textContent || '';
+      } else {
+        return;
+      }
+    }
+
+    const hit = checkTextForFlaggedKeywords(text);
+    if (hit && !acknowledgedKeywords.has(hit.toLowerCase())) {
+      triggerInputBlocked(hit, target);
+    }
+  }
+
+  // Attach capture-phase input listeners immediately at script evaluation (millisecond 0)
+  if (isTopFrame) {
+    ['input', 'beforeinput', 'keyup', 'change', 'paste', 'focusin'].forEach(type => {
+      window.addEventListener(type, handleRealtimeInput, true);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (!isTopFrame) return;
+      if (isScanExcluded()) return;
+      if (e.key === 'Enter') {
+        const active = document.activeElement;
+        const text = active ? (active.value || active.innerText || active.textContent || '') : '';
+        const hit = checkTextForFlaggedKeywords(text);
+        if (hit && !acknowledgedKeywords.has(hit.toLowerCase())) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          triggerInputBlocked(hit, active);
+        }
+      }
+    }, true);
+
+    window.addEventListener('submit', (e) => {
+      if (!isTopFrame) return;
+      if (isScanExcluded()) return;
+      const form = e.target;
+      if (form && form.querySelectorAll) {
+        const inputs = form.querySelectorAll('input, textarea, [contenteditable]');
+        for (const input of inputs) {
+          const text = input.value || input.innerText || input.textContent || '';
+          const hit = checkTextForFlaggedKeywords(text);
+          if (hit && !acknowledgedKeywords.has(hit.toLowerCase())) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            triggerInputBlocked(hit, input);
+            return;
+          }
+        }
+      }
+    }, true);
+
+    window.addEventListener('click', (e) => {
+      if (!isTopFrame) return;
+      if (isScanExcluded()) return;
+      const target = e.target;
+      if (!target) return;
+      const isSearchBtn = target.closest && target.closest('button, [role="button"], input[type="submit"], [aria-label*="search" i], [aria-label*="Search" i]');
+      if (isSearchBtn) {
+        if (checkAllInputsOnPage()) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
+      }
+    }, true);
+
+    // Active polling: scans the active element and all inputs every 80ms
+    realtimeInputInterval = setInterval(() => {
+      if (!isTopFrame) return;
+      if (isScanExcluded()) return;
+      if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
+      if (document.activeElement) {
+        const el = document.activeElement;
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable || el.getAttribute('role') === 'textbox' || el.getAttribute('role') === 'searchbox') {
+          const text = el.value || el.innerText || el.textContent || '';
+          const hit = checkTextForFlaggedKeywords(text);
+          if (hit && !acknowledgedKeywords.has(hit.toLowerCase())) {
+            triggerInputBlocked(hit, el);
+            return;
+          }
+        }
+      }
+    }, 80);
+  }
+
+  // --- 5. YOUTUBE SHORTS CSS INJECTION ---
+  if (window.location.hostname.includes('youtube.com')) {
+    const shortsStyle = document.createElement('style');
+    shortsStyle.textContent = `
+      ytd-guide-entry-renderer:has(a[href="/shorts"]),
+      ytd-mini-guide-entry-renderer[aria-label="Shorts"],
+      ytd-mini-guide-entry-renderer[title="Shorts"],
+      a[path="shorts"],
+      ytd-rich-shelf-renderer[is-shorts],
+      ytd-reel-shelf-renderer,
+      ytd-item-section-renderer:has(ytd-reel-shelf-renderer),
+      ytd-shelf-renderer:has(a[href*="/shorts/"]),
+      ytd-rich-item-renderer:has(a[href*="/shorts/"]),
+      ytd-video-renderer:has(a[href*="/shorts/"]),
+      [title="Shorts"],
+      [aria-label="Shorts"] {
+        display: none !important;
+      }
+    `;
+    (document.head || document.documentElement).appendChild(shortsStyle);
+  }
+
+  // ------------------------------------------------------------------
+  // 6. ASYNCHRONOUS CONFIG & OMNI-WHITELIST
+  // ------------------------------------------------------------------
+  await loadConfig();
+  buildFilters([]);
+  prepareFilter();
+
+  if (hasTempGrant(window.location.hostname, CONFIG.TEMP_GRANTS)) {
+    try {
+      const reply = await chrome.runtime.sendMessage({
+        action: 'isTabUnlocked',
+        host: window.location.hostname
+      });
+      tabUnlocked = !!(reply && reply.unlocked);
+    } catch { /* service worker asleep or reloading */ }
   }
 
   function isSearchPage() {
@@ -128,9 +779,7 @@
       clearInterval(activeTamperInterval);
       activeTamperInterval = null;
     }
-    if (typeof cancelRescan === 'function') {
-      cancelRescan();
-    }
+    cancelRescan();
 
     let hostname = window.location.hostname;
     try {
@@ -172,7 +821,6 @@
     const host = String(targetUrl.hostname || '').toLowerCase().replace(/^www\./, '');
     if (!host) return false;
 
-    // Find all whitelist rules that apply to this host
     const domainRules = [];
     for (const entry of CONFIG.ALLOWED_DOMAINS) {
       const rule = (entry && typeof entry === 'object') ? entry : parseScanExclusion(entry);
@@ -184,20 +832,16 @@
       }
     }
 
-    // If the host is not in the whitelist at all, standard blocking/scanning checks proceed
     if (domainRules.length === 0) return false;
 
-    // Check if the current URL matches the whitelisted site, page, or child page / section
     const isAllowed = domainRules.some(rule =>
       scanExclusionMatches(targetUrl.hostname, targetUrl.port, targetUrl.pathname, targetUrl.search, rule)
     );
 
     if (isAllowed) {
-      return true; // Whitelisted! Let it go.
+      return true;
     }
 
-    // The domain is in the whitelist with specific page/section rules,
-    // but this specific page is not allowed. Instantly block it!
     blockPage(targetUrl.href);
     return false;
   }
@@ -205,246 +849,12 @@
   // --- IMMEDIATE WHITELIST CHECK & ENFORCEMENT ---
   if (isWhitelisted()) {
     dropBarrier();
-    return;
   }
   if (isBlocked) {
     return;
   }
 
-  function dismissScanPrompt() {
-    scanPrompted = false;
-    scanAcknowledged = false;
-    tamperNotes.clear();
-    if (activeTamperObserver) {
-      activeTamperObserver.disconnect();
-      activeTamperObserver = null;
-    }
-    if (activeTamperInterval) {
-      clearInterval(activeTamperInterval);
-      activeTamperInterval = null;
-    }
-    cancelRescan();
-    const promptHost = document.getElementById('blockx-scan-prompt');
-    if (promptHost) promptHost.remove();
-    dropBarrier();
-    try { thawMedia(); } catch {}
-  }
-
-  // ------------------------------------------------------------------
-  // REAL-TIME INSTANT INPUT & KEYSTROKE SCANNER
-  // ------------------------------------------------------------------
-  const CORE_FLAGGED_WORDS = [
-    'porn', 'porno', 'pornography', 'pornhub',
-    'sex', 'sexy', 'sexual', 'sexo', 'sexcam', 'sexdoll',
-    'nude', 'nudes', 'nudity', 'naked', 'barenaked',
-    'nsfw', 'xxx', 'xnxx', 'hentai', 'milf', 'lewd', 'erotic', 'erotica',
-    'boobs', 'boob', 'tits', 'titties', 'titty', 'breasts',
-    'cock', 'cocks', 'dick', 'pussy', 'vagina', 'penis', 'clit', 'clitoris',
-    'ass', 'assmunch', 'butt', 'butthole', 'buttcheeks',
-    'blowjob', 'handjob', 'footjob', 'cum', 'cumming', 'cumshot',
-    'fuck', 'fucking', 'fuckin', 'masturbat', 'masturbation',
-    'dildo', 'vibrator', 'bondage', 'bdsm', 'fetish',
-    'orgasm', 'topless', 'upskirt', 'thong', 'lingerie'
-  ];
-
-  let badwordsSet = new Set(CORE_FLAGGED_WORDS);
-  let testRegex = new RegExp(`\\b(?:${CORE_FLAGGED_WORDS.map(escapeRegExp).join('|')})\\b`, 'i');
-  let filterRegex = null;
-  let scanRegex = null;
-  let pageRegex = null;
-
-  function checkTextForFlaggedKeywords(text) {
-    if (!text || typeof text !== 'string') return null;
-    const clean = text.trim();
-    if (clean.length < 3) return null;
-
-    if (pageRegex) {
-      pageRegex.lastIndex = 0;
-      const match = pageRegex.exec(clean);
-      if (match) return match[0];
-    }
-
-    if (testRegex) {
-      const match = testRegex.exec(clean);
-      if (match) return match[0];
-    }
-
-    if (scanRegex) {
-      scanRegex.lastIndex = 0;
-      const match = scanRegex.exec(clean);
-      scanRegex.lastIndex = 0;
-      if (match) return match[0];
-    }
-
-    if (badwordsSet && badwordsSet.size > 0) {
-      const words = clean.toLowerCase().split(/[\s,._\-+/\\?&=#]+/);
-      for (const w of words) {
-        if (w.length >= 3 && badwordsSet.has(w)) {
-          return w;
-        }
-      }
-    }
-    return null;
-  }
-
-  function triggerInputBlocked(hit, target) {
-    if (!isTopFrame) return;
-    if (isScanExcluded()) return;
-    if (scanPrompted || scanAcknowledged) return;
-    console.log(`[BlockX] Flagged keyword "${hit}" detected in input! Prompting immediately.`);
-    if (target && target.blur) {
-      try { target.blur(); } catch {}
-    }
-    raiseBarrier(BARRIER_FROZEN);
-    try { freezeMedia(); } catch {}
-    try {
-      showScanPrompt();
-    } catch (e) {
-      console.warn('[BlockX] Prompt failed; keeping page blurred.', e);
-      raiseBarrier(BARRIER_FROZEN);
-      try { freezeMedia(); } catch {}
-    }
-  }
-
-  function checkAllInputsOnPage() {
-    if (!isTopFrame) return false;
-    if (isScanExcluded()) return false;
-    if (scanPrompted || scanAcknowledged) return false;
-    const inputs = document.querySelectorAll('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"]');
-    for (const el of inputs) {
-      const text = el.value || (el.isContentEditable ? (el.innerText || el.textContent || '') : '');
-      if (text) {
-        const hit = checkTextForFlaggedKeywords(text);
-        if (hit) {
-          triggerInputBlocked(hit, el);
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  function handleRealtimeInput(e) {
-    if (!isTopFrame) return;
-    if (isScanExcluded()) return;
-    if (scanPrompted || scanAcknowledged) return;
-    const target = e.target;
-    if (!target) return;
-
-    let text = '';
-    if (typeof target.value === 'string') {
-      text = target.value;
-    } else if (target.isContentEditable) {
-      text = target.innerText || target.textContent || '';
-    } else {
-      return;
-    }
-
-    const hit = checkTextForFlaggedKeywords(text);
-    if (hit) {
-      triggerInputBlocked(hit, target);
-    }
-  }
-
-  // Attach capture-phase input listeners & active polling (top frame only)
-  if (isTopFrame) {
-    ['input', 'beforeinput', 'keyup', 'change', 'paste', 'focusin'].forEach(type => {
-      window.addEventListener(type, handleRealtimeInput, true);
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (!isTopFrame) return;
-      if (isScanExcluded()) return;
-      if (e.key === 'Enter') {
-        const active = document.activeElement;
-        const text = active ? (active.value || active.innerText || active.textContent || '') : '';
-        const hit = checkTextForFlaggedKeywords(text);
-        if (hit) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          triggerInputBlocked(hit, active);
-        }
-      }
-    }, true);
-
-    window.addEventListener('submit', (e) => {
-      if (!isTopFrame) return;
-      if (isScanExcluded()) return;
-      const form = e.target;
-      if (form && form.querySelectorAll) {
-        const inputs = form.querySelectorAll('input, textarea, [contenteditable]');
-        for (const input of inputs) {
-          const text = input.value || input.innerText || input.textContent || '';
-          const hit = checkTextForFlaggedKeywords(text);
-          if (hit) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            triggerInputBlocked(hit, input);
-            return;
-          }
-        }
-      }
-    }, true);
-
-    window.addEventListener('click', (e) => {
-      if (!isTopFrame) return;
-      if (isScanExcluded()) return;
-      const target = e.target;
-      if (!target) return;
-      const isSearchBtn = target.closest && target.closest('button, [role="button"], input[type="submit"], [aria-label*="search" i], [aria-label*="Search" i]');
-      if (isSearchBtn) {
-        if (checkAllInputsOnPage()) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-        }
-      }
-    }, true);
-
-    // Active polling: scans the active element and all inputs every 80ms
-    realtimeInputInterval = setInterval(() => {
-      if (!isTopFrame) return;
-      if (isScanExcluded()) return;
-      if (scanPrompted || scanAcknowledged) return;
-      if (document.activeElement) {
-        const el = document.activeElement;
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) {
-          const text = el.value || el.innerText || el.textContent || '';
-          const hit = checkTextForFlaggedKeywords(text);
-          if (hit) {
-            triggerInputBlocked(hit, el);
-            return;
-          }
-        }
-      }
-    }, 80);
-  }
-
-  // --- 2. YOUTUBE SHORTS CSS INJECTION ---
-  if (window.location.hostname.includes('youtube.com')) {
-    const shortsStyle = document.createElement('style');
-    shortsStyle.textContent = `
-      ytd-guide-entry-renderer:has(a[href="/shorts"]),
-      ytd-mini-guide-entry-renderer[aria-label="Shorts"],
-      ytd-mini-guide-entry-renderer[title="Shorts"],
-      a[path="shorts"],
-      ytd-rich-shelf-renderer[is-shorts],
-      ytd-reel-shelf-renderer,
-      ytd-item-section-renderer:has(ytd-reel-shelf-renderer),
-      ytd-shelf-renderer:has(a[href*="/shorts/"]),
-      ytd-rich-item-renderer:has(a[href*="/shorts/"]),
-      ytd-video-renderer:has(a[href*="/shorts/"]),
-      [title="Shorts"],
-      [aria-label="Shorts"] {
-        display: none !important;
-      }
-    `;
-    (document.head || document.documentElement).appendChild(shortsStyle);
-  }
-
-  // --- 3. LISTEN FOR MAIN WORLD SPA BLOCKED NOTIFICATIONS & POPSTATE ---
+  // --- 7. SPA MAIN WORLD NOTIFICATIONS & POPSTATE ---
   window.addEventListener('message', (event) => {
     if (event.data && (event.data.type === 'SHORTS_BLOCKED' || event.data.type === 'URL_CHANGED')) {
       const targetUrl = event.data.url || window.location.href;
@@ -466,7 +876,7 @@
     verifyPageSafety(window.location.href);
   });
   document.addEventListener('yt-navigate-finish', () => { verifyPageSafety(); });
-  
+
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {
       loadConfig().then(() => prepareFilter()).then(() => {
@@ -478,36 +888,6 @@
     }
   });
 
-  const storage = chrome.storage.session || chrome.storage.local;
-
-  async function prepareFilter() {
-    return new Promise((resolve) => {
-      storage.get(['CACHED_BADWORDS'], async (result) => {
-        let badwords = null;
-        if (result && result.CACHED_BADWORDS) {
-          badwords = result.CACHED_BADWORDS;
-        }
-        if (!badwords) {
-          try {
-            const r = await fetch(chrome.runtime.getURL('assets/data/badwords.json'));
-            badwords = await r.json();
-            storage.set({ CACHED_BADWORDS: badwords });
-          } catch (e) {
-            badwords = [];
-          }
-        }
-        const allKeywords = CONFIG.KEYWORDS.concat(badwords || []).concat(CORE_FLAGGED_WORDS);
-        filterRegex = createOptimizedFilter(allKeywords);
-        scanRegex = createBoundedFilter(allKeywords);
-        pageRegex = createBoundedFilter(CONFIG.PAGE_KEYWORDS || []);
-        badwordsSet = new Set(allKeywords.map(k => String(k || '').trim().toLowerCase()).filter(k => k.length >= 3));
-        const validForTest = [...badwordsSet].sort((a, b) => b.length - a.length);
-        testRegex = new RegExp(`\\b(?:${validForTest.map(escapeRegExp).join('|')})\\b`, 'i');
-        resolve();
-      });
-    });
-  }
-
   function handleBlock(url) {
     blockPage(url || window.location.href);
   }
@@ -518,24 +898,9 @@
   }
 
   // ------------------------------------------------------------------
-  // ON-PAGE CONTENT SCAN
+  // 8. ON-PAGE CONTENT SCAN
   // ------------------------------------------------------------------
-  // Walks the visible text once, counting DISTINCT flagged terms and bailing
-  // out the moment the threshold is met. Distinct-term counting is what keeps
-  // an article that says one word twenty times from tripping the warning.
-
   const SKIP_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEMPLATE: 1, TEXTAREA: 1, CODE: 1, PRE: 1 };
-
-  function countFlaggedTerms(text, regex, found, threshold) {
-    if (!text || !regex) return false;
-    regex.lastIndex = 0;
-    let match;
-    while ((match = regex.exec(text)) !== null) {
-      found.add(match[0].toLowerCase());
-      if (found.size >= threshold) return true;
-    }
-    return false;
-  }
 
   function scanPage() {
     if ((!scanRegex && !pageRegex) || !document.body) return null;
@@ -543,38 +908,39 @@
     const threshold = Math.max(1, parseInt(CONFIG.SCAN_SENSITIVITY, 10) || 2);
     const found = new Set();
     const pageFound = new Set();
-    let totalHits = 0;
 
-    function recordMatches(text, regex, set, isMain = true) {
+    function recordMatches(text, regex, set) {
       if (!text || !regex) return false;
       regex.lastIndex = 0;
       let match;
       while ((match = regex.exec(text)) !== null) {
-        set.add(match[0].toLowerCase());
-        if (isMain) totalHits++;
+        const word = match[0].toLowerCase();
+        if (!acknowledgedKeywords.has(word)) {
+          set.add(word);
+        }
+        if (regex.lastIndex === match.index) regex.lastIndex++;
       }
-      return set.size > 0;
+      regex.lastIndex = 0;
+      return set.size >= threshold;
     }
 
-    const pageHit = (text) => recordMatches(text, pageRegex, pageFound, false);
-    const mainHit = (text) => {
-      recordMatches(text, scanRegex, found, true);
-      return found.size >= threshold || totalHits >= 2;
-    };
+    const pageHit = (text) => recordMatches(text, pageRegex, pageFound);
+    const mainHit = (text) => recordMatches(text, scanRegex, found);
 
-    // 0. Search query inspection (Intent Rule: 1 hit trips immediately)
+    // 0. Search query inspection: Intent Rule (1 unacknowledged hit trips immediately)
     const query = extractSearchQuery(window.location.href);
     if (query) {
-      if (pageHit(query)) return pageFound;
-      recordMatches(query, scanRegex, found, true);
-      if (found.size > 0) return found;
+      const qHit = checkTextForFlaggedKeywords(query);
+      if (qHit && !acknowledgedKeywords.has(qHit.toLowerCase())) {
+        found.add(qHit.toLowerCase());
+        return found;
+      }
     }
 
-    // 1. Metadata and Title (Intent Rule: 1 hit in title or meta description trips immediately)
+    // 1. Metadata and Title
     if (document.title) {
       if (pageHit(document.title)) return pageFound;
-      recordMatches(document.title, scanRegex, found, true);
-      if (found.size > 0) return found;
+      if (mainHit(document.title)) return found;
     }
 
     if (document.head) {
@@ -582,24 +948,12 @@
         const content = meta.getAttribute('content');
         if (content) {
           if (pageHit(content)) return pageFound;
-          recordMatches(content, scanRegex, found, true);
-          if (found.size > 0) return found;
+          if (mainHit(content)) return found;
         }
       }
     }
 
-    // 2. Active input & search bar values (e.g. search box containing query)
-    const inputs = document.querySelectorAll('input[type="text"], input[type="search"], input:not([type]), textarea');
-    for (const input of inputs) {
-      const val = input.value;
-      if (val && typeof val === 'string') {
-        if (pageHit(val)) return pageFound;
-        recordMatches(val, scanRegex, found, true);
-        if (found.size > 0) return found;
-      }
-    }
-
-    // 3. Text pass: walks visible body text (titles, descriptions, sidebars, knowledge panels)
+    // 2. Text pass: walks visible body text
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (!node.nodeValue || node.nodeValue.length < SCAN_MIN_TEXT_LENGTH) return NodeFilter.FILTER_REJECT;
@@ -617,7 +971,7 @@
       if (mainHit(node.nodeValue)) return found;
     }
 
-    // 4. Element attributes pass: checks image alt text, descriptions, pins, cards, and links
+    // 3. Element attributes pass: checks image alt text, descriptions, pins, cards, and links
     const elementsWithAttrs = document.body.querySelectorAll(
       'img[alt], img[title], img[data-pin-description], img[src], [aria-label], [title], [data-title], [data-alt], [data-test-id], a[href]'
     );
@@ -646,9 +1000,18 @@
         if (href && href.length > 5 && !href.startsWith('#') && !href.startsWith('javascript:')) {
           try {
             const decoded = decodeURIComponent(href);
-            if (pageHit(decoded)) return pageFound;
-            if (mainHit(decoded)) return found;
-          } catch {}
+            const aHit = matchesAnyUrlKeyword(decoded, CONFIG.KEYWORDS);
+            if (aHit && !acknowledgedKeywords.has(aHit.toLowerCase())) {
+              found.add(aHit.toLowerCase());
+              if (found.size >= threshold) return found;
+            }
+          } catch {
+            const aHit = matchesAnyUrlKeyword(href, CONFIG.KEYWORDS);
+            if (aHit && !acknowledgedKeywords.has(aHit.toLowerCase())) {
+              found.add(aHit.toLowerCase());
+              if (found.size >= threshold) return found;
+            }
+          }
         }
       }
 
@@ -674,14 +1037,14 @@
       }
     }
 
-    return (found.size >= threshold || totalHits >= 2) ? found : null;
+    if (pageFound.size >= threshold) return pageFound;
+    return (found.size >= threshold) ? found : null;
   }
 
   function runContentScan() {
-    if (!isTopFrame || scanPrompted || scanAcknowledged) return false;
+    if (!isTopFrame || (scanPrompted && document.getElementById('blockx-scan-prompt'))) return false;
     if (isScanExcluded()) return false;
 
-    // Direct check of all inputs on page
     if (checkAllInputsOnPage()) return true;
 
     const hits = scanPage();
@@ -689,10 +1052,8 @@
 
     console.log(`[BlockX] Content scan flagged ${hits.size} distinct terms.`);
     try {
-      showScanPrompt();
+      showScanPrompt(hits);
     } catch (e) {
-      // If the card can never be built, the page still must not be readable:
-      // keep the freeze barrier up so the blur holds without the prompt.
       console.warn('[BlockX] Prompt failed; keeping page blurred.', e);
       raiseBarrier(BARRIER_FROZEN);
       freezeMedia();
@@ -700,15 +1061,9 @@
     return true;
   }
 
-  /**
-   * Waits for the document to settle before judging it. Each further change
-   * pushes the scan back, so a page mid-render is never graded on what it
-   * happened to be showing a moment ago, but the deadline caps how long that
-   * can be put off, so a page that never stops moving is still checked.
-   */
   function scheduleRescan() {
     if (isScanExcluded()) return;
-    if (scanPrompted || scanAcknowledged) return;
+    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
 
     const now = Date.now();
     if (!scanDeadline) scanDeadline = now + SCAN_MAX_DEFER_MS;
@@ -723,400 +1078,9 @@
     }, wait);
   }
 
-  function cancelRescan() {
-    if (scanThrottleId) clearTimeout(scanThrottleId);
-    scanThrottleId = null;
-    scanDeadline = 0;
-  }
-
-  const PROMPT_STYLES = `
-    :host { all: initial; }
-
-    .wrap {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-
-      /* The page stays behind this, blurred past the point of being readable.
-         The 64px radius is what destroys detail; the tint only sets the mood,
-         so it stays light enough that you can tell a page is still there. */
-      -webkit-backdrop-filter: blur(64px) saturate(0.4) brightness(0.72);
-      backdrop-filter: blur(64px) saturate(0.4) brightness(0.72);
-      background: rgba(9, 9, 11, 0.55);
-      animation: blockx-fade 220ms ease-out;
-    }
-
-    .card {
-      box-sizing: border-box;
-      width: 100%;
-      max-width: 480px;
-      max-height: calc(100vh - 48px);
-      overflow-y: auto;
-      padding: 24px;
-      text-align: left;
-      border-radius: 16px;
-      border: 1px solid #3f3f46;
-      background: #1c1c1c;
-      color: #f9fafb;
-      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.7);
-      animation: blockx-rise 200ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .warning-text {
-      margin: 0 0 22px 0;
-      font-size: 18px;
-      font-weight: 600;
-      line-height: 1.7;
-      color: inherit;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-      unicode-bidi: plaintext;
-      text-align: start;
-    }
-
-    /* The card holds two views: the warning, then the "are you sure" gate. */
-    .view[hidden] { display: none !important; }
-
-    h2 {
-      margin: 0 0 8px;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: inherit;
-      text-align: start;
-    }
-
-    .hint {
-      margin: 0 0 20px;
-      font-size: 14px;
-      line-height: 1.5;
-      color: #a1a1aa;
-      text-align: start;
-    }
-
-    button {
-      display: block;
-      width: 100%;
-      box-sizing: border-box;
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 11px 16px;
-      border-radius: 10px;
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
-    }
-    button:focus-visible { outline: 2px solid #1900FF; outline-offset: 2px; }
-
-    .leave { background: #f9fafb; color: #111827; margin-bottom: 10px; }
-    .leave:hover { background: #ffffff; }
-
-    .show { background: transparent; color: #a1a1aa; border-color: #3f3f46; }
-    .show:hover { color: #f9fafb; border-color: #71717a; }
-
-    /* Light dashboard theme */
-    :host([data-theme="light"]) .wrap {
-      background: rgba(249, 250, 251, 0.72);
-      -webkit-backdrop-filter: blur(64px) saturate(0.35) brightness(1.15);
-      backdrop-filter: blur(64px) saturate(0.35) brightness(1.15);
-    }
-    :host([data-theme="light"]) .card {
-      background: #ffffff;
-      border-color: #e5e7eb;
-      color: #111827;
-      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
-    }
-    :host([data-theme="light"]) .warning-text { color: #111827; }
-    :host([data-theme="light"]) .hint { color: #6b7280; }
-    :host([data-theme="light"]) .leave { background: #111827; color: #ffffff; }
-    :host([data-theme="light"]) .leave:hover { background: #000000; }
-    :host([data-theme="light"]) .show { color: #6b7280; border-color: #e5e7eb; }
-    :host([data-theme="light"]) .show:hover { color: #111827; border-color: #9ca3af; }
-
-    @keyframes blockx-fade { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes blockx-rise {
-      from { opacity: 0; transform: translateY(8px) scale(0.97); }
-      to { opacity: 1; transform: none; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .wrap, .card { animation: none; }
-    }
-  `;
-
-  // Audio keeps playing behind a blur, so anything already running is stopped.
-  function freezeMedia() {
-    for (const el of document.querySelectorAll('video, audio')) {
-      mutedMedia.push([el, el.muted]);
-      el.muted = true;
-      try { el.pause(); } catch { /* ignore */ }
-    }
-  }
-  function thawMedia() {
-    for (const [el, wasMuted] of mutedMedia) el.muted = wasMuted;
-    mutedMedia.length = 0;
-  }
-
-  function resolveTheme() {
-    const theme = CONFIG.THEME || 'system';
-    if (theme === 'light' || theme === 'dark') return theme;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
-      ? 'light'
-      : 'dark';
-  }
-
-  // Self-healing runs on busy pages whose own scripts constantly touch the
-  // DOM; log each kind of repair once so the console is not spammed while
-  // the protection quietly holds.
-  function noteTamper(key, msg) {
-    if (tamperNotes.has(key)) return;
-    tamperNotes.add(key);
-    console.warn(msg);
-  }
-
-  // The little rounded icon tile at the top of each card view.
-  function makeMark(pathD) {
-    const box = document.createElement('div');
-    box.className = 'mark';
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '2');
-    svg.setAttribute('stroke-linecap', 'round');
-    svg.setAttribute('stroke-linejoin', 'round');
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', pathD);
-    svg.appendChild(path);
-    box.appendChild(svg);
-    return box;
-  }
-
-  /**
-   * Renders the warning inside a closed shadow root so page CSS cannot reach
-   * it. The host is attached to <html> rather than <body> so the page itself
-   * sits behind the overlay's backdrop-filter and gets blurred out.
-   */
-  function showScanPrompt() {
-    if (!isTopFrame) return;
-    if (isScanExcluded()) return;
-    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
-    scanPrompted = true;
-
-    // Clean up any stale prompt host, observers or intervals
-    const existingHost = document.getElementById('blockx-scan-prompt');
-    if (existingHost) existingHost.remove();
-    if (activeTamperObserver) {
-      activeTamperObserver.disconnect();
-      activeTamperObserver = null;
-    }
-    if (activeTamperInterval) {
-      clearInterval(activeTamperInterval);
-      activeTamperInterval = null;
-    }
-
-    const host = document.createElement('div');
-    host.id = 'blockx-scan-prompt';
-    host.setAttribute('data-theme', resolveTheme());
-    host.style.setProperty('all', 'initial', 'important');
-    host.style.setProperty('position', 'fixed', 'important');
-    host.style.setProperty('inset', '0', 'important');
-    host.style.setProperty('z-index', '2147483647', 'important');
-    host.style.setProperty('visibility', 'visible', 'important');
-
-    const root = host.attachShadow({ mode: 'closed' });
-
-    const style = document.createElement('style');
-    style.textContent = PROMPT_STYLES;
-
-    const wrap = document.createElement('div');
-    wrap.className = 'wrap';
-
-    const card = document.createElement('div');
-    card.className = 'card';
-
-    // Stage 1: the warning itself, carrying the user's own message directly on top.
-    const view1 = document.createElement('div');
-    view1.className = 'view';
-
-    const message = document.createElement('p');
-    message.className = 'warning-text';
-    message.dir = 'auto';
-    message.textContent = (CONFIG.WEAKENING_MESSAGE || '').trim()
-      || 'This page looks explicit. Do you still want to open it?';
-
-    view1.appendChild(message);
-
-    // Stage 2: a second, plainer gate shown after the first "yes".
-    const view2 = document.createElement('div');
-    view2.className = 'view';
-    view2.hidden = true;
-
-    const heading2 = document.createElement('h2');
-    heading2.textContent = 'Are you sure?';
-
-    const hint = document.createElement('p');
-    hint.className = 'hint';
-    hint.textContent = 'This page will be unblurred and shown. Only continue if you truly mean to.';
-
-    view2.appendChild(heading2);
-    view2.appendChild(hint);
-
-    const leaveBtn = document.createElement('button');
-    leaveBtn.className = 'leave';
-    leaveBtn.type = 'button';
-    leaveBtn.textContent = 'No, close this tab';
-    leaveBtn.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ action: 'closeTab' });
-    });
-
-    const showBtn = document.createElement('button');
-    showBtn.className = 'show';
-    showBtn.type = 'button';
-    showBtn.textContent = 'Yes, show it';
-
-    // Plenty of sites bind bare letters as shortcuts. Our box sits in a
-    // shadow root, so from the page's side events are retargeted to the host
-    // div and a site shortcut could fire while the user is choosing here.
-    // Keep our own events to ourselves: capture on window runs before any
-    // page listener.
-    const keepKeys = (event) => {
-      if (event.composedPath().includes(host)) event.stopPropagation();
-    };
-    const KEY_EVENTS = ['keydown', 'keypress', 'keyup'];
-    KEY_EVENTS.forEach(type => window.addEventListener(type, keepKeys, true));
-
-    let tamperObserver = null;
-    let tamperInterval = null;
-
-    function enforceOverlayIntegrity() {
-      if (!scanPrompted || scanAcknowledged) return;
-
-      // 1. Ensure host overlay is in DOM and attached to documentElement
-      if (!host.parentNode || !document.documentElement.contains(host)) {
-        noteTamper('host', '[BlockX] Warning overlay removed: re-attaching.');
-        document.documentElement.appendChild(host);
-      }
-
-      // 2. Re-enforce overlay visibility and position styles if altered
-      const style = window.getComputedStyle(host);
-      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' || style.pointerEvents === 'none') {
-        noteTamper('host-style', '[BlockX] Warning overlay hidden: restoring visibility.');
-        host.style.setProperty('all', 'initial', 'important');
-        host.style.setProperty('position', 'fixed', 'important');
-        host.style.setProperty('inset', '0', 'important');
-        host.style.setProperty('z-index', '2147483647', 'important');
-        host.style.setProperty('visibility', 'visible', 'important');
-        host.style.setProperty('display', 'block', 'important');
-        host.style.setProperty('opacity', '1', 'important');
-        host.style.setProperty('pointer-events', 'auto', 'important');
-      }
-
-      // 3. Ensure the barrier is attached and the page is actually blurred.
-      const hasBarrier = document.contains(securityBarrier);
-      const bodyStyle = document.body ? window.getComputedStyle(document.body) : null;
-      const blurred = document.body ? !!(bodyStyle && (bodyStyle.filter || bodyStyle.webkitFilter || '').includes('blur')) : true;
-      if (!hasBarrier || !blurred) {
-        noteTamper('barrier', '[BlockX] Security barrier removed or weakened: re-attaching.');
-        raiseBarrier(BARRIER_FROZEN);
-      }
-
-      // 4. The blur lives on <body>, so dragging a node onto <html> in the
-      //    Elements panel would put it outside the blur. Anything that does
-      //    not belong directly on <html> is put back inside <body>.
-      const HEAD_LEVEL = { STYLE: 1, LINK: 1, META: 1, SCRIPT: 1, TITLE: 1 };
-      for (const node of [...document.documentElement.children]) {
-        if (node === document.head || node === document.body) continue;
-        if (node === securityBarrier || node === host) continue;
-        if (HEAD_LEVEL[node.nodeName]) continue;
-        noteTamper('stray', '[BlockX] Content moved outside <body>: moving back.');
-        if (document.body) document.body.appendChild(node);
-      }
-    }
-
-    const reveal = () => {
-      scanAcknowledged = true;
-      scanPrompted = false;
-      tamperNotes.clear();
-      if (tamperObserver) { tamperObserver.disconnect(); tamperObserver = null; }
-      if (tamperInterval) { clearInterval(tamperInterval); tamperInterval = null; }
-      activeTamperObserver = null;
-      activeTamperInterval = null;
-      KEY_EVENTS.forEach(type => window.removeEventListener(type, keepKeys, true));
-      if (host.parentNode) host.parentNode.removeChild(host);
-      thawMedia();
-      dropBarrier();
-    };
-
-    const sureBtn = document.createElement('button');
-    sureBtn.className = 'leave';
-    sureBtn.type = 'button';
-    sureBtn.textContent = "Yes, I'm sure: show it";
-
-    const backBtn = document.createElement('button');
-    backBtn.className = 'show';
-    backBtn.type = 'button';
-    backBtn.textContent = 'No, go back';
-
-    // The first "yes" only moves to the second question; the page is revealed
-    // by the second "yes" alone. "No, go back" returns to the blurred warning.
-    showBtn.addEventListener('click', () => {
-      view1.hidden = true;
-      view2.hidden = false;
-      sureBtn.focus();
-    });
-    backBtn.addEventListener('click', () => {
-      view2.hidden = true;
-      view1.hidden = false;
-      leaveBtn.focus();
-    });
-    sureBtn.addEventListener('click', reveal);
-
-    view1.appendChild(leaveBtn);
-    view1.appendChild(showBtn);
-    view2.appendChild(sureBtn);
-    view2.appendChild(backBtn);
-    card.appendChild(view1);
-    card.appendChild(view2);
-    wrap.appendChild(card);
-    root.appendChild(style);
-    root.appendChild(wrap);
-
-    // Order matters: the overlay is in place before the page is allowed to
-    // paint, so the content is never briefly visible unblurred.
-    document.documentElement.appendChild(host);
-    raiseBarrier(BARRIER_FROZEN);
-    freezeMedia();
-    leaveBtn.focus();
-
-    // DevTools Anti-Tampering Protection: Self-healing observer & heartbeat poll
-    setTimeout(() => {
-      if (!scanPrompted || scanAcknowledged) return;
-
-      tamperObserver = new MutationObserver(() => {
-        enforceOverlayIntegrity();
-      });
-
-      tamperObserver.observe(document.documentElement, {
-        childList: true,
-        attributes: true,
-        subtree: true,
-        attributeFilter: ['style', 'class', 'hidden', 'id']
-      });
-
-      tamperInterval = setInterval(enforceOverlayIntegrity, 300);
-      activeTamperObserver = tamperObserver;
-      activeTamperInterval = tamperInterval;
-    }, 100);
-  }
-
+  // ------------------------------------------------------------------
+  // 9. DESTINATION BLOCK CHECKING & SAFETY VERIFICATION
+  // ------------------------------------------------------------------
   function isBlockedDomain(hostname) {
     if (!hostname || !CONFIG.DOMAINS) return false;
     const lowerHost = hostname.toLowerCase();
@@ -1138,58 +1102,18 @@
   function isExactBlockedPage(url) {
     if (!url || !CONFIG.EXACT_PAGE_URLS) return false;
     try {
-      const parsedUrl = new URL(url);
-      const hostAndPath = (parsedUrl.hostname.replace(/^www\./i, '') + parsedUrl.pathname).toLowerCase();
-      const hostPathAndQuery = (parsedUrl.hostname.replace(/^www\./i, '') + parsedUrl.pathname + parsedUrl.search).toLowerCase();
-      
-      return CONFIG.EXACT_PAGE_URLS.some(p => {
-        const clean = p.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/\/$/, '');
-        if (clean.includes('?')) {
-            return hostPathAndQuery === clean || hostPathAndQuery === clean + '/';
-        } else {
-            return hostAndPath === clean || hostAndPath === clean + '/';
-        }
+      const parsed = new URL(url);
+      const targetExact = parsed.origin + parsed.pathname;
+      return CONFIG.EXACT_PAGE_URLS.some(pattern => {
+        let clean = pattern.trim().toLowerCase();
+        clean = clean.replace(/^[a-z]+:\/\//, '');
+        clean = clean.split('?')[0].split('#')[0];
+        clean = clean.replace(/\/+$/, '');
+        const targetClean = targetExact.replace(/^[a-z]+:\/\//, '').replace(/\/+$/, '');
+        return targetClean === clean;
       });
     } catch { return false; }
   }
-
-  // --- PHASE 0: Whitelist check & enforcement ---
-  if (isWhitelisted()) {
-    dropBarrier();
-    return;
-  }
-  if (isBlocked) {
-    return;
-  }
-
-  // --- PHASE 1: Instant synchronous checks ---
-  const currentHostname = window.location.hostname;
-  if (!isWhitelisted() && (isBlockedDomain(currentHostname) || isBlockedPage(window.location.href) || isExactBlockedPage(window.location.href))) {
-    handleBlock();
-    return;
-  }
-
-  // --- PHASE 2: Check master domain list via background ---
-  try {
-    const masterCheck = await chrome.runtime.sendMessage({
-      action: 'isMasterBlocked',
-      domain: currentHostname
-    });
-    if (masterCheck?.blocked && !isWhitelisted()) {
-      handleBlock();
-      return;
-    }
-  } catch (e) {
-    console.warn('[BlockX] Could not check master domain list:', e);
-  }
-
-  // Drop barrier early for excluded sites if safe
-  if (isScanExcluded()) {
-    dropBarrier();
-  }
-
-  // --- PHASE 3: Prepare keyword filter and do full page verification ---
-  await prepareFilter();
 
   function verifyPageSafety(customUrl) {
     const currentUrl = customUrl || window.location.href;
@@ -1200,11 +1124,9 @@
 
     if (isWhitelisted(false, currentUrl)) {
       dropBarrier();
-      return false;
     }
     if (isBlocked) return true;
 
-    // If this URL is scan excluded, live content and input scanning must never touch it.
     if (isScanExcluded(currentUrl)) {
       cancelRescan();
       if (
@@ -1221,14 +1143,13 @@
       return false;
     }
 
-    // Subframes only check domain/url block rules, never content scanning or prompts
     if (!isTopFrame) {
       if (
         !isWhitelisted() && (
           isBlockedDomain(currentHost) ||
           isBlockedPage(currentUrl) ||
           isExactBlockedPage(currentUrl) ||
-          isExplicit(currentUrl)
+          matchesAnyUrlKeyword(currentUrl, CONFIG.KEYWORDS)
         )
       ) {
         if (observer) observer.disconnect();
@@ -1238,21 +1159,16 @@
       return false;
     }
 
-    // If top frame is already prompted, page is actively blocked/blurred; do NOT report safe!
-    if (scanPrompted) return true;
+    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return true;
 
-    // Check all inputs on the page right now as part of safety check
     if (checkAllInputsOnPage()) return true;
 
-    // A route change is a fresh page as far as the scan is concerned.
     const routeChanged = currentUrl !== scanUrl;
     if (routeChanged) {
       scanUrl = currentUrl;
-      scanAcknowledged = false;
       cancelRescan();
     }
 
-    // IMMEDIATE check on search query: if URL has an explicit search query, catch it with 0ms delay!
     const query = extractSearchQuery(currentUrl);
     if (query && checkTextForFlaggedKeywords(query)) {
       console.log(`[BlockX] Immediate search query flagged on URL: "${query}"`);
@@ -1264,8 +1180,7 @@
         isBlockedDomain(currentHost) ||
         isBlockedPage(currentUrl) ||
         isExactBlockedPage(currentUrl) ||
-        isExplicit(document.title) ||
-        isExplicit(currentUrl)
+        matchesAnyUrlKeyword(currentUrl, CONFIG.KEYWORDS)
       )
     ) {
       if (observer) observer.disconnect();
@@ -1273,8 +1188,6 @@
       return true;
     }
 
-    // The URL is the only thing that has changed so far; the body still belongs
-    // to the previous view. Let it render, then judge what actually arrived.
     if (routeChanged) {
       scheduleRescan();
       return false;
@@ -1283,11 +1196,11 @@
     return runContentScan();
   }
 
-  // Check immediately upon site arrival (at document_start, no waiting for DOMContentLoaded!)
+  // Check immediately upon site arrival (at document_start)
   verifyPageSafety();
 
   const cleanup = () => {
-    if (scanPrompted) return;
+    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
     if (!verifyPageSafety()) {
       dropBarrier();
     }
@@ -1295,10 +1208,9 @@
 
   observer = new MutationObserver(() => {
     if (isScanExcluded()) return;
-    if (scanPrompted || scanAcknowledged) return;
+    if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
     if (document.title) verifyPageSafety();
     checkAllInputsOnPage();
-    // Late-loading content (infinite scroll, SPA routes) gets an ultra-fast throttled pass.
     scheduleRescan();
   });
 

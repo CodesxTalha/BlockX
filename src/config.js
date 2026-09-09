@@ -247,17 +247,19 @@ function escapeRegExp(string) {
  */
 function createOptimizedFilter(keywords) {
   if (!keywords || keywords.length === 0) return null;
-  // Filter out short/empty keywords to prevent over-blocking
-  const validKeywords = keywords
-    .map(kw => kw.trim().toLowerCase())
-    .filter(kw => kw.length >= 3);
+  const validKeywords = [...new Set(
+    keywords
+      .map(kw => String(kw || '').trim().toLowerCase())
+      .filter(kw => kw.length > 0)
+  )].sort((a, b) => b.length - a.length);
   
   if (validKeywords.length === 0) return null;
   
-  // Combine into a single alternation: \b(?:word1|word2|word3)\b
-  const sorted = [...new Set(validKeywords)].sort((a, b) => b.length - a.length);
-  const pattern = sorted.map(escapeRegExp).join('|');
-  return new RegExp(`\\b(?:${pattern})\\b`, 'i');
+  const patterns = validKeywords.map(kw => {
+    const parts = kw.split(/\s+/).map(escapeRegExp);
+    return parts.join('\\s+');
+  });
+  return new RegExp(`(?<=^|[^a-zA-Z0-9])(?:${patterns.join('|')})(?=$|[^a-zA-Z0-9])`, 'i');
 }
 
 // ------------------------------------------------------------------
@@ -586,12 +588,52 @@ function createBoundedFilter(keywords) {
 
   const valid = [...new Set(
     keywords
-      .map(kw => kw.trim().toLowerCase())
-      .filter(kw => kw.length >= 3)
-  )].sort((a, b) => b.length - a.length); // longest alternative wins
+      .map(kw => String(kw || '').trim().toLowerCase())
+      .filter(kw => kw.length > 0)
+  )].sort((a, b) => b.length - a.length);
 
   if (valid.length === 0) return null;
-  return new RegExp(`\\b(?:${valid.map(escapeRegExp).join('|')})\\b`, 'gi');
+
+  const patterns = valid.map(kw => {
+    const parts = kw.split(/\s+/).map(escapeRegExp);
+    return parts.join('\\s+');
+  });
+
+  return new RegExp(`(?<=^|[^a-zA-Z0-9])(?:${patterns.join('|')})(?=$|[^a-zA-Z0-9])`, 'gi');
+}
+
+/**
+ * Checks whether a URL or text string contains a keyword bounded by URL delimiters
+ * (e.g. &, +, =, ?, /, -, _, ., %20, spaces, or start/end of string).
+ * Prevents false positives where a keyword is a substring of an unrelated
+ * word in a URL (e.g. "tit" inside "competitions" or "montitrar").
+ */
+function matchesUrlKeyword(urlStr, keyword) {
+  if (!urlStr || !keyword) return false;
+  const kw = String(keyword).trim().toLowerCase();
+  if (!kw) return false;
+
+  const parts = kw.split(/\s+/).map(escapeRegExp);
+  const kwPattern = parts.join('(?:\\s|\\+|%20|[-_])+');
+  const regex = new RegExp('(?:^|[^a-z0-9]|%20)' + kwPattern + '(?=$|[^a-z0-9]|%20)', 'i');
+
+  const lowerUrl = String(urlStr).toLowerCase();
+  if (regex.test(lowerUrl)) return true;
+
+  try {
+    const decoded = decodeURIComponent(lowerUrl);
+    if (regex.test(decoded)) return true;
+  } catch {}
+
+  return false;
+}
+
+function matchesAnyUrlKeyword(urlStr, keywords) {
+  if (!urlStr || !Array.isArray(keywords) || keywords.length === 0) return null;
+  for (const kw of keywords) {
+    if (matchesUrlKeyword(urlStr, kw)) return kw;
+  }
+  return null;
 }
 
 // Work budget for a single scan pass. Bounds the cost on huge documents.

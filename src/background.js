@@ -224,7 +224,28 @@ async function updateBlockingRules() {
     await ensureDomainListLoaded();
     [...masterDomainSet].forEach(d => addRule(10, d, true));
 
-    [...new Set(config.KEYWORDS)].forEach(k => addRule(9, k));
+    const addKeywordRule = (priority, keyword) => {
+      if (rules.length >= DYNAMIC_RULE_LIMIT) return false;
+      const clean = keyword.trim().toLowerCase();
+      if (!clean || !isAscii(clean)) return false;
+
+      const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const parts = clean.split(/\s+/).map(escapeRegExp);
+      const kwPattern = parts.join('(?:\\+|%20|[-_]|\\s)+');
+
+      rules.push({
+        id: ruleId++,
+        priority,
+        action,
+        condition: {
+          regexFilter: `(?:^|[^a-zA-Z0-9]|%20)${kwPattern}(?:[^a-zA-Z0-9]|%20|$)`,
+          resourceTypes: ['main_frame', 'sub_frame']
+        }
+      });
+      return true;
+    };
+
+    [...new Set(config.KEYWORDS)].forEach(k => addKeywordRule(9, k));
     config.PAGE_URLS.forEach(p => addRule(8, p));
 
     const addExactPageRule = (priority, filter) => {
@@ -604,7 +625,7 @@ function blockReason(urlStr, config, tabId) {
   }
 
   if (config.KEYWORDS && config.KEYWORDS.length > 0) {
-    if (config.KEYWORDS.some(k => urlLower.includes(k.trim().toLowerCase()))) return 'keyword';
+    if (matchesAnyUrlKeyword(urlStr, config.KEYWORDS)) return 'keyword';
   }
 
   try {
