@@ -62,6 +62,7 @@ async function init() {
     // 3. Populate dynamic elements
     populateGames();
     setupBlockedManager();
+    setupAllowedScopeDropdown();
     LIST_BINDINGS.forEach(b => setupListManager(b.inputId, b.btnId, b.listId, b.stateKey));
 
     const customUrlInput = document.getElementById('custom-redirect-input');
@@ -104,6 +105,7 @@ async function init() {
 
 function renderAllLists() {
     renderList('domain-list', 'CUSTOM_DOMAINS');
+    renderList('allowed-domain-list', 'CUSTOM_ALLOWED_DOMAINS');
     LIST_BINDINGS.forEach(b => renderList(b.listId, b.stateKey));
 }
 
@@ -280,7 +282,7 @@ function setupWeakeningModal() {
     if (goBackBtn) {
         goBackBtn.addEventListener('click', () => {
             hideWeakeningModal();
-            showToast('Nothing changed — protection stays as it was.');
+            showToast('Nothing changed: protection stays as it was.');
         });
     }
 
@@ -288,7 +290,7 @@ function setupWeakeningModal() {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 hideWeakeningModal();
-                showToast('Nothing changed — protection stays as it was.');
+                showToast('Nothing changed: protection stays as it was.');
             }
         });
     }
@@ -296,7 +298,7 @@ function setupWeakeningModal() {
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
             hideWeakeningModal();
-            showToast('Nothing changed — protection stays as it was.');
+            showToast('Nothing changed: protection stays as it was.');
         }
     });
 }
@@ -607,7 +609,10 @@ function setupBlockedManager() {
 
     const setScope = (val, fromUser = true) => {
         if (scopeVal) scopeVal.value = val;
-        if (fromUser) userChanged = (val !== 'auto');
+        if (fromUser) {
+            userChanged = (val !== 'auto');
+            try { chrome.storage.local.set({ BLOCKED_SCOPE_PREF: val }); } catch (e) {}
+        }
         if (menu) {
             menu.querySelectorAll('.dropdown-item').forEach(item => {
                 const match = item.getAttribute('data-value') === val;
@@ -621,9 +626,20 @@ function setupBlockedManager() {
         }
     };
 
+    try {
+        chrome.storage.local.get(['BLOCKED_SCOPE_PREF'], (res) => {
+            if (res && res.BLOCKED_SCOPE_PREF) {
+                setScope(res.BLOCKED_SCOPE_PREF, true);
+            }
+        });
+    } catch (e) {}
+
     if (dropdown && trigger && menu) {
         trigger.addEventListener('click', (e) => {
             e.stopPropagation();
+            document.querySelectorAll('.custom-dropdown.is-open').forEach(d => {
+                if (d !== dropdown) d.classList.remove('is-open');
+            });
             const isOpen = dropdown.classList.toggle('is-open');
             trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         });
@@ -719,8 +735,6 @@ function setupBlockedManager() {
 
             state.CUSTOM_DOMAINS.push(cleanVal);
             input.value = '';
-            userChanged = false;
-            setScope('domain', false);
             renderList(listId, 'CUSTOM_DOMAINS');
             saveState();
             showToast(`Blocked domain: ${cleanVal}`);
@@ -739,8 +753,6 @@ function setupBlockedManager() {
                 }
                 state.CUSTOM_DOMAINS.push(cleanVal);
                 input.value = '';
-                userChanged = false;
-                setScope('domain', false);
                 renderList(listId, 'CUSTOM_DOMAINS');
                 saveState();
                 showToast(`Blocked domain: ${cleanVal}`);
@@ -754,8 +766,6 @@ function setupBlockedManager() {
 
             state.CUSTOM_PAGES.push(cleanVal);
             input.value = '';
-            userChanged = false;
-            setScope('domain', false);
             renderList(listId, 'CUSTOM_PAGES');
             saveState();
             showToast(`Blocked with child pages: ${cleanVal}/*`);
@@ -776,8 +786,6 @@ function setupBlockedManager() {
 
             state.CUSTOM_EXACT_PAGES.push(cleanVal);
             input.value = '';
-            userChanged = false;
-            setScope('domain', false);
             renderList(listId, 'CUSTOM_EXACT_PAGES');
             saveState();
             showToast(`Blocked exact page: ${cleanVal}`);
@@ -789,6 +797,90 @@ function setupBlockedManager() {
     input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addBlocked();
     });
+}
+
+function setupAllowedScopeDropdown() {
+    const dropdown = document.getElementById('allowed-scope-dropdown');
+    const trigger = document.getElementById('allowed-scope-trigger');
+    const labelEl = document.getElementById('allowed-scope-label');
+    const menu = document.getElementById('allowed-scope-menu');
+    const scopeVal = document.getElementById('allowed-scope-value');
+    const input = document.getElementById('allowed-domain-input');
+
+    if (!dropdown || !trigger || !menu || !scopeVal) return;
+
+    let userChanged = false;
+
+    const setScope = (val, fromUser = true) => {
+        scopeVal.value = val;
+        if (fromUser) {
+            userChanged = (val !== 'auto');
+            try { chrome.storage.local.set({ ALLOWED_SCOPE_PREF: val }); } catch (e) {}
+        }
+        menu.querySelectorAll('.dropdown-item').forEach(item => {
+            const match = item.getAttribute('data-value') === val;
+            item.classList.toggle('active', match);
+            item.setAttribute('aria-selected', match ? 'true' : 'false');
+            if (match && labelEl) {
+                const title = item.querySelector('.dropdown-item-title');
+                labelEl.textContent = title ? title.textContent : item.textContent.trim();
+            }
+        });
+    };
+
+    try {
+        chrome.storage.local.get(['ALLOWED_SCOPE_PREF'], (res) => {
+            if (res && res.ALLOWED_SCOPE_PREF) {
+                setScope(res.ALLOWED_SCOPE_PREF, true);
+            }
+        });
+    } catch (e) {}
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.custom-dropdown.is-open').forEach(d => {
+            if (d !== dropdown) d.classList.remove('is-open');
+        });
+        const isOpen = dropdown.classList.toggle('is-open');
+        trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    menu.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setScope(item.getAttribute('data-value'), true);
+            dropdown.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+            if (input) input.focus();
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && dropdown.classList.contains('is-open')) {
+            dropdown.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.focus();
+        }
+    });
+
+    if (input) {
+        input.addEventListener('input', () => {
+            const val = input.value.trim();
+            if (userChanged) return;
+            if (/\/\*|\*$/.test(val)) {
+                setScope('children', false);
+            } else if (scopeVal.value === 'children' && !val.includes('*')) {
+                setScope('domain', false);
+            }
+        });
+    }
 }
 
 function setupListManager(inputId, btnId, listId, stateKey) {
@@ -815,6 +907,25 @@ function setupListManager(inputId, btnId, listId, stateKey) {
         // registrable domains: localhost, a LAN address, a container name, an
         // IPv6 literal, each with an optional port.
         if (stateKey === 'CUSTOM_ALLOWED_DOMAINS') {
+            const scopeEl = document.getElementById('allowed-scope-value');
+            let scope = scopeEl ? scopeEl.value : 'domain';
+            if (scope === 'auto') {
+                if (/\/\*|\*$/.test(val)) scope = 'children';
+                else if (val.includes('/')) scope = 'exact';
+                else scope = 'domain';
+            }
+            if (scope === 'domain') {
+                let clean = val.replace(/^[a-z]+:\/\//i, '');
+                val = clean.split('/')[0].split('?')[0].split('#')[0];
+            } else if (scope === 'children') {
+                let clean = val.replace(/^[a-z]+:\/\//i, '');
+                clean = clean.replace(/\/?\*+$/, '').replace(/\/+$/, '');
+                val = clean + '/*';
+            } else if (scope === 'exact') {
+                let clean = val.replace(/^[a-z]+:\/\//i, '');
+                val = clean.replace(/\/?\*+$/, '');
+            }
+
             const rule = parseScanExclusion(val);
             if (!rule) {
                 showToast('Not a valid site, section or page.');
@@ -1135,7 +1246,15 @@ function describeEntry(stateKey, item) {
     if (stateKey === 'CUSTOM_DOMAINS') return 'Whole site';
     if (stateKey === 'CUSTOM_PAGES') return 'With children';
     if (stateKey === 'CUSTOM_EXACT_PAGES') return 'Exact page';
-    if (stateKey === 'CUSTOM_SCAN_EXCLUDED' || stateKey === 'CUSTOM_ALLOWED_DOMAINS') {
+    if (stateKey === 'CUSTOM_ALLOWED_DOMAINS') {
+        const rule = parseScanExclusion(item);
+        if (!rule) return null;
+        if (rule.kind === 'site') return 'Whole site';
+        if (rule.kind === 'section') return 'With children';
+        if (rule.kind === 'page') return 'Exact page';
+        return null;
+    }
+    if (stateKey === 'CUSTOM_SCAN_EXCLUDED') {
         const rule = parseScanExclusion(item);
         return rule ? SCAN_EXCLUSION_LABELS[rule.kind] : null;
     }
@@ -1437,7 +1556,7 @@ function setupImportOath() {
     if (noBtn) {
         noBtn.addEventListener('click', () => {
             hideImportOath();
-            showToast('Import cancelled — your current settings stay.');
+            showToast('Import cancelled: your current settings stay.');
         });
     }
 
@@ -1445,7 +1564,7 @@ function setupImportOath() {
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 hideImportOath();
-                showToast('Import cancelled — your current settings stay.');
+                showToast('Import cancelled: your current settings stay.');
             }
         });
     }
@@ -1453,7 +1572,7 @@ function setupImportOath() {
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && overlay && !overlay.classList.contains('hidden')) {
             hideImportOath();
-            showToast('Import cancelled — your current settings stay.');
+            showToast('Import cancelled: your current settings stay.');
         }
     });
 }

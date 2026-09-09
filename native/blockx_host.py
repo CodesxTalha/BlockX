@@ -4,7 +4,7 @@ BlockX native messaging host.
 
 A deliberately dumb file proxy. Chrome extensions cannot touch arbitrary paths
 on disk, so this sits outside the sandbox and does nothing but read and write a
-single JSON file. It never interprets the settings and never decides anything —
+single JSON file. It never interprets the settings and never decides anything:
 all validation, checksumming and merge logic lives in the extension.
 
 Protocol (Chrome native messaging): each message is a 4-byte little-endian
@@ -44,7 +44,7 @@ def settings_path() -> str:
         base = os.path.expanduser("~/Library/Application Support")
         return os.path.join(base, APP_DIR_NAME, FILE_NAME)
 
-    # Linux and other unixes follow the XDG base directory spec — except under
+    # Linux and other unixes follow the XDG base directory spec, except under
     # Flatpak, where XDG_CONFIG_HOME points into the calling app's private
     # sandbox tree (~/.var/app/<id>/config). Honouring it there would give each
     # browser its own private settings file, which is the opposite of the

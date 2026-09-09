@@ -39,7 +39,7 @@ let CONFIG = {
 
   // The one warning message. Shown by the on-page content warning and by
   // every confirmation that loosens protection in the dashboard.
-  WEAKENING_MESSAGE: 'Stop. This weakens the protection you built. Remember why you set this up — is this really what you want right now?',
+  WEAKENING_MESSAGE: 'Stop. This weakens the protection you built. Remember why you set this up. Is this really what you want right now?',
 
   // How many DISTINCT flagged terms a page needs before the warning appears
   SCAN_SENSITIVITY: 2,
@@ -101,7 +101,7 @@ const IMPORTABLE_KEYS = [
 // SHARED SETTINGS
 // ------------------------------------------------------------------
 // The same settings follow the user across profiles and machines through two
-// independent stores, reconciled by revision — highest revision wins:
+// independent stores, reconciled by revision (highest revision wins):
 //
 //   chrome.storage.sync   every profile signed into the same Google account.
 //                         Always on, nothing to install.
@@ -116,7 +116,7 @@ const SETTINGS_FILE_VERSION = 1;
 const SETTINGS_KEYS = IMPORTABLE_KEYS;
 
 // Mixed into the file checksum. Not a secret and not meant to stop a
-// determined edit — it exists so a casual hand-edit of the settings file is
+// determined edit: it exists so a casual hand-edit of the settings file is
 // detected rather than silently trusted.
 const SETTINGS_CHECKSUM_SALT = 'blockx-settings-v1';
 
@@ -281,7 +281,7 @@ function classifyHost(hostname) {
 }
 
 /**
- * Parses anything a user might paste — with or without a scheme, path or port —
+ * Parses anything a user might paste (with or without a scheme, path or port)
  * into { host, port, kind, value }, or null when it is not a host at all.
  */
 function normaliseHostEntry(raw) {
@@ -320,7 +320,7 @@ function normaliseHostEntry(raw) {
  * Does a location match a stored entry?
  *
  * Only real multi-label domains extend to their subdomains. Bare hosts and
- * literal addresses match exactly — otherwise an entry of "com" would whitelist
+ * literal addresses match exactly. Otherwise an entry of "com" would whitelist
  * every .com site, and "0.1" would match 127.0.0.1. An entry without a port
  * matches any port; one with a port matches only that port.
  */
@@ -453,7 +453,7 @@ function matchesAnyScanExclusion(hostname, port, pathname, search, entries) {
 // ------------------------------------------------------------------
 // TEMPORARY PASSES
 // ------------------------------------------------------------------
-// Earned by retyping the unlock phrase in the popup. Deliberately short —
+// Earned by retyping the unlock phrase in the popup. Deliberately short:
 // long enough to do the thing you meant to do, not long enough to settle in.
 const TEMP_GRANT_MS = 5 * 60 * 1000;
 const TEMP_GRANT_ALARM = 'blockx-grant-expiry';
@@ -467,7 +467,7 @@ function activeGrants(grants) {
 /**
  * A pass covers one host in one tab, and only until that tab has actually
  * loaded the page once. Reloading, or opening the same site anywhere else,
- * gets nothing — the timer is an upper bound on a single visit, not a window
+ * gets nothing: the timer is an upper bound on a single visit, not a window
  * during which the site is open.
  */
 function hasTempGrant(hostname, grants, tabId) {

@@ -39,7 +39,7 @@ that is the part worth designing.**
 | Flip `disabled` in DevTools | Every decision is made in the service worker, not the DOM |
 
 None of this is unbreakable. You wrote the rules and you have the source. It
-works because you want it to — it just refuses to be easy in the wrong moment.
+works because you want it to; it just refuses to be easy in the wrong moment.
 
 ---
 
@@ -52,10 +52,10 @@ works because you want it to — it just refuses to be easy in the wrong moment.
   them.
 - **3,553 bundled domains** and **349 keywords**, plus your own domains,
   keywords, path prefixes and exact pages.
-- **Search queries are inspected**, not just URLs — across Google, Bing,
+- **Search queries are inspected**, not just URLs: across Google, Bing,
   DuckDuckGo, Yahoo, Yandex, Brave, Ecosia, YouTube, Reddit and others, whatever
   order the parameters arrive in.
-- **Whitelist accepts real hosts** — domains, IPv4, IPv6, `localhost`, container
+- **Whitelist accepts real hosts**: domains, IPv4, IPv6, `localhost`, container
   names, with an optional port. Bare hosts and literal addresses match exactly,
   so an entry of `com` can never whitelist the internet.
 - **SafeSearch is enforced** on Google, Bing and DuckDuckGo, and YouTube Shorts
@@ -68,7 +68,7 @@ flagged terms appear, the page stays hidden behind a frosted overlay showing a
 message you wrote, and any playing video or audio is paused.
 
 Scanning counts **distinct** terms against a sensitivity you choose, and matches
-on word boundaries — so `analysis`, `button`, `grapes` and `cocktail` do not trip
+on word boundaries, so `analysis`, `button`, `grapes` and `cocktail` do not trip
 it, while a page that is genuinely explicit trips immediately. A 2.5 MB page
 costs well under one frame.
 
@@ -90,15 +90,15 @@ costs well under one frame.
 | Account sync | Every profile on the same Google account, any device | None |
 | Settings file | Every profile on **one machine**, whatever account each uses | One command |
 
-Reconciled by revision — the most recent change wins. See
+Reconciled by revision: the most recent change wins. See
 [Shared settings](#shared-settings).
 
 ### Locking the browser down
 
 A guest window, a new profile or an Incognito tab has no extensions in it. No
 extension can close those; a **browser policy** can. The built-in generator turns
-a set of checkboxes into a single command for Linux, macOS or Windows — see
-[Browser lockdown](#browser-lockdown).
+a set of checkboxes into a single command for Linux, macOS or Windows (see
+[Browser lockdown](#browser-lockdown)).
 
 ---
 
@@ -136,7 +136,7 @@ Two optional extras are worth the few minutes:
 
 ## Shared settings
 
-A Chrome extension cannot read or write ordinary files — that is a hard boundary
+A Chrome extension cannot read or write ordinary files: that is a hard boundary
 in the browser. Reaching a real file needs a small program outside the sandbox:
 
 ```bash
@@ -157,7 +157,7 @@ write one JSON file. It never interprets what your settings mean.
 
 Everything written there is checksummed. A file that no longer matches its
 checksum was edited outside the dashboard, so its **tightening** changes are
-accepted and its **loosening** changes are discarded — otherwise the file would
+accepted and its **loosening** changes are discarded. Otherwise the file would
 be a way around the 12-minute wait.
 
 <details>
@@ -173,7 +173,7 @@ stays invisible however many windows you close:
 flatpak kill com.google.Chrome
 ```
 
-Then start it again. The settings helper handles Flatpak automatically — it
+Then start it again. The settings helper handles Flatpak automatically: it
 detects the sandbox and uses your real home rather than the browser's private
 config tree, so every browser shares one file.
 
@@ -204,7 +204,7 @@ before you run it, and a revert command is generated alongside.
 
 > [!WARNING]
 > The command needs an administrator password and applies to **every profile and
-> every user** of that browser on the machine. Read it before running it — it is
+> every user** of that browser on the machine. Read it before running it: it is
 > plain text and does exactly what is listed.
 
 ---
@@ -215,7 +215,7 @@ No build step, no bundler, no dependencies. Load the folder and it runs.
 
 ```
 src/
-  background.js       service worker — rules, blocking decisions, the pending
+  background.js       service worker: rules, blocking decisions, the pending
                       engine, temporary passes. All authority lives here.
   content.js          the anti-flash barrier, the page scanner, the warning
   inject.js           main-world hook for SPA route changes
@@ -242,8 +242,8 @@ native/
 
 <br>
 
-The bundled keyword list contains short words. Matched as plain substrings —
-which is what a naive filter does — `anal` hits *analysis*, `butt` hits *button*,
+The bundled keyword list contains short words. Matched as plain substrings
+(which is what a naive filter does), `anal` hits *analysis*, `butt` hits *button*,
 `rape` hits *grape*, `cock` hits *cocktail* and `scat` hits *scattered*.
 
 Page scanning therefore uses a word-boundary filter and counts **distinct** terms
@@ -264,21 +264,21 @@ python3 -m py_compile native/*.py
 ```
 
 The behaviour that matters is covered by standalone suites that stub the Chrome
-APIs and run under Node — the cooling-off lifecycle, settings reconciliation,
+APIs and run under Node (the cooling-off lifecycle, settings reconciliation,
 host parsing, search blocking, scanner cost and correctness, the policy
-generator, and reproductions of every bypass that has been found and closed.
+generator, and reproductions of every bypass that has been found and closed).
 
 ---
 
 ## Credits
 
-Built on public work — the games, the domain list and the keyword dictionary all
+Built on public work: the games, the domain list and the keyword dictionary all
 come from elsewhere. Full attributions in **[CREDITS.md](CREDITS.md)**.
 
 ## License
 
 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)
-— see **[LICENSE](LICENSE)**.
+(see **[LICENSE](LICENSE)**).
 
 Free to use, study, modify and share for any noncommercial purpose, including
 personal use, study, hobby projects, and use by schools, charities and public

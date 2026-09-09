@@ -5,7 +5,7 @@ does that through two independent layers.
 
 | Layer | Covers | Setup |
 |---|---|---|
-| **Account sync** | Every profile signed into the same Google account, on any device | None — always on |
+| **Account sync** | Every profile signed into the same Google account, on any device | None: always on |
 | **Settings file** | Every profile on one machine, *regardless of which account they use* | Run the installer once per machine |
 
 You do not have to choose. Whichever layers are available are kept in step with
@@ -16,14 +16,14 @@ anything.
 
 ## Why the file needs a helper
 
-A Chrome extension cannot read or write arbitrary paths on disk — the sandbox
+A Chrome extension cannot read or write arbitrary paths on disk: the sandbox
 has no API for it, by design. Reaching a real file therefore needs a small
 program living outside the sandbox that the browser is explicitly told to talk
 to. That is `blockx_host.py`: about a hundred lines that do nothing but read and
 write one JSON file. It never interprets your settings and never decides
 anything.
 
-If you skip this step, everything still works — you just get account sync only.
+If you skip this step, everything still works: you just get account sync only.
 
 ---
 
@@ -45,13 +45,13 @@ Then **restart your browser** and open the BlockX dashboard. Under
 path.
 
 The installer registers with every Chromium-family browser it finds for your
-user — Chrome, Chromium, Brave, Edge, Vivaldi, including Flatpak installs. It
+user (Chrome, Chromium, Brave, Edge, Vivaldi, including Flatpak installs). It
 writes nothing outside your own home directory and needs no administrator
 rights.
 
 You register **once per browser installation, not once per profile**. Chrome
 keeps native host registrations at the root of its user data directory, so
-every profile inside it — Default, Profile 1, Profile 2 and so on — picks the
+every profile inside it (Default, Profile 1, Profile 2 and so on) picks the
 same one up, whatever Google account each is signed into. That is the whole
 point of this layer.
 
@@ -81,7 +81,7 @@ exists when a new profile starts up, that profile adopts it.
 python3 install.py --uninstall
 ```
 
-This removes the registration only. Your settings file is left alone — delete it
+This removes the registration only. Your settings file is left alone; delete it
 yourself if you want it gone.
 
 ---
@@ -91,7 +91,7 @@ yourself if you want it gone.
 Every snapshot carries a revision stamp. On startup, whenever another profile
 changes something, and every five minutes, BlockX reads whichever stores it can
 reach, takes the highest revision, and writes it back to the others. There is no
-merge step and nothing to resolve by hand — the most recent change wins.
+merge step and nothing to resolve by hand: the most recent change wins.
 
 ## Editing the file by hand
 
@@ -102,7 +102,7 @@ Everything BlockX writes is checksummed. If the file's contents no longer match
 its checksum, the extension knows it was edited outside the dashboard and treats
 it as untrusted:
 
-- Edits that **tighten** protection are accepted — adding blocked domains,
+- Edits that **tighten** protection are accepted: adding blocked domains,
   keywords or pages.
 - Edits that **loosen** protection are ignored, and the file is rewritten from
   the extension's own state. That covers removing blocklist entries, adding to
@@ -111,7 +111,7 @@ it as untrusted:
 
 This exists so the settings file cannot be used to sidestep the twelve-minute
 cooling-off period that removals go through in the dashboard. It is a deterrent
-against a moment of weakness with a text editor, not a security boundary — the
+against a moment of weakness with a text editor, not a security boundary: the
 checksum recipe is right there in `src/settings-sync.js`, and anyone determined
 enough to read it can defeat it. The same is true of any tool like this: it
 works because you want it to.
@@ -123,7 +123,7 @@ they propagate everywhere without complaint.
 
 ## Troubleshooting
 
-**The row stays orange after installing.** Restart the browser completely —
+**The row stays orange after installing.** Restart the browser completely:
 registrations are read at launch. On Linux, make sure you restarted the same
 browser the installer listed.
 

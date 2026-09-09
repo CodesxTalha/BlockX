@@ -328,8 +328,8 @@
                     <div class="settings-group">
                         <div class="group-header">
                             <h3>One-Time Visit</h3>
-                            <p>Getting past a block — from the toolbar icon, or from the warning on a
-                                flagged page — means retyping this word for word.</p>
+                            <p>Getting past a block (from the toolbar icon, or from the warning on a
+                                flagged page) means retyping this word for word.</p>
                         </div>
                         <div class="interactive-list-manager">
                             <textarea id="unlock-phrase" class="scan-message" rows="2" maxlength="300"
@@ -385,12 +385,14 @@
                                     <tr>
                                         <th><code>The domain</code></th>
                                         <td>blocks the whole site and all its subdomains (e.g.
-                                            <code>facebook.com</code>)</td>
+                                            <code>facebook.com</code>)
+                                        </td>
                                     </tr>
                                     <tr>
                                         <th><code>With all child pages</code></th>
                                         <td>blocks that section and everything under it (e.g.
-                                            <code>reddit.com/r/gaming/*</code>)</td>
+                                            <code>reddit.com/r/gaming/*</code>)
+                                        </td>
                                     </tr>
                                     <tr>
                                         <th><code>Exact page</code></th>
@@ -479,39 +481,97 @@
                 <!-- Whitelist Section -->
                 <div id="section-whitelist" class="settings-section">
                     <div class="settings-group">
-                        <div class="group-header">
-                            <h3>Allowed Destinations</h3>
-                            <p>Traffic to these bypasses every blocking rule, but will still be scanned by the live
-                                scanner unless added to Scan Exclusions. Adding a section or single page allows only
-                                that path and automatically blocks the rest of the site.</p>
-                        </div>
-
                         <div class="interactive-list-manager">
                             <table class="help-table exclusion-forms">
                                 <tbody>
                                     <tr>
-                                        <th><code>kaggle.com</code></th>
-                                        <td>the whole site, subdomains included</td>
+                                        <th><code>The domain</code></th>
+                                        <td>allows the whole site and its subdomains (e.g. <code>x.com</code>)</td>
                                     </tr>
                                     <tr>
-                                        <th><code>kaggle.com/user/notebook/*</code></th>
-                                        <td>that section only (rest of site is blocked)</td>
+                                        <th><code>With all child pages</code></th>
+                                        <td>allows only that section and its child pages (e.g. <code>instagram.com/talhaxcodes/*</code>)</td>
                                     </tr>
                                     <tr>
-                                        <th><code>kaggle.com/competitions/overview</code></th>
-                                        <td>that one page only (rest of site is blocked)</td>
+                                        <th><code>Exact page</code></th>
+                                        <td>allows only that single page (e.g. <code>instagram.com/talhaxcodes/reels</code>)</td>
                                     </tr>
                                 </tbody>
                             </table>
+                            <p class="whitelist-hint"><strong>Note:</strong> Allowing a specific section or single page
+                                restricts that site to only those allowed paths; the rest of the site is automatically
+                                blocked.</p>
                             <div class="input-row">
                                 <input type="text" id="allowed-domain-input"
-                                    placeholder="Site, section/*, or a single page">
+                                    placeholder="Site, section/*, or single page (e.g. x.com)">
+                                <div class="custom-dropdown" id="allowed-scope-dropdown">
+                                    <button type="button" class="dropdown-trigger" id="allowed-scope-trigger"
+                                        aria-haspopup="listbox" aria-expanded="false">
+                                        <span id="allowed-scope-label">The domain</span>
+                                        <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                    <input type="hidden" id="allowed-scope-value" value="domain">
+                                    <div class="dropdown-menu" id="allowed-scope-menu" role="listbox"
+                                        aria-label="Whitelist scope">
+                                        <button type="button" class="dropdown-item active" data-value="domain"
+                                            role="option" aria-selected="true">
+                                            <div class="dropdown-item-content">
+                                                <span class="dropdown-item-title">The domain</span>
+                                                <span class="dropdown-item-desc">Entire site and all subdomains</span>
+                                            </div>
+                                            <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </button>
+                                        <button type="button" class="dropdown-item" data-value="children" role="option"
+                                            aria-selected="false">
+                                            <div class="dropdown-item-content">
+                                                <span class="dropdown-item-title">With all child pages</span>
+                                                <span class="dropdown-item-desc">Section and sub-paths (/*)</span>
+                                            </div>
+                                            <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </button>
+                                        <button type="button" class="dropdown-item" data-value="exact" role="option"
+                                            aria-selected="false">
+                                            <div class="dropdown-item-content">
+                                                <span class="dropdown-item-title">Exact page</span>
+                                                <span class="dropdown-item-desc">This specific URL only</span>
+                                            </div>
+                                            <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </button>
+                                        <div class="dropdown-divider"></div>
+                                        <button type="button" class="dropdown-item" data-value="auto" role="option"
+                                            aria-selected="false">
+                                            <div class="dropdown-item-content">
+                                                <span class="dropdown-item-title">Auto-detect</span>
+                                                <span class="dropdown-item-desc">Detect from URL pattern</span>
+                                            </div>
+                                            <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
                                 <button id="add-allowed-domain-btn" class="btn btn-secondary">
                                     Add
                                 </button>
                             </div>
-                            <p class="help-text">Accepts whole sites, wildcard sections (<code>/*</code>), or single
-                                pages, with an optional port.</p>
                             <div id="allowed-domain-list" class="tag-cloud">
                                 <!-- Populated by JS -->
                             </div>
@@ -544,7 +604,7 @@
                     <div class="settings-group">
                         <div class="group-header">
                             <h3>Page-Only Keywords</h3>
-                            <p>Checked inside the page text only — never against the URL. A single match blurs the page
+                            <p>Checked inside the page text only (never against the URL). A single match blurs the page
                                 and shows the warning popup.</p>
                         </div>
 
@@ -661,7 +721,7 @@
                     <div class="settings-group">
                         <div class="group-header">
                             <h3>Warning Message</h3>
-                            <p>The one message shown whenever you try to loosen protection —
+                            <p>The one message shown whenever you try to loosen protection:
                                 removing a restricted entry, adding a site to the whitelist,
                                 or exempting one from scanning. Write something that will actually stop you.</p>
                         </div>

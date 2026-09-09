@@ -4,8 +4,8 @@ const selected = new Set();
 let currentOs = 'linux';
 let currentBrowser = 'chrome';
 
-// The page is served by the extension, so this is always the real id — no need
-// to trust the one pinned in the manifest.
+// The page is served by the extension, so this is always the real id (no need
+// to trust the one pinned in the manifest).
 const EXTENSION_ID = chrome.runtime.id;
 
 function init() {
@@ -167,7 +167,7 @@ function setupCopyButtons() {
                 const selection = window.getSelection();
                 selection.removeAllRanges();
                 selection.addRange(range);
-                showToast('Selected — press Ctrl+C to copy.');
+                showToast('Selected: press Ctrl+C to copy.');
             }
         });
     });

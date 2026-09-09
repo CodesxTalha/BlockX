@@ -78,8 +78,8 @@ const HARDENING_OPTIONS = [
   {
     id: 'forceinstall',
     label: 'Force-install BlockX so it cannot be removed',
-    detail: 'The strongest option, but it only works for an extension served from a web address — '
-          + 'the Chrome Web Store or your own update manifest. It cannot force-install the unpacked '
+    detail: 'The strongest option, but it only works for an extension served from a web address (the Chrome Web Store or your own update manifest). '
+          + 'It cannot force-install the unpacked '
           + 'folder you loaded by hand.',
     advanced: true,
     needsExtensionId: true,
@@ -239,10 +239,10 @@ const RUN_NOTES = {
   linux: [
     'Open a terminal.',
     'Paste the line and press Enter.',
-    'Enter your password when sudo asks — this writes to /etc, which is why it needs one.',
+    'Enter your password when sudo asks: this writes to /etc, which is why it needs one.',
     'Quit the browser completely and start it again. Closing every window is not always '
       + 'enough; if it still does not show up, end the remaining process and relaunch.',
-    'On a Flatpak browser, quitting properly matters more than usual — see the note below.',
+    'On a Flatpak browser, quitting properly matters more than usual (see the note below).',
     'Open chrome://policy. The entries should be listed with Source: Platform. If the page '
       + 'is empty, the browser was never restarted.'
   ],
@@ -251,12 +251,12 @@ const RUN_NOTES = {
     'Paste the line and press Enter.',
     'Enter your password when sudo asks.',
     'Quit the browser completely (Cmd+Q) and start it again.',
-    'Check chrome://policy — the entries should be listed as Source: Platform.'
+    'Check chrome://policy: the entries should be listed as Source: Platform.'
   ],
   windows: [
     'Press Start, type PowerShell, right-click it and choose Run as administrator.',
     'Paste the whole block and press Enter.',
     'Close every browser window and start the browser again.',
-    'Check chrome://policy — the entries should be listed as Source: Platform.'
+    'Check chrome://policy: the entries should be listed as Source: Platform.'
   ]
 };

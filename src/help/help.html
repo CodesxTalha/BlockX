@@ -41,7 +41,7 @@
                     <div class="layer">
                         <span class="layer-tag">One command</span>
                         <h3>Settings file</h3>
-                        <p>Every profile on <em>this machine</em>, whatever account each one uses —
+                        <p>Every profile on <em>this machine</em>, whatever account each one uses,
                            which account sync alone cannot do.</p>
                     </div>
                 </div>
@@ -54,7 +54,7 @@
                    living outside the sandbox that the browser is told about explicitly. That is
                    <code>native/blockx_host.py</code>: about a hundred lines that do nothing but read
                    and write one JSON file. It never looks at what your settings mean.</p>
-                <p class="muted">Skip this and nothing breaks — you just get account sync on its own.</p>
+                <p class="muted">Skip this and nothing breaks: you just get account sync on its own.</p>
             </div>
 
             <div class="help-card">
@@ -66,8 +66,8 @@
 python3 install.py</pre>
                     <button class="copy-btn" data-copy="install-cmd" type="button">Copy</button>
                 </div>
-                <p>Then <strong>quit the browser completely and reopen it</strong> — registrations are
-                   only read at launch. Open the dashboard and look under
+                <p>Then <strong>quit the browser completely and reopen it</strong> (registrations are
+                   only read at launch). Open the dashboard and look under
                    <em>General &rarr; Shared Settings</em>: the settings file row turns green and shows
                    its path.</p>
                 <p class="muted">You run this <strong>once per machine, not once per profile</strong>.
@@ -98,7 +98,7 @@ python3 install.py</pre>
                    Edits that <strong>tighten</strong> protection are accepted. Edits that
                    <strong>loosen</strong> it are ignored and the file is rewritten.</p>
                 <p class="muted">That exists so the file cannot be used to skip the twelve-minute wait
-                   that removals go through. It is a deterrent, not a lock — the recipe is in the
+                   that removals go through. It is a deterrent, not a lock: the recipe is in the
                    source, and anyone who reads it can get round it. Same as everything here: it works
                    because you want it to.</p>
             </div>
@@ -128,7 +128,7 @@ python3 install.py</pre>
         <section id="tab-harden" class="help-panel">
             <div class="help-card">
                 <h2>Make the browser enforce it</h2>
-                <p>An extension can be switched off from a menu. A browser policy cannot — it is read
+                <p>An extension can be switched off from a menu. A browser policy cannot: it is read
                    from a location only an administrator can write, and the browser applies it before
                    any profile loads. Guest windows, new profiles and Incognito all bypass an extension
                    entirely; this is the only thing that closes those.</p>
@@ -213,16 +213,16 @@ python3 install.py</pre>
                    and never again. A file written after that point is invisible to the running browser,
                    however many windows you close and reopen, because the sandbox from the original
                    launch is still alive.</p>
-                <p>So on Flatpak, quit the browser <strong>properly</strong> first — its own Quit,
-                   or closing every window and letting it exit — and start it again. That is usually
+                <p>So on Flatpak, quit the browser <strong>properly</strong> first (its own Quit,
+                   or closing every window and letting it exit) and start it again. That is usually
                    enough, and it is the only way that keeps your settings.</p>
                 <p>Only if it still has not taken effect, force it:</p>
                 <div class="cmd-block">
                     <pre id="flatpak-cmd">flatpak kill com.google.Chrome</pre>
                     <button class="copy-btn" data-copy="flatpak-cmd" type="button">Copy</button>
                 </div>
-                <p class="muted">Substitute the app id for your browser — <code>com.brave.Browser</code>,
-                   <code>org.chromium.Chromium</code>. If you are not using Flatpak, ignore this card.</p>
+                <p class="muted">Substitute the app id for your browser (e.g. <code>com.brave.Browser</code>,
+                   <code>org.chromium.Chromium</code>). If you are not using Flatpak, ignore this card.</p>
             </div>
 
             <div class="help-card warn">
@@ -232,7 +232,7 @@ python3 install.py</pre>
                    changed since the last write is simply lost.</p>
                 <p><strong>Developer Mode is one of those preferences.</strong> Lose it and every
                    extension you loaded from a folder is switched off the next time the browser
-                   starts — which looks exactly like the extension having uninstalled itself.</p>
+                   starts, which looks exactly like the extension having uninstalled itself.</p>
                 <p class="muted">If that happens: open <code>chrome://extensions</code>, turn
                    Developer Mode back on, load the folder again, and then quit the browser properly
                    so the setting is written to disk.</p>
@@ -250,7 +250,7 @@ python3 install.py</pre>
                     <li><strong>Blocking the extensions page means you cannot manage any extension</strong>,
                         including installing something you want later. Undo it with the revert command.</li>
                     <li>Read the command before you run it. It is plain text and does exactly what is
-                        listed above — never paste something you have not read, from here or anywhere.</li>
+                        listed above: never paste something you have not read, from here or anywhere.</li>
                 </ul>
             </div>
         </section>

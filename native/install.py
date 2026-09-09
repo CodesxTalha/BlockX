@@ -3,7 +3,7 @@
 Registers the BlockX native messaging host with the Chromium-family browsers
 installed on this machine.
 
-Run once per machine (not per profile) — every profile of a registered browser
+Run once per machine (not per profile): every profile of a registered browser
 then shares the same settings file:
 
     Linux    ~/.config/blockx/settings.json
@@ -69,7 +69,7 @@ def browser_targets():
         ):
             candidates.append((label, os.path.join(flatpak, app_id, "config", config_dir)))
 
-    # Only browsers that are actually present — otherwise the installer would
+    # Only browsers that are actually present: otherwise the installer would
     # scatter config directories for browsers this machine has never had.
     targets = []
     for label, path in candidates:

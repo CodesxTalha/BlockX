@@ -387,7 +387,7 @@ body {
 }
 .btn-ghost:hover { color: var(--text-main); border-color: var(--text-sub); }
 
-/* Blocked by the user's own list — no pass on offer */
+/* Blocked by the user's own list: no pass on offer */
 .refused-text {
     font-size: 13px;
     line-height: 1.5;

@@ -3,9 +3,9 @@
 // Keeps one set of settings across every profile and machine.
 //
 // Three stores hold the same snapshot:
-//   local  chrome.storage.local — what the extension actually runs on
-//   sync   chrome.storage.sync  — follows the Google account across devices
-//   file   a JSON file on disk  — shared by every profile on this machine,
+//   local  chrome.storage.local: what the extension actually runs on
+//   sync   chrome.storage.sync: follows the Google account across devices
+//   file   a JSON file on disk: shared by every profile on this machine,
 //                                 reached through the native host in native/
 //
 // Each snapshot carries a revision. Reconciling means reading whatever stores
@@ -90,7 +90,7 @@ async function nativeSend(message) {
 
 /**
  * Probes for the native host once per service-worker lifetime. Its absence is
- * the normal case — the helper is optional — so this never throws.
+ * the normal case (the helper is optional), so this never throws.
  */
 async function probeNativeHost(force = false) {
   if (nativeState.checked && !force) return nativeState;
@@ -162,8 +162,8 @@ async function writeFileSnapshot(settings, revision) {
 // ------------------------------------------------------------------
 
 /**
- * An untrusted file — one whose checksum does not match, meaning it was edited
- * by hand rather than written by the extension — is not allowed to loosen
+ * An untrusted file (one whose checksum does not match, meaning it was edited
+ * by hand rather than written by the extension) is not allowed to loosen
  * anything. Its tightening changes are still honoured.
  */
 function admissibleSettings(local, candidate) {

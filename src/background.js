@@ -8,14 +8,14 @@ const DYNAMIC_RULE_LIMIT = chrome.declarativeNetRequest.MAX_NUMBER_OF_DYNAMIC_AN
 // ------------------------------------------------------------------
 // Enforced by the extension itself rather than by a browser policy, so it
 // holds without an administrator having set anything up. There is no setting
-// for it and nothing in the extension turns it off — this checks on every
+// for it and nothing in the extension turns it off: this checks on every
 // start and every poll that it is still on, and switches it back if not.
 const SAFESEARCH_RULESET = 'ruleset_safesearch';
 
 // SafeSearch outranks everything this extension emits, including the allow
 // rules that back the whitelist. Chrome resolves declarativeNetRequest matches
 // by priority first, so an allow rule for an allowed site would otherwise
-// cancel the SafeSearch redirect on it — which is exactly the case that
+// cancel the SafeSearch redirect on it, which is exactly the case that
 // matters, since a search engine is the sort of site people allow.
 const SAFESEARCH_PRIORITY = 1000;
 
@@ -34,7 +34,7 @@ async function ensureSafeSearchEnabled() {
 }
 
 // ------------------------------------------------------------------
-// MASTER DOMAIN LIST (Simple JSON Set — O(1) lookup, service-worker safe)
+// MASTER DOMAIN LIST (Simple JSON Set: O(1) lookup, service-worker safe)
 // ------------------------------------------------------------------
 
 let masterDomainSet = new Set();
@@ -60,7 +60,7 @@ function ensureDomainListLoaded() {
 // KEYWORD LIST
 // ------------------------------------------------------------------
 // The service worker used to check config.KEYWORDS only, which is the user's
-// own list and empty by default — the 349 bundled terms were never consulted
+// own list and empty by default: the 349 bundled terms were never consulted
 // outside the content script. That left an explicit search reaching the page
 // before anything looked at it.
 let badwordsCache = null;
@@ -108,7 +108,7 @@ function isMasterBlocked(domain) {
 // SETTINGS IMPORT
 // ------------------------------------------------------------------
 // An imported backup can rewrite every list at once, so it only lands after
-// the intention check in the dashboard — never silently.
+// the intention check in the dashboard: never silently.
 
 // Only the known settings keys are ever written back, so a hand-edited file
 // cannot inject anything the dashboard does not manage.
@@ -351,7 +351,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'triggerBlock' && sender.tab) {
-    // 🛡️ THE NATIVE IFRAME FIX: 
+    // THE NATIVE IFRAME FIX: 
     // frameId 0 means the message came from the main parent window.
     // If an iframe tries to trigger a block on a whitelisted site, we ignore it natively here.
     if (sender.frameId === 0) {
@@ -386,8 +386,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const grants = activeGrants(config.TEMP_GRANTS);
       const { BLOCKED_ORIGINS = {} } = await chrome.storage.session.get({ BLOCKED_ORIGINS: {} });
 
-      // Whatever the tab is showing now — our block page, a game, a data: URI
-      // or a connection error — the thing to unlock is what it was sent away
+      // Whatever the tab is showing now (our block page, a game, a data: URI
+      // or a connection error), the thing to unlock is what it was sent away
       // from. Falling back to the tab's own address covers a page the content
       // script stopped after it had already loaded.
       let target = null;
@@ -615,8 +615,8 @@ function blockReason(urlStr, config, tabId) {
   return null;
 }
 
-// A pass is spent the moment its page commits. Anything after that — a reload,
-// a second tab, a link back later — is blocked again even with time left.
+// A pass is spent the moment its page commits. Anything after that (a reload,
+// a second tab, a link back later) is blocked again even with time left.
 chrome.webNavigation.onCommitted.addListener(async (details) => {
   if (details.frameId !== 0) return;
 

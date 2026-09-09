@@ -123,7 +123,7 @@ function showActivePass(grant) {
             panel.classList.add('hidden');
             return;
         }
-        if (detail) detail.textContent = `${grant.host} — ${formatCountdown(left)} remaining`;
+        if (detail) detail.textContent = `${grant.host} (${formatCountdown(left)} remaining)`;
     };
     render();
     setInterval(render, 1000);

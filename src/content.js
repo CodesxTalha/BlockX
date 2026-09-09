@@ -1,14 +1,14 @@
 // content.js
 (async function() {
   // ------------------------------------------------------------------
-  // 🛑 1. INSTANT SYNCHRONOUS BARRIER (THE FLASH FIX)
+  // 1. INSTANT SYNCHRONOUS BARRIER (THE FLASH FIX)
   // Hide the page immediately BEFORE any network requests or DOM parsing
   // ------------------------------------------------------------------
   // Loading state: nothing is painted at all.
   const BARRIER_OPAQUE = 'html { visibility: hidden !important; opacity: 0 !important; background: #ffffff !important; }';
 
-  // Prompt state: an 80px blur & freeze on body — where every bit of page
-  // content lives — so it stays completely unreadable even if overlay
+  // Prompt state: an 80px blur & freeze on body (where every bit of page
+  // content lives) so it stays completely unreadable even if overlay
   // elements are tampered with. The warning host sits on <html>, outside
   // body, which is what keeps it sharp while the page behind it is not.
   const BARRIER_FROZEN = `
@@ -37,7 +37,7 @@
   }
 
   // ------------------------------------------------------------------
-  // 📦 TOP-LEVEL STATE VARIABLES (DECLARED FIRST TO PREVENT TDZ ERRORS)
+  // TOP-LEVEL STATE VARIABLES (DECLARED FIRST TO PREVENT TDZ ERRORS)
   // ------------------------------------------------------------------
   let tabUnlocked = false;
   let isBlocked = false;
@@ -66,7 +66,7 @@
   }
 
   // ------------------------------------------------------------------
-  // 🛡️ CONFIG & INITIALIZATION
+  // CONFIG & INITIALIZATION
   // ------------------------------------------------------------------
   await loadConfig();
 
@@ -231,7 +231,7 @@
   }
 
   // ------------------------------------------------------------------
-  // ⚡ REAL-TIME INSTANT INPUT & KEYSTROKE SCANNER
+  // REAL-TIME INSTANT INPUT & KEYSTROKE SCANNER
   // ------------------------------------------------------------------
   const CORE_FLAGGED_WORDS = [
     'porn', 'porno', 'pornography', 'pornhub',
@@ -291,7 +291,7 @@
     if (!isTopFrame) return;
     if (isScanExcluded()) return;
     if (scanPrompted || scanAcknowledged) return;
-    console.log(`⚡ [BlockX] Flagged keyword "${hit}" detected in input! Prompting immediately.`);
+    console.log(`[BlockX] Flagged keyword "${hit}" detected in input! Prompting immediately.`);
     if (target && target.blur) {
       try { target.blur(); } catch {}
     }
@@ -518,7 +518,7 @@
   }
 
   // ------------------------------------------------------------------
-  // 🔍 ON-PAGE CONTENT SCAN
+  // ON-PAGE CONTENT SCAN
   // ------------------------------------------------------------------
   // Walks the visible text once, counting DISTINCT flagged terms and bailing
   // out the moment the threshold is met. Distinct-term counting is what keeps
@@ -562,7 +562,7 @@
       return found.size >= threshold || totalHits >= 2;
     };
 
-    // 0. Search query inspection — Intent Rule: 1 hit trips immediately
+    // 0. Search query inspection (Intent Rule: 1 hit trips immediately)
     const query = extractSearchQuery(window.location.href);
     if (query) {
       if (pageHit(query)) return pageFound;
@@ -570,7 +570,7 @@
       if (found.size > 0) return found;
     }
 
-    // 1. Metadata and Title — Intent Rule: 1 hit in title or meta description trips immediately
+    // 1. Metadata and Title (Intent Rule: 1 hit in title or meta description trips immediately)
     if (document.title) {
       if (pageHit(document.title)) return pageFound;
       recordMatches(document.title, scanRegex, found, true);
@@ -599,7 +599,7 @@
       }
     }
 
-    // 3. Text pass — walks visible body text (titles, descriptions, sidebars, knowledge panels)
+    // 3. Text pass: walks visible body text (titles, descriptions, sidebars, knowledge panels)
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (!node.nodeValue || node.nodeValue.length < SCAN_MIN_TEXT_LENGTH) return NodeFilter.FILTER_REJECT;
@@ -617,7 +617,7 @@
       if (mainHit(node.nodeValue)) return found;
     }
 
-    // 4. Element attributes pass — checks image alt text, descriptions, pins, cards, and links
+    // 4. Element attributes pass: checks image alt text, descriptions, pins, cards, and links
     const elementsWithAttrs = document.body.querySelectorAll(
       'img[alt], img[title], img[data-pin-description], img[src], [aria-label], [title], [data-title], [data-alt], [data-test-id], a[href]'
     );
@@ -703,7 +703,7 @@
   /**
    * Waits for the document to settle before judging it. Each further change
    * pushes the scan back, so a page mid-render is never graded on what it
-   * happened to be showing a moment ago — but the deadline caps how long that
+   * happened to be showing a moment ago, but the deadline caps how long that
    * can be put off, so a page that never stops moving is still checked.
    */
   function scheduleRescan() {
@@ -942,7 +942,7 @@
     const card = document.createElement('div');
     card.className = 'card';
 
-    // Stage 1 — the warning itself, carrying the user's own message directly on top.
+    // Stage 1: the warning itself, carrying the user's own message directly on top.
     const view1 = document.createElement('div');
     view1.className = 'view';
 
@@ -954,7 +954,7 @@
 
     view1.appendChild(message);
 
-    // Stage 2 — a second, plainer gate shown after the first "yes".
+    // Stage 2: a second, plainer gate shown after the first "yes".
     const view2 = document.createElement('div');
     view2.className = 'view';
     view2.hidden = true;
@@ -1001,14 +1001,14 @@
 
       // 1. Ensure host overlay is in DOM and attached to documentElement
       if (!host.parentNode || !document.documentElement.contains(host)) {
-        noteTamper('host', '[BlockX] Warning overlay removed — re-attaching.');
+        noteTamper('host', '[BlockX] Warning overlay removed: re-attaching.');
         document.documentElement.appendChild(host);
       }
 
       // 2. Re-enforce overlay visibility and position styles if altered
       const style = window.getComputedStyle(host);
       if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' || style.pointerEvents === 'none') {
-        noteTamper('host-style', '[BlockX] Warning overlay hidden — restoring visibility.');
+        noteTamper('host-style', '[BlockX] Warning overlay hidden: restoring visibility.');
         host.style.setProperty('all', 'initial', 'important');
         host.style.setProperty('position', 'fixed', 'important');
         host.style.setProperty('inset', '0', 'important');
@@ -1024,7 +1024,7 @@
       const bodyStyle = document.body ? window.getComputedStyle(document.body) : null;
       const blurred = document.body ? !!(bodyStyle && (bodyStyle.filter || bodyStyle.webkitFilter || '').includes('blur')) : true;
       if (!hasBarrier || !blurred) {
-        noteTamper('barrier', '[BlockX] Security barrier removed or weakened — re-attaching.');
+        noteTamper('barrier', '[BlockX] Security barrier removed or weakened: re-attaching.');
         raiseBarrier(BARRIER_FROZEN);
       }
 
@@ -1036,7 +1036,7 @@
         if (node === document.head || node === document.body) continue;
         if (node === securityBarrier || node === host) continue;
         if (HEAD_LEVEL[node.nodeName]) continue;
-        noteTamper('stray', '[BlockX] Content moved outside <body> — moving back.');
+        noteTamper('stray', '[BlockX] Content moved outside <body>: moving back.');
         if (document.body) document.body.appendChild(node);
       }
     }
@@ -1058,7 +1058,7 @@
     const sureBtn = document.createElement('button');
     sureBtn.className = 'leave';
     sureBtn.type = 'button';
-    sureBtn.textContent = "Yes, I'm sure — show it";
+    sureBtn.textContent = "Yes, I'm sure: show it";
 
     const backBtn = document.createElement('button');
     backBtn.className = 'show';
@@ -1255,7 +1255,7 @@
     // IMMEDIATE check on search query: if URL has an explicit search query, catch it with 0ms delay!
     const query = extractSearchQuery(currentUrl);
     if (query && checkTextForFlaggedKeywords(query)) {
-      console.log(`⚡ [BlockX] Immediate search query flagged on URL: "${query}"`);
+      console.log(`[BlockX] Immediate search query flagged on URL: "${query}"`);
       return runContentScan();
     }
 
