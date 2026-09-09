@@ -2,21 +2,18 @@
 
 const sections = {
     general: { title: "General Settings", subtitle: "Configure your core protection parameters." },
-    lists: { title: "Domain Management", subtitle: "Manage the database of restricted hostnames." },
+    lists: { title: "Blocked Destinations", subtitle: "Block entire websites, sections with child pages, or specific exact pages." },
     whitelist: { title: "Whitelist", subtitle: "Destinations that bypass every rule." },
     keywords: { title: "Content Filtering", subtitle: "Define patterns to block based on page content." },
-    pages: { title: "Page Link Restriction", subtitle: "Filter traffic to specific URLs and paths." },
     scanning: { title: "Content Scanning", subtitle: "Catch explicit pages on sites that are not on any list." },
     friction: { title: "Friction", subtitle: "The warning message you must read before loosening your own protection." },
     security: { title: "Security Protection", subtitle: "Secure your configuration with a dashboard password." }
 };
+sections.pages = sections.lists;
 
 const LIST_BINDINGS = [
-    { inputId: 'domain-input', btnId: 'add-domain-btn', listId: 'domain-list', stateKey: 'CUSTOM_DOMAINS' },
     { inputId: 'keyword-input', btnId: 'add-keyword-btn', listId: 'keyword-list', stateKey: 'CUSTOM_KEYWORDS' },
     { inputId: 'page-keyword-input', btnId: 'add-page-keyword-btn', listId: 'page-keyword-list', stateKey: 'CUSTOM_PAGE_KEYWORDS' },
-    { inputId: 'page-input', btnId: 'add-page-btn', listId: 'page-list', stateKey: 'CUSTOM_PAGES' },
-    { inputId: 'exact-page-input', btnId: 'add-exact-page-btn', listId: 'exact-page-list', stateKey: 'CUSTOM_EXACT_PAGES' },
     { inputId: 'allowed-domain-input', btnId: 'add-allowed-domain-btn', listId: 'allowed-domain-list', stateKey: 'CUSTOM_ALLOWED_DOMAINS' },
     { inputId: 'scan-excluded-input', btnId: 'add-scan-excluded-btn', listId: 'scan-excluded-list', stateKey: 'CUSTOM_SCAN_EXCLUDED' }
 ];
@@ -64,6 +61,7 @@ async function init() {
     
     // 3. Populate dynamic elements
     populateGames();
+    setupBlockedManager();
     LIST_BINDINGS.forEach(b => setupListManager(b.inputId, b.btnId, b.listId, b.stateKey));
 
     const customUrlInput = document.getElementById('custom-redirect-input');
@@ -105,6 +103,7 @@ async function init() {
 // ------------------------------------------------------------------
 
 function renderAllLists() {
+    renderList('domain-list', 'CUSTOM_DOMAINS');
     LIST_BINDINGS.forEach(b => renderList(b.listId, b.stateKey));
 }
 
@@ -202,11 +201,11 @@ function renderSyncStatus() {
 // No timer and nothing to retype anywhere in that path.
 
 const LIST_LABELS = {
-    CUSTOM_DOMAINS: 'Restricted Domains',
+    CUSTOM_DOMAINS: 'Blocked Destinations',
     CUSTOM_KEYWORDS: 'Keywords',
     CUSTOM_PAGE_KEYWORDS: 'Page-Only Keywords',
-    CUSTOM_PAGES: 'Restricted Pages',
-    CUSTOM_EXACT_PAGES: 'Exact Pages',
+    CUSTOM_PAGES: 'Blocked Destinations',
+    CUSTOM_EXACT_PAGES: 'Blocked Destinations',
     CUSTOM_ALLOWED_DOMAINS: 'Whitelist',
     CUSTOM_SCAN_EXCLUDED: 'Scan Exclusions'
 };
@@ -334,7 +333,11 @@ function watchExternalChanges() {
         if (area !== 'local') return;
         let dirty = false;
 
-        LIST_BINDINGS.forEach(({ stateKey }) => {
+        const monitoredKeys = [
+            'CUSTOM_DOMAINS', 'CUSTOM_PAGES', 'CUSTOM_EXACT_PAGES',
+            ...LIST_BINDINGS.map(b => b.stateKey)
+        ];
+        monitoredKeys.forEach((stateKey) => {
             if (changes[stateKey]) {
                 state[stateKey] = changes[stateKey].newValue || [];
                 dirty = true;
@@ -588,6 +591,150 @@ function setupEnforcementCards() {
     });
 }
 
+function setupBlockedManager() {
+    const input = document.getElementById('domain-input');
+    const btn = document.getElementById('add-domain-btn');
+    const scopeSelect = document.getElementById('blocked-scope-select');
+    const listId = 'domain-list';
+
+    if (!input || !btn) return;
+
+    input.addEventListener('input', () => {
+        const val = input.value.trim();
+        if (!scopeSelect || scopeSelect.dataset.userChanged === 'true') return;
+        if (/\/\*|\*$/.test(val)) {
+            scopeSelect.value = 'children';
+        }
+    });
+
+    if (scopeSelect) {
+        scopeSelect.addEventListener('change', () => {
+            scopeSelect.dataset.userChanged = 'true';
+        });
+    }
+
+    const addBlocked = () => {
+        const rawInput = input.value.trim();
+        if (!rawInput) return;
+
+        let scope = scopeSelect ? scopeSelect.value : 'domain';
+        if (scope === 'auto') {
+            if (/\/\*|\*$/.test(rawInput)) {
+                scope = 'children';
+            } else {
+                let testUrl = rawInput;
+                if (!/^https?:\/\//i.test(testUrl)) testUrl = 'http://' + testUrl;
+                try {
+                    const parsed = new URL(testUrl);
+                    if ((parsed.pathname === '/' || !parsed.pathname) && !parsed.search) {
+                        scope = 'domain';
+                    } else {
+                        scope = 'exact';
+                    }
+                } catch {
+                    scope = 'domain';
+                }
+            }
+        }
+
+        if (scope === 'domain') {
+            let cleanVal = rawInput;
+            let urlToParse = cleanVal;
+            if (!/^https?:\/\//i.test(cleanVal)) urlToParse = 'http://' + cleanVal;
+            try {
+                const parsed = new URL(urlToParse);
+                cleanVal = parsed.hostname;
+            } catch {
+                cleanVal = cleanVal.split('/')[0].split('?')[0].split('#')[0];
+            }
+            cleanVal = cleanVal.replace(/^www\./i, '').toLowerCase();
+
+            const domainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z0-9-]{2,})+$/;
+            if (!domainPattern.test(cleanVal)) {
+                showToast("Invalid domain format! Must be e.g. facebook.com");
+                return;
+            }
+
+            if (state.CUSTOM_ALLOWED_DOMAINS && state.CUSTOM_ALLOWED_DOMAINS.includes(cleanVal)) {
+                showToast("This domain is in your whitelist. Remove it there first.");
+                return;
+            }
+
+            if (state.CUSTOM_DOMAINS.includes(cleanVal)) {
+                showToast("Domain is already in your blocklist.");
+                return;
+            }
+
+            state.CUSTOM_DOMAINS.push(cleanVal);
+            input.value = '';
+            if (scopeSelect) scopeSelect.dataset.userChanged = 'false';
+            renderList(listId, 'CUSTOM_DOMAINS');
+            saveState();
+            showToast(`Blocked domain: ${cleanVal}`);
+            return;
+        }
+
+        if (scope === 'children') {
+            let cleanVal = rawInput.replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '');
+            cleanVal = cleanVal.replace(/\/?\*+$/, '').replace(/\/+$/, '');
+            if (!cleanVal) return;
+
+            if (!cleanVal.includes('/')) {
+                if (state.CUSTOM_DOMAINS.includes(cleanVal)) {
+                    showToast("Domain is already in your blocklist.");
+                    return;
+                }
+                state.CUSTOM_DOMAINS.push(cleanVal);
+                input.value = '';
+                if (scopeSelect) scopeSelect.dataset.userChanged = 'false';
+                renderList(listId, 'CUSTOM_DOMAINS');
+                saveState();
+                showToast(`Blocked domain: ${cleanVal}`);
+                return;
+            }
+
+            if (state.CUSTOM_PAGES.includes(cleanVal)) {
+                showToast("Path is already in your blocklist.");
+                return;
+            }
+
+            state.CUSTOM_PAGES.push(cleanVal);
+            input.value = '';
+            if (scopeSelect) scopeSelect.dataset.userChanged = 'false';
+            renderList(listId, 'CUSTOM_PAGES');
+            saveState();
+            showToast(`Blocked with child pages: ${cleanVal}/*`);
+            return;
+        }
+
+        if (scope === 'exact') {
+            let cleanVal = rawInput.replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '');
+            if (cleanVal.endsWith('/') && !cleanVal.includes('?')) {
+                cleanVal = cleanVal.slice(0, -1);
+            }
+            if (!cleanVal) return;
+
+            if (state.CUSTOM_EXACT_PAGES.includes(cleanVal)) {
+                showToast("Exact page is already in your blocklist.");
+                return;
+            }
+
+            state.CUSTOM_EXACT_PAGES.push(cleanVal);
+            input.value = '';
+            if (scopeSelect) scopeSelect.dataset.userChanged = 'false';
+            renderList(listId, 'CUSTOM_EXACT_PAGES');
+            saveState();
+            showToast(`Blocked exact page: ${cleanVal}`);
+            return;
+        }
+    };
+
+    btn.addEventListener('click', addBlocked);
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addBlocked();
+    });
+}
+
 function setupListManager(inputId, btnId, listId, stateKey) {
     const input = document.getElementById(inputId);
     const btn = document.getElementById(btnId);
@@ -782,29 +929,43 @@ function renderList(listId, stateKey) {
     if (!container) return;
     container.innerHTML = '';
 
-    const items = state[stateKey] || [];
+    let itemsWithMeta = [];
+    if (listId === 'domain-list') {
+        (state.CUSTOM_DOMAINS || []).forEach(item => {
+            itemsWithMeta.push({ item, stateKey: 'CUSTOM_DOMAINS', host: getItemHost('CUSTOM_DOMAINS', item) });
+        });
+        (state.CUSTOM_PAGES || []).forEach(item => {
+            itemsWithMeta.push({ item, stateKey: 'CUSTOM_PAGES', host: getItemHost('CUSTOM_PAGES', item) });
+        });
+        (state.CUSTOM_EXACT_PAGES || []).forEach(item => {
+            itemsWithMeta.push({ item, stateKey: 'CUSTOM_EXACT_PAGES', host: getItemHost('CUSTOM_EXACT_PAGES', item) });
+        });
+    } else {
+        const items = state[stateKey] || [];
+        itemsWithMeta = items.map(item => ({ item, stateKey, host: getItemHost(stateKey, item) }));
+    }
 
     // Group items by host
     const hostGroups = new Map();
-    items.forEach((item) => {
-        const host = getItemHost(stateKey, item);
+    itemsWithMeta.forEach((entry) => {
+        const host = entry.host;
         if (host) {
             if (!hostGroups.has(host)) hostGroups.set(host, []);
-            hostGroups.get(host).push(item);
+            hostGroups.get(host).push(entry);
         }
     });
 
     const renderedHosts = new Set();
 
-    items.forEach((item) => {
-        const host = getItemHost(stateKey, item);
+    itemsWithMeta.forEach((entry) => {
+        const host = entry.host;
         if (host && hostGroups.get(host).length > 1) {
             if (!renderedHosts.has(host)) {
                 renderedHosts.add(host);
-                container.appendChild(buildGroup(listId, stateKey, host, hostGroups.get(host)));
+                container.appendChild(buildGroup(listId, host, hostGroups.get(host)));
             }
         } else if (!host || !renderedHosts.has(host)) {
-            container.appendChild(buildRow(listId, stateKey, item));
+            container.appendChild(buildRow(listId, entry.stateKey, entry.item));
         }
     });
 }
@@ -824,7 +985,7 @@ function createChevronSvg() {
     return svg;
 }
 
-function buildGroup(listId, stateKey, host, groupItems) {
+function buildGroup(listId, host, groupItems) {
     const groupWrapper = document.createElement('div');
     groupWrapper.className = 'tag-card-group';
     const groupKey = `${listId}-${host}`;
@@ -847,7 +1008,7 @@ function buildGroup(listId, stateKey, host, groupItems) {
 
     const countBadge = document.createElement('span');
     countBadge.className = 'tag-kind tag-group-count';
-    countBadge.textContent = `${groupItems.length} pages`;
+    countBadge.textContent = `${groupItems.length} ${groupItems.length === 1 ? 'rule' : 'rules'}`;
     card.appendChild(countBadge);
 
     const arrow = document.createElement('span');
@@ -878,8 +1039,8 @@ function buildGroup(listId, stateKey, host, groupItems) {
     const subContainer = document.createElement('div');
     subContainer.className = 'tag-sub-items';
 
-    groupItems.forEach((item) => {
-        const row = buildRow(listId, stateKey, item);
+    groupItems.forEach((entry) => {
+        const row = buildRow(listId, entry.stateKey, entry.item);
         row.classList.add('tag-sub-item');
         subContainer.appendChild(row);
     });
@@ -915,9 +1076,14 @@ function buildRow(listId, stateKey, item) {
  * cannot be mistaken for a single page at a glance.
  */
 function describeEntry(stateKey, item) {
-    if (stateKey !== 'CUSTOM_SCAN_EXCLUDED' && stateKey !== 'CUSTOM_ALLOWED_DOMAINS') return null;
-    const rule = parseScanExclusion(item);
-    return rule ? SCAN_EXCLUSION_LABELS[rule.kind] : null;
+    if (stateKey === 'CUSTOM_DOMAINS') return 'Whole site';
+    if (stateKey === 'CUSTOM_PAGES') return 'With children';
+    if (stateKey === 'CUSTOM_EXACT_PAGES') return 'Exact page';
+    if (stateKey === 'CUSTOM_SCAN_EXCLUDED' || stateKey === 'CUSTOM_ALLOWED_DOMAINS') {
+        const rule = parseScanExclusion(item);
+        return rule ? SCAN_EXCLUSION_LABELS[rule.kind] : null;
+    }
+    return null;
 }
 
 function buildDeleteButton(listId, stateKey, item) {

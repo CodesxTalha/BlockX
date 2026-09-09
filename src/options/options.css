@@ -399,6 +399,27 @@ input:checked + .hub-item-box .icon { color: var(--accent-dark); }
 .input-row input[type="password"]:focus,
 #gateway-password:focus { outline: none; border-color: var(--accent); }
 
+.input-row select,
+.scope-dropdown {
+    padding: 10px 14px;
+    border: 1px solid var(--border-base);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.2s;
+    outline: none;
+    white-space: nowrap;
+}
+
+.input-row select:focus,
+.scope-dropdown:focus {
+    border-color: var(--accent);
+}
+
 .tag-cloud { display: flex; flex-direction: column; gap: 8px; min-height: 100px; padding: 20px 8px; overflow-y: auto; max-height: 500px; }
 .tag-item {
     display: flex;
