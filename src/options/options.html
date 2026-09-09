@@ -549,19 +549,14 @@
             </div>
         </div>
 
-        <!-- Import Intention Check -->
-        <div id="import-oath" class="oath-overlay hidden">
-            <div class="oath-card">
-                <h2>Confirm your intention</h2>
-                <p class="oath-question">
-                    Do you swear by Allah that you are not importing these settings
-                    to make something haram easier to reach?
-                </p>
-                <p class="oath-note">No one else is checking this. It is between you and Allah.</p>
+        <!-- Import Confirmation Warning Modal -->
+        <div id="import-oath" class="confirm-modal-overlay hidden">
+            <div class="confirm-modal-card">
+                <p id="import-warning-text" class="confirm-warning-text" dir="auto"></p>
 
-                <div class="oath-actions">
-                    <button id="oath-yes" class="btn btn-primary" type="button">Yes, I swear — apply now</button>
-                    <button id="oath-no" class="btn btn-secondary" type="button">No — don't import</button>
+                <div class="confirm-modal-actions">
+                    <button id="oath-yes" class="btn btn-primary" type="button">Yes, Import Settings</button>
+                    <button id="oath-no" class="btn btn-secondary" type="button">No, Don't Import</button>
                 </div>
             </div>
         </div>

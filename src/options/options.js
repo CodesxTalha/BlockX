@@ -1176,6 +1176,15 @@ function handleImport(event) {
 
 function showImportOath() {
     const overlay = document.getElementById('import-oath');
+    const textEl = document.getElementById('import-warning-text');
+    if (textEl) {
+        const inputEl = document.getElementById('weakening-message');
+        const currentDraft = inputEl ? inputEl.value.trim() : '';
+        const message = currentDraft
+            || (state.WEAKENING_MESSAGE || CONFIG.WEAKENING_MESSAGE || '').trim()
+            || 'Remember why you set this protection up.';
+        textEl.textContent = message;
+    }
     if (overlay) overlay.classList.remove('hidden');
 }
 
@@ -1183,11 +1192,14 @@ function hideImportOath() {
     const overlay = document.getElementById('import-oath');
     if (overlay) overlay.classList.add('hidden');
     stagedImport = null;
+    const importInput = document.getElementById('import-file');
+    if (importInput) importInput.value = '';
 }
 
 function setupImportOath() {
     const yesBtn = document.getElementById('oath-yes');
     const noBtn = document.getElementById('oath-no');
+    const overlay = document.getElementById('import-oath');
 
     if (yesBtn) {
         yesBtn.addEventListener('click', () => {
@@ -1206,6 +1218,22 @@ function setupImportOath() {
             showToast('Import cancelled — your current settings stay.');
         });
     }
+
+    if (overlay) {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                hideImportOath();
+                showToast('Import cancelled — your current settings stay.');
+            }
+        });
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay && !overlay.classList.contains('hidden')) {
+            hideImportOath();
+            showToast('Import cancelled — your current settings stay.');
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', init);
