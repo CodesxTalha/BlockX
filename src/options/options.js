@@ -594,30 +594,82 @@ function setupEnforcementCards() {
 function setupBlockedManager() {
     const input = document.getElementById('domain-input');
     const btn = document.getElementById('add-domain-btn');
-    const scopeSelect = document.getElementById('blocked-scope-select');
+    const dropdown = document.getElementById('blocked-scope-dropdown');
+    const trigger = document.getElementById('blocked-scope-trigger');
+    const labelEl = document.getElementById('blocked-scope-label');
+    const menu = document.getElementById('blocked-scope-menu');
+    const scopeVal = document.getElementById('blocked-scope-value');
     const listId = 'domain-list';
 
     if (!input || !btn) return;
 
-    input.addEventListener('input', () => {
-        const val = input.value.trim();
-        if (!scopeSelect || scopeSelect.dataset.userChanged === 'true') return;
-        if (/\/\*|\*$/.test(val)) {
-            scopeSelect.value = 'children';
-        }
-    });
+    let userChanged = false;
 
-    if (scopeSelect) {
-        scopeSelect.addEventListener('change', () => {
-            scopeSelect.dataset.userChanged = 'true';
+    const setScope = (val, fromUser = true) => {
+        if (scopeVal) scopeVal.value = val;
+        if (fromUser) userChanged = (val !== 'auto');
+        if (menu) {
+            menu.querySelectorAll('.dropdown-item').forEach(item => {
+                const match = item.getAttribute('data-value') === val;
+                item.classList.toggle('active', match);
+                item.setAttribute('aria-selected', match ? 'true' : 'false');
+                if (match && labelEl) {
+                    const title = item.querySelector('.dropdown-item-title');
+                    labelEl.textContent = title ? title.textContent : item.textContent.trim();
+                }
+            });
+        }
+    };
+
+    if (dropdown && trigger && menu) {
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdown.classList.toggle('is-open');
+            trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        menu.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const val = item.getAttribute('data-value');
+                setScope(val, true);
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+                input.focus();
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && dropdown.classList.contains('is-open')) {
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+                trigger.focus();
+            }
         });
     }
+
+    input.addEventListener('input', () => {
+        const val = input.value.trim();
+        if (userChanged) return;
+        if (/\/\*|\*$/.test(val)) {
+            setScope('children', false);
+        } else if (scopeVal && scopeVal.value === 'children' && !val.includes('*')) {
+            setScope('domain', false);
+        }
+    });
 
     const addBlocked = () => {
         const rawInput = input.value.trim();
         if (!rawInput) return;
 
-        let scope = scopeSelect ? scopeSelect.value : 'domain';
+        let scope = scopeVal ? scopeVal.value : 'domain';
         if (scope === 'auto') {
             if (/\/\*|\*$/.test(rawInput)) {
                 scope = 'children';
@@ -667,7 +719,8 @@ function setupBlockedManager() {
 
             state.CUSTOM_DOMAINS.push(cleanVal);
             input.value = '';
-            if (scopeSelect) scopeSelect.dataset.userChanged = 'false';
+            userChanged = false;
+            setScope('domain', false);
             renderList(listId, 'CUSTOM_DOMAINS');
             saveState();
             showToast(`Blocked domain: ${cleanVal}`);
@@ -686,7 +739,8 @@ function setupBlockedManager() {
                 }
                 state.CUSTOM_DOMAINS.push(cleanVal);
                 input.value = '';
-                if (scopeSelect) scopeSelect.dataset.userChanged = 'false';
+                userChanged = false;
+                setScope('domain', false);
                 renderList(listId, 'CUSTOM_DOMAINS');
                 saveState();
                 showToast(`Blocked domain: ${cleanVal}`);
@@ -700,7 +754,8 @@ function setupBlockedManager() {
 
             state.CUSTOM_PAGES.push(cleanVal);
             input.value = '';
-            if (scopeSelect) scopeSelect.dataset.userChanged = 'false';
+            userChanged = false;
+            setScope('domain', false);
             renderList(listId, 'CUSTOM_PAGES');
             saveState();
             showToast(`Blocked with child pages: ${cleanVal}/*`);
@@ -721,7 +776,8 @@ function setupBlockedManager() {
 
             state.CUSTOM_EXACT_PAGES.push(cleanVal);
             input.value = '';
-            if (scopeSelect) scopeSelect.dataset.userChanged = 'false';
+            userChanged = false;
+            setScope('domain', false);
             renderList(listId, 'CUSTOM_EXACT_PAGES');
             saveState();
             showToast(`Blocked exact page: ${cleanVal}`);

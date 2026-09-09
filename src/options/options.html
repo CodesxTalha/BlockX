@@ -260,11 +260,6 @@
                 <!-- Blocked Destinations Section -->
                 <div id="section-lists" class="settings-section">
                     <div class="settings-group">
-                        <div class="group-header">
-                            <h3>Blocked Destinations</h3>
-                            <p>Block entire websites, sections with child pages, or specific exact pages.</p>
-                        </div>
-                        
                         <div class="interactive-list-manager">
                             <table class="help-table exclusion-forms">
                                 <tbody>
@@ -275,23 +270,63 @@
                             </table>
                             <div class="input-row">
                                 <input type="text" id="domain-input" placeholder="Site, section/*, or single page (e.g. reddit.com)">
-                                <select id="blocked-scope-select" class="scope-dropdown">
-                                    <option value="auto">Auto-detect</option>
-                                    <option value="domain" selected>The domain</option>
-                                    <option value="children">With all child pages</option>
-                                    <option value="exact">Exact page</option>
-                                </select>
+                                <div class="custom-dropdown" id="blocked-scope-dropdown">
+                                    <button type="button" class="dropdown-trigger" id="blocked-scope-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                        <span id="blocked-scope-label">The domain</span>
+                                        <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                    <input type="hidden" id="blocked-scope-value" value="domain">
+                                    <div class="dropdown-menu" id="blocked-scope-menu" role="listbox" aria-label="Blocking scope">
+                                        <button type="button" class="dropdown-item active" data-value="domain" role="option" aria-selected="true">
+                                            <div class="dropdown-item-content">
+                                                <span class="dropdown-item-title">The domain</span>
+                                                <span class="dropdown-item-desc">Entire site and all subdomains</span>
+                                            </div>
+                                            <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </button>
+                                        <button type="button" class="dropdown-item" data-value="children" role="option" aria-selected="false">
+                                            <div class="dropdown-item-content">
+                                                <span class="dropdown-item-title">With all child pages</span>
+                                                <span class="dropdown-item-desc">Section and sub-paths (/*)</span>
+                                            </div>
+                                            <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </button>
+                                        <button type="button" class="dropdown-item" data-value="exact" role="option" aria-selected="false">
+                                            <div class="dropdown-item-content">
+                                                <span class="dropdown-item-title">Exact page</span>
+                                                <span class="dropdown-item-desc">This specific URL only</span>
+                                            </div>
+                                            <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </button>
+                                        <div class="dropdown-divider"></div>
+                                        <button type="button" class="dropdown-item" data-value="auto" role="option" aria-selected="false">
+                                            <div class="dropdown-item-content">
+                                                <span class="dropdown-item-title">Auto-detect</span>
+                                                <span class="dropdown-item-desc">Detect from URL pattern</span>
+                                            </div>
+                                            <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
                                 <button id="add-domain-btn" class="btn btn-secondary">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                     Add
                                 </button>
                             </div>
-                            <p class="help-text">Choose the blocking scope from the dropdown, or type <code>/*</code> to block with child pages.</p>
                             <div id="domain-list" class="tag-cloud">
                                 <!-- Populated by JS -->
                             </div>
                         </div>
-
                     </div>
                 </div>
 
