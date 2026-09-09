@@ -4,16 +4,14 @@ const sections = {
     general: { title: "General Settings", subtitle: "Configure your core protection parameters." },
     lists: { title: "Blocked Destinations", subtitle: "Block entire websites, sections with child pages, or specific exact pages." },
     whitelist: { title: "Whitelist", subtitle: "Destinations that bypass every rule." },
-    keywords: { title: "Content Filtering", subtitle: "Define patterns to block based on page content." },
-    scanning: { title: "Content Scanning", subtitle: "Catch explicit pages on sites that are not on any list." },
+    keywords: { title: "Blocked Keywords", subtitle: "Block URLs, search queries, and keystrokes matching specific terms." },
+    scanning: { title: "Content Scanning", subtitle: "Catch explicit pages on unlisted sites using on-page text inspection." },
     friction: { title: "Friction", subtitle: "The warning message you must read before loosening your own protection." },
     security: { title: "Security Protection", subtitle: "Secure your configuration with a dashboard password." }
 };
 sections.pages = sections.lists;
 
 const LIST_BINDINGS = [
-    { inputId: 'keyword-input', btnId: 'add-keyword-btn', listId: 'keyword-list', stateKey: 'CUSTOM_KEYWORDS' },
-    { inputId: 'page-keyword-input', btnId: 'add-page-keyword-btn', listId: 'page-keyword-list', stateKey: 'CUSTOM_PAGE_KEYWORDS' },
     { inputId: 'allowed-domain-input', btnId: 'add-allowed-domain-btn', listId: 'allowed-domain-list', stateKey: 'CUSTOM_ALLOWED_DOMAINS' },
     { inputId: 'scan-excluded-input', btnId: 'add-scan-excluded-btn', listId: 'scan-excluded-list', stateKey: 'CUSTOM_SCAN_EXCLUDED' }
 ];
@@ -62,7 +60,9 @@ async function init() {
     // 3. Populate dynamic elements
     populateGames();
     setupBlockedManager();
+    setupKeywordManager();
     setupAllowedScopeDropdown();
+    setupScanExcludedScopeDropdown();
     LIST_BINDINGS.forEach(b => setupListManager(b.inputId, b.btnId, b.listId, b.stateKey));
 
     const customUrlInput = document.getElementById('custom-redirect-input');
@@ -105,8 +105,9 @@ async function init() {
 
 function renderAllLists() {
     renderList('domain-list', 'CUSTOM_DOMAINS');
+    renderList('keyword-list', 'CUSTOM_KEYWORDS');
     renderList('allowed-domain-list', 'CUSTOM_ALLOWED_DOMAINS');
-    LIST_BINDINGS.forEach(b => renderList(b.listId, b.stateKey));
+    renderList('scan-excluded-list', 'CUSTOM_SCAN_EXCLUDED');
 }
 
 function setupScanSettings() {
@@ -799,6 +800,108 @@ function setupBlockedManager() {
     });
 }
 
+function setupKeywordManager() {
+    const input = document.getElementById('keyword-input');
+    const btn = document.getElementById('add-keyword-btn');
+    const dropdown = document.getElementById('keyword-scope-dropdown');
+    const trigger = document.getElementById('keyword-scope-trigger');
+    const labelEl = document.getElementById('keyword-scope-label');
+    const menu = document.getElementById('keyword-scope-menu');
+    const scopeVal = document.getElementById('keyword-scope-value');
+
+    if (!input || !btn) return;
+
+    if (dropdown && trigger && menu && scopeVal) {
+        const setScope = (val, savePref = true) => {
+            scopeVal.value = val;
+            if (savePref) {
+                try { chrome.storage.local.set({ KEYWORD_SCOPE_PREF: val }); } catch (e) {}
+            }
+            menu.querySelectorAll('.dropdown-item').forEach(item => {
+                const match = item.getAttribute('data-value') === val;
+                item.classList.toggle('active', match);
+                item.setAttribute('aria-selected', match ? 'true' : 'false');
+                if (match && labelEl) {
+                    const title = item.querySelector('.dropdown-item-title');
+                    labelEl.textContent = title ? title.textContent : item.textContent.trim();
+                }
+            });
+        };
+
+        try {
+            chrome.storage.local.get(['KEYWORD_SCOPE_PREF'], (res) => {
+                if (res && res.KEYWORD_SCOPE_PREF) {
+                    setScope(res.KEYWORD_SCOPE_PREF, false);
+                }
+            });
+        } catch (e) {}
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.custom-dropdown.is-open').forEach(d => {
+                if (d !== dropdown) d.classList.remove('is-open');
+            });
+            const isOpen = dropdown.classList.toggle('is-open');
+            trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        menu.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setScope(item.getAttribute('data-value'), true);
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+                input.focus();
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && dropdown.classList.contains('is-open')) {
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+                trigger.focus();
+            }
+        });
+    }
+
+    const addKeyword = () => {
+        let val = input.value.trim().toLowerCase();
+        if (!val) return;
+
+        const scope = scopeVal ? scopeVal.value : 'both';
+        const targetKey = scope === 'page' ? 'CUSTOM_PAGE_KEYWORDS' : 'CUSTOM_KEYWORDS';
+
+        if (state[targetKey] && state[targetKey].includes(val)) {
+            showToast('Keyword is already in your list.');
+            return;
+        }
+
+        if (!state[targetKey]) {
+            state[targetKey] = [];
+        }
+
+        state[targetKey].push(val);
+        input.value = '';
+        renderList('keyword-list', targetKey);
+        saveState();
+
+        const typeLabel = scope === 'page' ? 'Page only' : 'URL & Page';
+        showToast(`Added keyword (${typeLabel}): ${val}`);
+    };
+
+    btn.addEventListener('click', addKeyword);
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addKeyword();
+    });
+}
+
 function setupAllowedScopeDropdown() {
     const dropdown = document.getElementById('allowed-scope-dropdown');
     const trigger = document.getElementById('allowed-scope-trigger');
@@ -883,6 +986,90 @@ function setupAllowedScopeDropdown() {
     }
 }
 
+function setupScanExcludedScopeDropdown() {
+    const dropdown = document.getElementById('scan-excluded-scope-dropdown');
+    const trigger = document.getElementById('scan-excluded-scope-trigger');
+    const labelEl = document.getElementById('scan-excluded-scope-label');
+    const menu = document.getElementById('scan-excluded-scope-menu');
+    const scopeVal = document.getElementById('scan-excluded-scope-value');
+    const input = document.getElementById('scan-excluded-input');
+
+    if (!dropdown || !trigger || !menu || !scopeVal) return;
+
+    let userChanged = false;
+
+    const setScope = (val, fromUser = true) => {
+        scopeVal.value = val;
+        if (fromUser) {
+            userChanged = (val !== 'auto');
+            try { chrome.storage.local.set({ SCAN_EXCLUDED_SCOPE_PREF: val }); } catch (e) {}
+        }
+        menu.querySelectorAll('.dropdown-item').forEach(item => {
+            const match = item.getAttribute('data-value') === val;
+            item.classList.toggle('active', match);
+            item.setAttribute('aria-selected', match ? 'true' : 'false');
+            if (match && labelEl) {
+                const title = item.querySelector('.dropdown-item-title');
+                labelEl.textContent = title ? title.textContent : item.textContent.trim();
+            }
+        });
+    };
+
+    try {
+        chrome.storage.local.get(['SCAN_EXCLUDED_SCOPE_PREF'], (res) => {
+            if (res && res.SCAN_EXCLUDED_SCOPE_PREF) {
+                setScope(res.SCAN_EXCLUDED_SCOPE_PREF, true);
+            }
+        });
+    } catch (e) {}
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.custom-dropdown.is-open').forEach(d => {
+            if (d !== dropdown) d.classList.remove('is-open');
+        });
+        const isOpen = dropdown.classList.toggle('is-open');
+        trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    menu.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setScope(item.getAttribute('data-value'), true);
+            dropdown.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+            if (input) input.focus();
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && dropdown.classList.contains('is-open')) {
+            dropdown.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.focus();
+        }
+    });
+
+    if (input) {
+        input.addEventListener('input', () => {
+            const val = input.value.trim();
+            if (userChanged) return;
+            if (/\/\*|\*$/.test(val)) {
+                setScope('children', false);
+            } else if (scopeVal.value === 'children' && !val.includes('*')) {
+                setScope('domain', false);
+            }
+        });
+    }
+}
+
 function setupListManager(inputId, btnId, listId, stateKey) {
     const input = document.getElementById(inputId);
     const btn = document.getElementById(btnId);
@@ -895,6 +1082,25 @@ function setupListManager(inputId, btnId, listId, stateKey) {
         // A scan exclusion may be a whole site, one section of it, or a single
         // page, so it is parsed rather than validated as a bare domain.
         if (stateKey === 'CUSTOM_SCAN_EXCLUDED') {
+            const scopeEl = document.getElementById('scan-excluded-scope-value');
+            let scope = scopeEl ? scopeEl.value : 'domain';
+            if (scope === 'auto') {
+                if (/\/\*|\*$/.test(val)) scope = 'children';
+                else if (val.includes('/')) scope = 'exact';
+                else scope = 'domain';
+            }
+            if (scope === 'domain') {
+                let clean = val.replace(/^[a-z]+:\/\//i, '');
+                val = clean.split('/')[0].split('?')[0].split('#')[0];
+            } else if (scope === 'children') {
+                let clean = val.replace(/^[a-z]+:\/\//i, '');
+                clean = clean.replace(/\/?\*+$/, '').replace(/\/+$/, '');
+                val = clean + '/*';
+            } else if (scope === 'exact') {
+                let clean = val.replace(/^[a-z]+:\/\//i, '');
+                val = clean.replace(/\/?\*+$/, '');
+            }
+
             const rule = parseScanExclusion(val);
             if (!rule) {
                 showToast('Not a valid site, section or page.');
@@ -1107,6 +1313,13 @@ function renderList(listId, stateKey) {
         (state.CUSTOM_EXACT_PAGES || []).forEach(item => {
             itemsWithMeta.push({ item, stateKey: 'CUSTOM_EXACT_PAGES', host: getItemHost('CUSTOM_EXACT_PAGES', item) });
         });
+    } else if (listId === 'keyword-list') {
+        (state.CUSTOM_KEYWORDS || []).forEach(item => {
+            itemsWithMeta.push({ item, stateKey: 'CUSTOM_KEYWORDS', host: null });
+        });
+        (state.CUSTOM_PAGE_KEYWORDS || []).forEach(item => {
+            itemsWithMeta.push({ item, stateKey: 'CUSTOM_PAGE_KEYWORDS', host: null });
+        });
     } else {
         const items = state[stateKey] || [];
         itemsWithMeta = items.map(item => ({ item, stateKey, host: getItemHost(stateKey, item) }));
@@ -1246,6 +1459,8 @@ function describeEntry(stateKey, item) {
     if (stateKey === 'CUSTOM_DOMAINS') return 'Whole site';
     if (stateKey === 'CUSTOM_PAGES') return 'With children';
     if (stateKey === 'CUSTOM_EXACT_PAGES') return 'Exact page';
+    if (stateKey === 'CUSTOM_KEYWORDS') return 'URL & Page';
+    if (stateKey === 'CUSTOM_PAGE_KEYWORDS') return 'Page only';
     if (stateKey === 'CUSTOM_ALLOWED_DOMAINS') {
         const rule = parseScanExclusion(item);
         if (!rule) return null;
