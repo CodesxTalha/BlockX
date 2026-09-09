@@ -190,6 +190,7 @@ function admissibleSettings(local, candidate) {
     merged.SCAN_SENSITIVITY = Math.min(merged.SCAN_SENSITIVITY, local.settings.SCAN_SENSITIVITY ?? 2);
   }
   if (local.settings.SECURITY_ENABLED) merged.SECURITY_ENABLED = true;
+  if (local.settings.SCANNING_ENABLED) merged.SCANNING_ENABLED = true;
 
   return merged;
 }

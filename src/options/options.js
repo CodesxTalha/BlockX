@@ -30,6 +30,7 @@ let state = {
     CUSTOM_ALLOWED_DOMAINS: [],
     CUSTOM_SCAN_EXCLUDED: [],
     SCAN_SENSITIVITY: 2,
+    SCANNING_ENABLED: true,
     UNLOCK_PHRASE: '',
     WEAKENING_MESSAGE: '',
     ACTIVE_GAME_INDEX: -1,
@@ -147,6 +148,31 @@ function setupScanSettings() {
             saveState();
         });
     });
+
+    const scanToggle = document.getElementById('content-scanning-toggle');
+    if (scanToggle) {
+        scanToggle.checked = state.SCANNING_ENABLED !== false;
+        updateScanningSectionDimming(state.SCANNING_ENABLED !== false);
+
+        scanToggle.addEventListener('change', () => {
+            if (scanToggle.checked) {
+                state.SCANNING_ENABLED = true;
+                updateScanningSectionDimming(true);
+                saveState();
+                showToast('Content scanning enabled.');
+            } else {
+                scanToggle.checked = true;
+                promptWeakeningWarning({ type: 'toggle_scan' });
+            }
+        });
+    }
+}
+
+function updateScanningSectionDimming(enabled) {
+    const sec = document.getElementById('section-scanning');
+    if (sec) {
+        sec.classList.toggle('is-dimmed', !enabled);
+    }
 }
 
 // ------------------------------------------------------------------
@@ -214,6 +240,9 @@ const LIST_LABELS = {
 };
 
 function describeWeakeningAction(staged) {
+    if (staged.type === 'toggle_scan') {
+        return 'You are turning off live content scanning. Explicit pages on unlisted sites will no longer be detected or blocked.';
+    }
     if (staged.op === 'remove') {
         const label = LIST_LABELS[staged.stateKey] || staged.stateKey;
         return `You are removing "${staged.value}" from ${label}. This weakens your protection.`;
@@ -248,10 +277,23 @@ function promptWeakeningWarning(staged) {
 function hideWeakeningModal() {
     const modal = document.getElementById('weakening-modal');
     if (modal) modal.classList.add('hidden');
+    if (stagedWeakening && stagedWeakening.type === 'toggle_scan') {
+        const toggle = document.getElementById('content-scanning-toggle');
+        if (toggle) toggle.checked = true;
+    }
     stagedWeakening = null;
 }
 
 function applyWeakeningChange(staged) {
+    if (staged.type === 'toggle_scan') {
+        state.SCANNING_ENABLED = false;
+        const toggle = document.getElementById('content-scanning-toggle');
+        if (toggle) toggle.checked = false;
+        updateScanningSectionDimming(false);
+        saveState();
+        showToast('Content scanning disabled.');
+        return;
+    }
     const { listId, stateKey, value, op } = staged;
     if (op === 'add') {
         if (state[stateKey].includes(value)) return;
@@ -533,6 +575,7 @@ function saveState() {
         CUSTOM_ALLOWED_DOMAINS: state.CUSTOM_ALLOWED_DOMAINS,
         CUSTOM_SCAN_EXCLUDED: state.CUSTOM_SCAN_EXCLUDED,
         SCAN_SENSITIVITY: state.SCAN_SENSITIVITY,
+        SCANNING_ENABLED: state.SCANNING_ENABLED,
         UNLOCK_PHRASE: state.UNLOCK_PHRASE,
         WEAKENING_MESSAGE: state.WEAKENING_MESSAGE,
         ACTIVE_GAME_INDEX: state.ACTIVE_GAME_INDEX,
@@ -566,8 +609,19 @@ function setupNavigation() {
             document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
             const targetSec = document.getElementById(`section-${sectionId}`);
             if (targetSec) targetSec.classList.add('active');
+
+            const scanToggleContainer = document.getElementById('scanning-header-toggle-container');
+            if (scanToggleContainer) {
+                scanToggleContainer.style.display = (sectionId === 'scanning') ? 'flex' : 'none';
+            }
         });
     });
+
+    const initialSection = document.querySelector('.settings-section.active');
+    const scanToggleContainer = document.getElementById('scanning-header-toggle-container');
+    if (scanToggleContainer && initialSection) {
+        scanToggleContainer.style.display = (initialSection.id === 'section-scanning') ? 'flex' : 'none';
+    }
 }
 
 function updateHubVisibility(method) {
@@ -1587,6 +1641,7 @@ async function restore_options() {
             CUSTOM_ALLOWED_DOMAINS: [],
             CUSTOM_SCAN_EXCLUDED: [],
             SCAN_SENSITIVITY: 2,
+            SCANNING_ENABLED: true,
             UNLOCK_PHRASE: CONFIG.UNLOCK_PHRASE,
             WEAKENING_MESSAGE: CONFIG.WEAKENING_MESSAGE,
             ACTIVE_GAME_INDEX: -1,
@@ -1595,7 +1650,12 @@ async function restore_options() {
             THEME: 'system'
         }, (items) => {
             state = items;
+            state.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
             applyTheme(state.THEME); // Re-apply theme after load
+
+            const scanToggle = document.getElementById('content-scanning-toggle');
+            if (scanToggle) scanToggle.checked = state.SCANNING_ENABLED;
+            updateScanningSectionDimming(state.SCANNING_ENABLED);
 
             const customUrlInput = document.getElementById('custom-redirect-input');
             if (customUrlInput) customUrlInput.value = state.CUSTOM_REDIRECT_URL || '';
@@ -1647,6 +1707,7 @@ function exportSettings() {
         "CUSTOM_ALLOWED_DOMAINS",
         "CUSTOM_SCAN_EXCLUDED",
         "SCAN_SENSITIVITY",
+        "SCANNING_ENABLED",
         "UNLOCK_PHRASE",
         "WEAKENING_MESSAGE",
         "ACTIVE_GAME_INDEX",
@@ -1704,6 +1765,7 @@ function handleImport(event) {
                 CUSTOM_ALLOWED_DOMAINS: Array.isArray(imported.CUSTOM_ALLOWED_DOMAINS) ? imported.CUSTOM_ALLOWED_DOMAINS : [],
                 CUSTOM_SCAN_EXCLUDED: Array.isArray(imported.CUSTOM_SCAN_EXCLUDED) ? imported.CUSTOM_SCAN_EXCLUDED : [],
                 SCAN_SENSITIVITY: typeof imported.SCAN_SENSITIVITY === 'number' ? imported.SCAN_SENSITIVITY : 2,
+                SCANNING_ENABLED: imported.SCANNING_ENABLED !== false,
                 UNLOCK_PHRASE: (typeof imported.UNLOCK_PHRASE === 'string' && imported.UNLOCK_PHRASE.trim()) ? imported.UNLOCK_PHRASE : CONFIG.UNLOCK_PHRASE,
                 // Old backups stored the message under SCAN_MESSAGE.
                 WEAKENING_MESSAGE: typeof imported.WEAKENING_MESSAGE === 'string'

@@ -37,6 +37,9 @@ let CONFIG = {
   // Domains exempt from on-page content scanning
   SCAN_EXCLUDED: [],
 
+  // Master toggle for on-page content and input scanning
+  SCANNING_ENABLED: true,
+
   // The one warning message. Shown by the on-page content warning and by
   // every confirmation that loosens protection in the dashboard.
   WEAKENING_MESSAGE: 'Stop. This weakens the protection you built. Remember why you set this up. Is this really what you want right now?',
@@ -94,7 +97,8 @@ const IMPORTABLE_KEYS = [
   'ACTIVE_GAME_INDEX',
   'SECURITY_ENABLED',
   'PASSWORD',
-  'THEME'
+  'THEME',
+  'SCANNING_ENABLED'
 ];
 
 // ------------------------------------------------------------------
@@ -169,6 +173,7 @@ function weakensProtection(current, incoming) {
       && incoming.SCAN_SENSITIVITY > (current.SCAN_SENSITIVITY ?? 2)) return true;
 
   if (current.SECURITY_ENABLED && incoming.SECURITY_ENABLED === false) return true;
+  if ((current.SCANNING_ENABLED ?? true) && incoming.SCANNING_ENABLED === false) return true;
 
   return false;
 }
@@ -210,7 +215,8 @@ async function loadConfig() {
       WEAKENING_MESSAGE: '',
       TEMP_GRANTS: [],
       THEME: 'system',
-      ACTIVE_GAME_INDEX: -1
+      ACTIVE_GAME_INDEX: -1,
+      SCANNING_ENABLED: true
     }, (items) => {
       CONFIG.BLOCK_METHOD = items.BLOCK_METHOD;
       CONFIG.CUSTOM_REDIRECT_URL = items.CUSTOM_REDIRECT_URL;
@@ -228,6 +234,7 @@ async function loadConfig() {
       CONFIG.TEMP_GRANTS = items.TEMP_GRANTS;
       CONFIG.THEME = items.THEME;
       CONFIG.ACTIVE_GAME_INDEX = items.ACTIVE_GAME_INDEX;
+      CONFIG.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
       resolve(CONFIG);
     });
   });

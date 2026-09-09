@@ -518,6 +518,7 @@
   // Runs synchronously before any async storage delays
   // ------------------------------------------------------------------
   function checkTextForFlaggedKeywords(text) {
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) return null;
     if (!text || typeof text !== 'string') return null;
     const clean = text.trim();
     if (clean.length < 1) return null;
@@ -560,6 +561,7 @@
   }
 
   function triggerInputBlocked(hit, target) {
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
     if (!isTopFrame) return;
     if (isScanExcluded()) return;
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
@@ -584,6 +586,7 @@
   }
 
   function checkAllInputsOnPage() {
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) return false;
     if (!isTopFrame) return false;
     if (isScanExcluded()) return false;
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return false;
@@ -602,6 +605,7 @@
   }
 
   function handleRealtimeInput(e) {
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
     if (!isTopFrame) return;
     if (isScanExcluded()) return;
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
@@ -637,6 +641,7 @@
     });
 
     window.addEventListener('keydown', (e) => {
+      if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
       if (!isTopFrame) return;
       if (isScanExcluded()) return;
       if (e.key === 'Enter') {
@@ -653,6 +658,7 @@
     }, true);
 
     window.addEventListener('submit', (e) => {
+      if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
       if (!isTopFrame) return;
       if (isScanExcluded()) return;
       const form = e.target;
@@ -673,6 +679,7 @@
     }, true);
 
     window.addEventListener('click', (e) => {
+      if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
       if (!isTopFrame) return;
       if (isScanExcluded()) return;
       const target = e.target;
@@ -689,6 +696,7 @@
 
     // Active polling: scans the active element and all inputs every 80ms
     realtimeInputInterval = setInterval(() => {
+      if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
       if (!isTopFrame) return;
       if (isScanExcluded()) return;
       if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
@@ -734,6 +742,9 @@
   await loadConfig();
   buildFilters([]);
   prepareFilter();
+  if (CONFIG && CONFIG.SCANNING_ENABLED === false) {
+    dropBarrier();
+  }
 
   if (hasTempGrant(window.location.hostname, CONFIG.TEMP_GRANTS)) {
     try {
@@ -858,29 +869,38 @@
   window.addEventListener('message', (event) => {
     if (event.data && (event.data.type === 'SHORTS_BLOCKED' || event.data.type === 'URL_CHANGED')) {
       const targetUrl = event.data.url || window.location.href;
-      if (isScanExcluded(targetUrl)) {
+      if (CONFIG && CONFIG.SCANNING_ENABLED === false) {
+        verifyPageSafety(targetUrl);
+      } else if (isScanExcluded(targetUrl)) {
         dismissScanPrompt();
+        verifyPageSafety(targetUrl);
       } else {
         checkAllInputsOnPage();
+        verifyPageSafety(targetUrl);
       }
-      verifyPageSafety(targetUrl);
     }
   });
 
   window.addEventListener('popstate', () => {
-    if (isScanExcluded(window.location.href)) {
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) {
+      verifyPageSafety(window.location.href);
+    } else if (isScanExcluded(window.location.href)) {
       dismissScanPrompt();
+      verifyPageSafety(window.location.href);
     } else {
       checkAllInputsOnPage();
+      verifyPageSafety(window.location.href);
     }
-    verifyPageSafety(window.location.href);
   });
   document.addEventListener('yt-navigate-finish', () => { verifyPageSafety(); });
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {
       loadConfig().then(() => prepareFilter()).then(() => {
-        if (isScanExcluded()) {
+        if (CONFIG && CONFIG.SCANNING_ENABLED === false) {
+          dismissScanPrompt();
+          dropBarrier();
+        } else if (isScanExcluded()) {
           dismissScanPrompt();
         }
         verifyPageSafety();
@@ -903,6 +923,7 @@
   const SKIP_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEMPLATE: 1, TEXTAREA: 1, CODE: 1, PRE: 1 };
 
   function scanPage() {
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) return null;
     if ((!scanRegex && !pageRegex) || !document.body) return null;
 
     const threshold = Math.max(1, parseInt(CONFIG.SCAN_SENSITIVITY, 10) || 2);
@@ -1042,6 +1063,7 @@
   }
 
   function runContentScan() {
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) return false;
     if (!isTopFrame || (scanPrompted && document.getElementById('blockx-scan-prompt'))) return false;
     if (isScanExcluded()) return false;
 
@@ -1062,6 +1084,7 @@
   }
 
   function scheduleRescan() {
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
     if (isScanExcluded()) return;
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
 
@@ -1126,6 +1149,24 @@
       dropBarrier();
     }
     if (isBlocked) return true;
+
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) {
+      cancelRescan();
+      if (
+        !isWhitelisted() && (
+          isBlockedDomain(currentHost) ||
+          isBlockedPage(currentUrl) ||
+          isExactBlockedPage(currentUrl) ||
+          matchesAnyUrlKeyword(currentUrl, CONFIG.KEYWORDS)
+        )
+      ) {
+        if (observer) observer.disconnect();
+        handleBlock();
+        return true;
+      }
+      dropBarrier();
+      return false;
+    }
 
     if (isScanExcluded(currentUrl)) {
       cancelRescan();
@@ -1207,6 +1248,7 @@
   };
 
   observer = new MutationObserver(() => {
+    if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
     if (isScanExcluded()) return;
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
     if (document.title) verifyPageSafety();
