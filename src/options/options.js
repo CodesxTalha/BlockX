@@ -754,14 +754,139 @@ function setupListManager(inputId, btnId, listId, stateKey) {
     });
 }
 
+const expandedGroups = new Set();
+
+function getItemHost(stateKey, item) {
+    if (typeof item !== 'string') return null;
+    if (stateKey === 'CUSTOM_ALLOWED_DOMAINS' || stateKey === 'CUSTOM_SCAN_EXCLUDED') {
+        const rule = parseScanExclusion(item);
+        return rule ? rule.host : null;
+    }
+    if (stateKey === 'CUSTOM_DOMAINS') {
+        return normaliseHostEntry(item)?.host || item.toLowerCase().replace(/^www\./, '');
+    }
+    if (stateKey === 'CUSTOM_PAGES' || stateKey === 'CUSTOM_EXACT_PAGES') {
+        try {
+            const raw = item.replace(/^[a-z]+:\/\//i, '');
+            const hostPart = raw.split('/')[0].split('?')[0].split('#')[0];
+            return normaliseHostEntry(hostPart)?.host || hostPart.toLowerCase().replace(/^www\./, '');
+        } catch {
+            return null;
+        }
+    }
+    return null;
+}
+
 function renderList(listId, stateKey) {
     const container = document.getElementById(listId);
     if (!container) return;
     container.innerHTML = '';
 
-    state[stateKey].forEach((item) => {
-        container.appendChild(buildRow(listId, stateKey, item));
+    const items = state[stateKey] || [];
+
+    // Group items by host
+    const hostGroups = new Map();
+    items.forEach((item) => {
+        const host = getItemHost(stateKey, item);
+        if (host) {
+            if (!hostGroups.has(host)) hostGroups.set(host, []);
+            hostGroups.get(host).push(item);
+        }
     });
+
+    const renderedHosts = new Set();
+
+    items.forEach((item) => {
+        const host = getItemHost(stateKey, item);
+        if (host && hostGroups.get(host).length > 1) {
+            if (!renderedHosts.has(host)) {
+                renderedHosts.add(host);
+                container.appendChild(buildGroup(listId, stateKey, host, hostGroups.get(host)));
+            }
+        } else if (!host || !renderedHosts.has(host)) {
+            container.appendChild(buildRow(listId, stateKey, item));
+        }
+    });
+}
+
+function createChevronSvg() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2.5');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+
+    const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    polyline.setAttribute('points', '6 9 12 15 18 9');
+    svg.appendChild(polyline);
+    return svg;
+}
+
+function buildGroup(listId, stateKey, host, groupItems) {
+    const groupWrapper = document.createElement('div');
+    groupWrapper.className = 'tag-card-group';
+    const groupKey = `${listId}-${host}`;
+
+    if (expandedGroups.has(groupKey)) {
+        groupWrapper.classList.add('is-expanded');
+    }
+
+    // The main card: exactly the same tag-item card as all other items
+    const card = document.createElement('div');
+    card.className = 'tag-item tag-item-expandable';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-expanded', expandedGroups.has(groupKey) ? 'true' : 'false');
+
+    const label = document.createElement('span');
+    label.className = 'tag-label';
+    label.textContent = host;
+    card.appendChild(label);
+
+    const countBadge = document.createElement('span');
+    countBadge.className = 'tag-kind tag-group-count';
+    countBadge.textContent = `${groupItems.length} pages`;
+    card.appendChild(countBadge);
+
+    const arrow = document.createElement('span');
+    arrow.className = 'tag-expand-arrow';
+    arrow.appendChild(createChevronSvg());
+    card.appendChild(arrow);
+
+    const toggle = (e) => {
+        if (e.target.closest && e.target.closest('.tag-delete')) return;
+        const isOpen = groupWrapper.classList.toggle('is-expanded');
+        card.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        if (isOpen) {
+            expandedGroups.add(groupKey);
+        } else {
+            expandedGroups.delete(groupKey);
+        }
+    };
+
+    card.addEventListener('click', toggle);
+    card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggle(e);
+        }
+    });
+
+    // The bottom-side container holding all pages for this domain
+    const subContainer = document.createElement('div');
+    subContainer.className = 'tag-sub-items';
+
+    groupItems.forEach((item) => {
+        const row = buildRow(listId, stateKey, item);
+        row.classList.add('tag-sub-item');
+        subContainer.appendChild(row);
+    });
+
+    groupWrapper.appendChild(card);
+    groupWrapper.appendChild(subContainer);
+    return groupWrapper;
 }
 
 function buildRow(listId, stateKey, item) {
