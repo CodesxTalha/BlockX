@@ -6,7 +6,8 @@ const sections = {
     whitelist: { title: "Whitelist", subtitle: "Destinations that bypass every rule." },
     keywords: { title: "Blocked Keywords", subtitle: "Block URLs, search queries, and keystrokes matching specific terms." },
     scanning: { title: "Content Scanning", subtitle: "Catch explicit pages on unlisted sites using on-page text inspection." },
-    settings: { title: "Settings", subtitle: "Manage cross-device sync, configuration backups, and dashboard security." }
+    settings: { title: "Settings", subtitle: "Manage cross-device sync, configuration backups, and dashboard security." },
+    help: { title: "Help & Setup", subtitle: "Setting up shared settings, and locking the browser down so this cannot be walked around." }
 };
 sections.pages = sections.lists;
 sections.friction = sections.general;
@@ -99,6 +100,7 @@ async function init() {
     // 6. Setup Import/Export Listeners
     setupBackupListeners();
     setupWeakeningModal();
+    setupHelpSection();
 }
 
 // ------------------------------------------------------------------
@@ -591,7 +593,7 @@ function saveState() {
 }
 
 function setupNavigation() {
-    // Attach to all nav links that declare a data-section. This excludes the external Help link.
+    // Attach to all nav links that declare a data-section.
     document.querySelectorAll('.nav-link[data-section]').forEach(link => {
         link.addEventListener('click', (e) => {
             const sectionId = link.getAttribute('data-section');
@@ -616,6 +618,12 @@ function setupNavigation() {
             }
         });
     });
+
+    if (window.location.hash) {
+        const hashSection = window.location.hash.replace('#', '');
+        const targetNav = document.querySelector(`.nav-link[data-section="${hashSection}"]`);
+        if (targetNav) targetNav.click();
+    }
 
     const initialSection = document.querySelector('.settings-section.active');
     const scanToggleContainer = document.getElementById('scanning-header-toggle-container');
@@ -1851,6 +1859,176 @@ function setupImportOath() {
             hideImportOath();
             showToast('Import cancelled: your current settings stay.');
         }
+    });
+}
+
+// ------------------------------------------------------------------
+// HELP & SETUP (SHARED SETTINGS & HARDENING)
+// ------------------------------------------------------------------
+
+let helpSelected = new Set();
+let helpCurrentOs = 'linux';
+let helpCurrentBrowser = 'chrome';
+
+function setupHelpSection() {
+    setupHelpTabs();
+    renderHelpOptions();
+    renderHelpBrowserPicker();
+    setupHelpPickers();
+    setupHelpCopyButtons();
+    renderHelpCommands();
+}
+
+function setupHelpTabs() {
+    const tabs = document.querySelectorAll('.help-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.help-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            const target = document.getElementById(`tab-${tab.dataset.tab}`);
+            if (target) target.classList.add('active');
+            const main = document.querySelector('.app-main');
+            if (main) main.scrollTop = 0;
+        });
+    });
+}
+
+function renderHelpOptions() {
+    const container = document.getElementById('option-list');
+    if (!container || typeof HARDENING_OPTIONS === 'undefined') return;
+    container.innerHTML = '';
+
+    for (const option of HARDENING_OPTIONS) {
+        const label = document.createElement('label');
+        label.className = option.advanced ? 'option advanced' : 'option';
+
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = option.id;
+        input.addEventListener('change', () => {
+            if (input.checked) helpSelected.add(option.id);
+            else helpSelected.delete(option.id);
+            renderHelpCommands();
+        });
+
+        const box = document.createElement('div');
+        box.className = 'option-body';
+
+        const title = document.createElement('span');
+        title.className = 'option-title';
+        title.textContent = option.label;
+        if (option.advanced) {
+            const tag = document.createElement('span');
+            tag.className = 'option-tag';
+            tag.textContent = 'needs hosting';
+            title.appendChild(tag);
+        }
+
+        const detail = document.createElement('span');
+        detail.className = 'option-detail';
+        detail.textContent = option.detail;
+
+        box.appendChild(title);
+        box.appendChild(detail);
+        label.appendChild(input);
+        label.appendChild(box);
+        container.appendChild(label);
+    }
+}
+
+function renderHelpBrowserPicker() {
+    const select = document.getElementById('browser-picker');
+    if (!select || typeof BROWSER_TARGETS === 'undefined') return;
+    select.innerHTML = '';
+    for (const [id, target] of Object.entries(BROWSER_TARGETS)) {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = target.label;
+        select.appendChild(option);
+    }
+    select.value = helpCurrentBrowser;
+    select.addEventListener('change', () => {
+        helpCurrentBrowser = select.value;
+        renderHelpCommands();
+    });
+}
+
+function setupHelpPickers() {
+    document.querySelectorAll('#os-picker .seg').forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelectorAll('#os-picker .seg').forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+            helpCurrentOs = button.dataset.os;
+            renderHelpCommands();
+        });
+    });
+
+    document.getElementById('update-url')?.addEventListener('input', renderHelpCommands);
+}
+
+function renderHelpCommands() {
+    if (typeof BROWSER_TARGETS === 'undefined') return;
+
+    const urlRow = document.getElementById('update-url-row');
+    urlRow?.classList.toggle('hidden', !helpSelected.has('forceinstall'));
+
+    const target = BROWSER_TARGETS[helpCurrentBrowser];
+    const updateUrl = document.getElementById('update-url')?.value.trim() || '';
+    const extensionId = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) ? chrome.runtime.id : '';
+    const policies = (typeof buildPolicies === 'function') ? buildPolicies([...helpSelected], extensionId, updateUrl) : {};
+
+    const empty = document.getElementById('empty-note');
+    const area = document.getElementById('command-area');
+    const hasAny = Object.keys(policies).length > 0;
+
+    const listCmd = document.getElementById('list-cmd');
+    if (listCmd && typeof buildListCommand === 'function' && target) {
+        listCmd.textContent = buildListCommand(helpCurrentOs, target);
+    }
+
+    empty?.classList.toggle('hidden', hasAny);
+    area?.classList.toggle('hidden', !hasAny);
+    if (!hasAny) return;
+
+    const cmd = document.getElementById('generated-cmd');
+    if (cmd && typeof buildCommand === 'function' && target) {
+        cmd.textContent = buildCommand(helpCurrentOs, policies, target);
+    }
+
+    const revert = document.getElementById('revert-cmd');
+    if (revert && typeof buildRevertCommand === 'function' && target) {
+        revert.textContent = buildRevertCommand(helpCurrentOs, target);
+    }
+
+    const steps = document.getElementById('run-steps');
+    if (steps && typeof RUN_NOTES !== 'undefined' && RUN_NOTES[helpCurrentOs]) {
+        steps.innerHTML = '';
+        for (const note of RUN_NOTES[helpCurrentOs]) {
+            const li = document.createElement('li');
+            li.textContent = note;
+            steps.appendChild(li);
+        }
+    }
+}
+
+function setupHelpCopyButtons() {
+    document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const source = document.getElementById(button.dataset.copy);
+            if (!source) return;
+            try {
+                await navigator.clipboard.writeText(source.textContent);
+                showToast('Copied to clipboard.');
+            } catch {
+                const range = document.createRange();
+                range.selectNodeContents(source);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                showToast('Selected: press Ctrl+C to copy.');
+            }
+        });
     });
 }
 

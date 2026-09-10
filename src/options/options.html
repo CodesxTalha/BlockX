@@ -72,7 +72,7 @@
             </nav>
 
             <div class="sidebar-help">
-                <a href="../help/help.html" class="nav-link" id="help-link">
+                <a href="#" class="nav-link" data-section="help" id="help-link">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -858,6 +858,265 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Help & Setup Section -->
+                <div id="section-help" class="settings-section">
+                    <nav class="help-tabs">
+                        <button class="help-tab active" data-tab="setup" type="button">Setup</button>
+                        <button class="help-tab" data-tab="harden" type="button">Lock down Chrome</button>
+                    </nav>
+
+                    <!-- ============================ SETUP ============================ -->
+                    <section id="tab-setup" class="help-panel active">
+                        <!-- Group 1: Sync Architecture -->
+                        <div class="settings-group">
+                            <div class="group-header">
+                                <h3>Synchronization Architecture</h3>
+                                <p>BlockX maintains unified configuration across profiles and devices using two independent layers.</p>
+                            </div>
+                            <div class="security-card">
+                                <div class="layer-grid">
+                                    <div class="layer-card">
+                                        <div class="layer-header">
+                                            <span class="layer-badge active">Active Default</span>
+                                            <h4>Account Sync</h4>
+                                        </div>
+                                        <p>Shares settings across every profile signed into this Google account on any device. Fully automatic with zero setup required.</p>
+                                    </div>
+                                    <div class="layer-card">
+                                        <div class="layer-header">
+                                            <span class="layer-badge">Local Machine</span>
+                                            <h4>Settings File</h4>
+                                        </div>
+                                        <p>Enforces unified settings for every profile on this computer regardless of Google account. Requires the local helper daemon.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Group 2: Native Helper Installation -->
+                        <div class="settings-group">
+                            <div class="group-header">
+                                <h3>Native Helper Daemon</h3>
+                                <p>A lightweight companion script (native/blockx_host.py) that allows the browser to read and write the local configuration file.</p>
+                            </div>
+                            <div class="security-card">
+                                <div class="helper-install-guide">
+                                    <p class="guide-text">Run the installer once per machine in your terminal. Python 3 is required (standard on macOS/Linux; on Windows, check "Add Python to PATH").</p>
+                                    <div class="cmd-block">
+                                        <pre id="install-cmd">cd &lt;the BlockX folder&gt;/native
+python3 install.py</pre>
+                                        <button class="copy-btn" data-copy="install-cmd" type="button">Copy</button>
+                                    </div>
+                                    <div class="guide-footer">
+                                        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                        </svg>
+                                        <span>Restart the browser completely after running. Check <strong>Settings &rarr; Shared Settings</strong> to verify the active file status.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Group 3: File Locations & Integrity -->
+                        <div class="settings-group">
+                            <div class="group-header">
+                                <h3>Configuration Storage &amp; Integrity</h3>
+                                <p>Locations of the shared configuration file and tamper-protection behavior.</p>
+                            </div>
+                            <div class="security-card">
+                                <div class="path-table-wrap">
+                                    <table class="path-table">
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="os-tag">Linux</span></td>
+                                                <td><code>~/.config/blockx/settings.json</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="os-tag">macOS</span></td>
+                                                <td><code>~/Library/Application Support/BlockX/settings.json</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="os-tag">Windows</span></td>
+                                                <td><code>%APPDATA%\BlockX\settings.json</code></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="security-note">
+                                    <div class="security-note-title">Tamper Protection</div>
+                                    <p>Every write includes a cryptographic checksum. Hand-edits that tighten protection are accepted immediately, while edits that loosen protection are rejected and rewritten to prevent bypassing the deletion delay.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Group 4: Troubleshooting -->
+                        <div class="settings-group">
+                            <div class="group-header">
+                                <h3>Troubleshooting &amp; Diagnostics</h3>
+                                <p>Common solutions for file detection and communication issues.</p>
+                            </div>
+                            <div class="security-card">
+                                <div class="faq-grid">
+                                    <div class="faq-item">
+                                        <h5>Settings file status stays orange</h5>
+                                        <p>Quit the browser completely and restart it (browser startup is when native registrations are loaded). On Linux, ensure the installer found your browser binary.</p>
+                                    </div>
+                                    <div class="faq-item">
+                                        <h5>"Specified native messaging host not found"</h5>
+                                        <p>The current browser was not registered during install. Re-run <code>python3 install.py</code> and verify that your browser is listed.</p>
+                                    </div>
+                                    <div class="faq-item">
+                                        <h5>Settings file does not exist yet</h5>
+                                        <p>The file is written automatically upon the first settings change. Toggle any rule in the dashboard to trigger initial file creation.</p>
+                                    </div>
+                                    <div class="faq-item">
+                                        <h5>Uninstalling the helper</h5>
+                                        <p>Execute <code>python3 install.py --uninstall</code> from the <code>native/</code> directory. Your saved settings file is safely retained.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- =========================== HARDEN ============================ -->
+                    <section id="tab-harden" class="help-panel">
+                        <div class="settings-group">
+                            <div class="group-header">
+                                <h3>Enforce Browser Policies</h3>
+                                <p>Browser enterprise policies operate at the system level before any profile loads, closing Incognito, Guest mode, and extension management bypasses.</p>
+                            </div>
+
+                            <!-- Step 1 Card: Option List -->
+                            <div class="security-card mb-24">
+                                <div class="step-card-header">
+                                    <span class="step-number">1</span>
+                                    <div>
+                                        <h4>Choose Restrictions to Enforce</h4>
+                                        <p>Select policies to compile into your system configuration.</p>
+                                    </div>
+                                </div>
+                                <div id="option-list" class="option-list"></div>
+
+                                <div id="update-url-row" class="update-url-row hidden">
+                                    <label for="update-url">Update Manifest URL</label>
+                                    <input type="text" id="update-url" placeholder="https://example.com/updates.xml">
+                                    <p class="muted">Force-install requires an enterprise update XML manifest URL. Leave blank for Chrome Web Store.</p>
+                                </div>
+                            </div>
+
+                            <!-- Step 2 Card: Target Environment -->
+                            <div class="security-card mb-24">
+                                <div class="step-card-header">
+                                    <span class="step-number">2</span>
+                                    <div>
+                                        <h4>Target Environment</h4>
+                                        <p>Choose your operating system and target browser.</p>
+                                    </div>
+                                </div>
+                                <div class="picker-row">
+                                    <div class="picker">
+                                        <label>Operating System</label>
+                                        <div class="segmented" id="os-picker">
+                                            <button class="seg active" data-os="linux" type="button">Linux</button>
+                                            <button class="seg" data-os="macos" type="button">macOS</button>
+                                            <button class="seg" data-os="windows" type="button">Windows</button>
+                                        </div>
+                                    </div>
+                                    <div class="picker">
+                                        <label for="browser-picker">Target Browser</label>
+                                        <select id="browser-picker" class="help-select"></select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 3 Card: Generated Deployment Command -->
+                            <div class="security-card mb-24">
+                                <div class="step-card-header">
+                                    <span class="step-number">3</span>
+                                    <div>
+                                        <h4>Deploy Configuration</h4>
+                                        <p>Execute the generated policy command with administrative privileges.</p>
+                                    </div>
+                                </div>
+
+                                <div id="empty-note" class="empty-note">
+                                    Select one or more enforcement policies above to generate deployment commands.
+                                </div>
+
+                                <div id="command-area" class="hidden">
+                                    <div class="cmd-block">
+                                        <pre id="generated-cmd"></pre>
+                                        <button class="copy-btn" data-copy="generated-cmd" type="button">Copy</button>
+                                    </div>
+
+                                    <div class="run-instruction-wrap">
+                                        <h5 class="run-instruction-title">Execution Instructions</h5>
+                                        <ol id="run-steps" class="run-steps"></ol>
+                                    </div>
+
+                                    <details class="revert-details">
+                                        <summary>Undo and Revert Policies</summary>
+                                        <div class="cmd-block">
+                                            <pre id="revert-cmd"></pre>
+                                            <button class="copy-btn" data-copy="revert-cmd" type="button">Copy</button>
+                                        </div>
+                                        <p class="muted">Removes the enterprise policy file only. Your BlockX dashboard settings remain intact.</p>
+                                    </details>
+                                </div>
+                            </div>
+
+                            <!-- Group: Advisories & Policies Verification -->
+                            <div class="security-card">
+                                <div class="step-card-header">
+                                    <span class="step-badge-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                        </svg>
+                                    </span>
+                                    <div>
+                                        <h4>Policy Advisories &amp; Verification</h4>
+                                        <p>Important guidelines before applying administrative configurations.</p>
+                                    </div>
+                                </div>
+
+                                <div class="advisory-grid">
+                                    <div class="advisory-item">
+                                        <h6>Check Existing Policies</h6>
+                                        <p>Chrome merges all policy files in the directory. Run this command to inspect existing policy files:</p>
+                                        <div class="cmd-block cmd-block-sm">
+                                            <pre id="list-cmd"></pre>
+                                            <button class="copy-btn" data-copy="list-cmd" type="button">Copy</button>
+                                        </div>
+                                        <p class="muted">Navigate to <code>chrome://policy</code> in your browser to inspect effective policies at any time.</p>
+                                    </div>
+
+                                    <div class="advisory-item">
+                                        <h6>Flatpak Sandbox Note</h6>
+                                        <p>Flatpak browsers symlink host policies only on initial launch. If policies do not immediately take effect, quit all windows cleanly or restart the instance.</p>
+                                        <div class="cmd-block cmd-block-sm">
+                                            <pre id="flatpak-cmd">flatpak kill com.google.Chrome</pre>
+                                            <button class="copy-btn" data-copy="flatpak-cmd" type="button">Copy</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="advisory-item warning-advisory">
+                                        <h6>Important Prerequisites</h6>
+                                        <ul class="warn-list">
+                                            <li>Administrator credentials (sudo on macOS/Linux, elevated prompt on Windows) are required.</li>
+                                            <li>Policies apply machine-wide across all browser profiles on this computer.</li>
+                                            <li>Blocking the extensions page prevents disabling BlockX, but also restricts installing new extensions until reverted.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
             </div>
 
             <div id="toast" class="toast-notification">
@@ -911,6 +1170,7 @@
             </div>
         </div>
     </div>
+    <script src="../help/policies.js"></script>
     <script src="../config.js"></script>
     <script src="options.js"></script>
 </body>
