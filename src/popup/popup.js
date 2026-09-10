@@ -2,23 +2,59 @@
 
 let currentTab = null;
 let currentContext = { type: 'domain', value: '' };
-
 let unlockContext = null;
 
 async function init() {
     await loadConfig();
-    if (CONFIG.COLOR_THEME) {
-        document.body.setAttribute('data-color-theme', CONFIG.COLOR_THEME);
-        if (typeof updateDynamicActionIcon === 'function') {
-            updateDynamicActionIcon(CONFIG.COLOR_THEME);
-        }
-        if (typeof updatePageFavicon === 'function') {
-            updatePageFavicon(CONFIG.COLOR_THEME);
-        }
+
+    if (CONFIG.COLOR_THEME && typeof updateDynamicActionIcon === 'function') {
+        updateDynamicActionIcon(CONFIG.COLOR_THEME);
     }
+    if (CONFIG.COLOR_THEME && typeof updatePageFavicon === 'function') {
+        updatePageFavicon(CONFIG.COLOR_THEME);
+    }
+
+    chrome.storage.local.get({
+        THEME: 'system',
+        COLOR_THEME: 'blue'
+    }, (items) => {
+        applyTheme(items.THEME || 'system');
+        applyColorTheme(items.COLOR_THEME || 'blue');
+    });
+
+    if (chrome.storage && chrome.storage.onChanged) {
+        chrome.storage.onChanged.addListener((changes, area) => {
+            if (area === 'local') {
+                if (changes.THEME) {
+                    applyTheme(changes.THEME.newValue || 'system');
+                }
+                if (changes.COLOR_THEME) {
+                    applyColorTheme(changes.COLOR_THEME.newValue || 'blue');
+                }
+            }
+        });
+    }
+
     await detectContext();
     setupListeners();
     await setupUnlock();
+}
+
+function applyTheme(theme) {
+    document.body.setAttribute('data-user-theme', theme || 'system');
+}
+
+function applyColorTheme(colorTheme) {
+    const validThemes = ['blue', 'pine', 'slate', 'monochrome'];
+    const chosen = validThemes.includes(colorTheme) ? colorTheme : 'blue';
+    document.body.setAttribute('data-color-theme', chosen);
+
+    if (typeof updateDynamicActionIcon === 'function') {
+        updateDynamicActionIcon(chosen);
+    }
+    if (typeof updatePageFavicon === 'function') {
+        updatePageFavicon(chosen);
+    }
 }
 
 // ------------------------------------------------------------------
@@ -59,7 +95,6 @@ function showUnlockPanel(context, target) {
     const note = document.getElementById('unlock-note');
     if (!panel) return;
 
-    // The unlock is the only thing worth showing on a blocked page.
     panel.classList.remove('hidden');
     document.getElementById('context-action')?.classList.add('hidden');
     document.getElementById('toggle-quick-add')?.classList.add('hidden');
@@ -151,7 +186,6 @@ function showUnlockPanel(context, target) {
                 return;
             }
 
-            // Send the tab back to what it was trying to reach.
             if (target.url) chrome.tabs.update(currentTab.id, { url: target.url });
             window.close();
         });
@@ -208,15 +242,22 @@ async function detectContext() {
     currentTab = tabs[0];
     if (!currentTab || !currentTab.url) return;
 
-    const url = new URL(currentTab.url);
+    let url;
+    try {
+        url = new URL(currentTab.url);
+    } catch (e) {
+        return;
+    }
+
     const domain = url.hostname;
     const protocol = url.protocol;
 
     // 1. Check for system pages (chrome://, about:, edge://, etc.)
     const systemProtocols = ['chrome:', 'about:', 'edge:', 'brave:', 'view-source:', 'chrome-extension:'];
     if (systemProtocols.includes(protocol) || domain === 'chrome.google.com') {
-        document.getElementById('context-action').classList.add('hidden');
-        document.getElementById('display-name').textContent = "System Protected Page";
+        document.getElementById('context-action')?.classList.add('hidden');
+        const displayName = document.getElementById('display-name');
+        if (displayName) displayName.textContent = "System Protected Page";
         return;
     }
 
@@ -226,9 +267,12 @@ async function detectContext() {
         const query = params.get('q');
         if (query) {
             currentContext = { type: 'keyword', value: query };
-            document.getElementById('display-name').textContent = `"${query}"`;
-            document.getElementById('context-type').textContent = 'Search Keyword';
-            document.getElementById('block-type-label').textContent = 'Keyword';
+            const displayName = document.getElementById('display-name');
+            const contextType = document.getElementById('context-type');
+            const blockTypeLabel = document.getElementById('block-type-label');
+            if (displayName) displayName.textContent = `"${query}"`;
+            if (contextType) contextType.textContent = 'Search Keyword';
+            if (blockTypeLabel) blockTypeLabel.textContent = 'Keyword';
             return;
         }
     }
@@ -236,9 +280,12 @@ async function detectContext() {
     // 3. Default: Domain (strip leading www.)
     const cleanDomain = domain.replace(/^www\./i, '');
     currentContext = { type: 'domain', value: cleanDomain };
-    document.getElementById('display-name').textContent = cleanDomain;
-    document.getElementById('context-type').textContent = 'Domain';
-    document.getElementById('block-type-label').textContent = 'Site';
+    const displayName = document.getElementById('display-name');
+    const contextType = document.getElementById('context-type');
+    const blockTypeLabel = document.getElementById('block-type-label');
+    if (displayName) displayName.textContent = cleanDomain;
+    if (contextType) contextType.textContent = 'Domain';
+    if (blockTypeLabel) blockTypeLabel.textContent = 'Site';
 }
 
 function setupListeners() {
@@ -256,7 +303,7 @@ function setupListeners() {
         blockBtn.addEventListener('click', async () => {
             const { type, value } = currentContext;
             if (!value) return;
-            
+
             chrome.storage.local.get({
                 CUSTOM_DOMAINS: [],
                 CUSTOM_KEYWORDS: []
@@ -272,27 +319,15 @@ function setupListeners() {
                 }
 
                 chrome.storage.local.set(items, () => {
-                    // If it was a domain, redirect them out immediately
                     if (type === 'domain' && currentTab) {
                         const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, value);
                         chrome.tabs.update(currentTab.id, { url: targetUrl });
                     } else if (currentTab) {
-                        // For keywords, just reload the page to trigger block
                         chrome.tabs.reload(currentTab.id);
                     }
                     window.close();
                 });
             });
-        });
-    }
-
-    // Toggle Quick Add
-    const toggleBtn = document.getElementById('toggle-quick-add');
-    const panel = document.getElementById('quick-add-panel');
-    if (toggleBtn && panel) {
-        toggleBtn.addEventListener('click', () => {
-            toggleBtn.classList.toggle('active');
-            panel.classList.toggle('hidden');
         });
     }
 
@@ -309,16 +344,16 @@ function setupListeners() {
 
 function saveQuickAdd() {
     const input = document.getElementById('quick-input');
+    const saveBtn = document.getElementById('quick-save-btn');
     if (!input) return;
     let rawVal = input.value.trim().toLowerCase();
     if (!rawVal) return;
 
-    // Simple auto-detection: if it contains a dot and doesn't have spaces, it's likely a domain
+    // Detection: if it contains a dot and doesn't have spaces, it's likely a domain
     const isDomain = rawVal.includes('.') && !rawVal.includes(' ');
     const storageKey = isDomain ? 'CUSTOM_DOMAINS' : 'CUSTOM_KEYWORDS';
 
     if (isDomain) {
-        // Sanitization
         let cleanVal = rawVal;
         let urlToParse = cleanVal;
         if (!/^https?:\/\//i.test(cleanVal)) {
@@ -330,18 +365,16 @@ function saveQuickAdd() {
         } catch (e) {
             cleanVal = cleanVal.split('/')[0];
         }
-        
-        // Strip www.
+
         cleanVal = cleanVal.replace(/^www\./i, '');
 
-        // Validation: Must be a valid domain with TLD and no spaces/special characters
         const domainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z0-9-]{2,})+$/;
         if (!domainPattern.test(cleanVal)) {
             input.value = '';
             input.placeholder = "Invalid domain format!";
             setTimeout(() => {
-                input.placeholder = "Enter domain or keyword...";
-            }, 2000);
+                input.placeholder = "Block domain or keyword...";
+            }, 1800);
             return;
         }
         rawVal = cleanVal;
@@ -355,19 +388,23 @@ function saveQuickAdd() {
             items[storageKey].push(rawVal);
             chrome.storage.local.set(items, () => {
                 input.value = '';
-                input.placeholder = "Added successfully!";
+                input.placeholder = "Added to blocklist!";
+                if (saveBtn) {
+                    saveBtn.textContent = "Added!";
+                    setTimeout(() => {
+                        saveBtn.textContent = "Add";
+                    }, 1400);
+                }
                 setTimeout(() => {
-                    input.placeholder = "Enter domain or keyword...";
-                    const toggleBtn = document.getElementById('toggle-quick-add');
-                    if (toggleBtn) toggleBtn.click(); // close
-                }, 1000);
+                    input.placeholder = "Block domain or keyword...";
+                }, 1400);
             });
         } else {
             input.value = '';
-            input.placeholder = "Already exists!";
+            input.placeholder = "Already on blocklist!";
             setTimeout(() => {
-                input.placeholder = "Enter domain or keyword...";
-            }, 2000);
+                input.placeholder = "Block domain or keyword...";
+            }, 1800);
         }
     });
 }

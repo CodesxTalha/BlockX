@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>BlockX Popup</title>
+    <title>BlockX</title>
     <link rel="icon" type="image/svg+xml" href="../../assets/icons/icon.svg">
     <link rel="stylesheet" href="popup.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,140 +15,133 @@
     <div class="popup-container">
         <!-- Header -->
         <header class="popup-header">
-                <div class="brand">
-                    <svg class="logo brand-dynamic-icon" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect class="brand-icon-rect" width="256" height="256" rx="70" fill="var(--accent, #1500CD)"/>
-                        <path fill="none" d="M168.976 87.6586L87.6587 168.976M168.976 87.6586C146.521 65.2035 110.114 65.2035 87.6587 87.6586C65.2036 110.114 65.2036 146.521 87.6587 168.976M168.976 87.6586C191.431 110.114 191.431 146.521 168.976 168.976C146.521 191.431 110.114 191.431 87.6587 168.976" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span class="brand-name">BlockX</span>
+            <div class="brand">
+                <svg class="logo brand-dynamic-icon" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect class="brand-icon-rect" width="256" height="256" rx="70" fill="var(--accent, #1500CD)"/>
+                    <path fill="none" d="M168.976 87.6586L87.6587 168.976M168.976 87.6586C146.521 65.2035 110.114 65.2035 87.6587 87.6586C65.2036 110.114 65.2036 146.521 87.6587 168.976M168.976 87.6586C191.431 110.114 191.431 146.521 168.976 168.976C146.521 191.431 110.114 191.431 87.6587 168.976" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="brand-name">BlockX</span>
+            </div>
+            <div class="header-actions">
+                <div class="status-pill" title="Real-time Protection Active">
+                    <span class="status-dot"></span>
+                    <span>Active</span>
                 </div>
-                <button id="open-settings" class="icon-btn" title="Settings">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path
-                            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z">
-                        </path>
+                <button id="open-settings" class="icon-btn" title="Open Dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                     </svg>
                 </button>
-            </header>
+            </div>
+        </header>
 
-            <main class="popup-content">
-                <!-- One-time visit unlock, shown only on a blocked destination -->
-                <div id="unlock-panel" class="unlock-panel hidden">
-                    <div class="unlock-head">
-                        <span class="unlock-title">Blocked</span>
-                        <span id="unlock-host" class="unlock-host"></span>
+        <main class="popup-content">
+            <!-- Active Temporary Pass -->
+            <div id="pass-panel" class="pass-panel hidden">
+                <div class="pass-head">
+                    <span class="pass-dot"></span>
+                    <span class="pass-title">Temporary pass active</span>
+                </div>
+                <p id="pass-detail" class="pass-detail"></p>
+                <button id="pass-end-btn" class="btn btn-ghost" type="button">End pass now</button>
+            </div>
+
+            <!-- Blocked by User's Restricted List -->
+            <div id="refused-panel" class="refused-panel hidden">
+                <div class="unlock-head">
+                    <span class="unlock-title">Blocked</span>
+                    <span id="refused-host" class="unlock-host"></span>
+                </div>
+                <p class="refused-text">You put this on your restricted list. No temporary pass is available.</p>
+            </div>
+
+            <!-- One-time visit unlock panel -->
+            <div id="unlock-panel" class="unlock-panel hidden">
+                <div class="unlock-head">
+                    <span class="unlock-title">Blocked</span>
+                    <span id="unlock-host" class="unlock-host"></span>
+                </div>
+
+                <!-- Retype View -->
+                <div id="unlock-retype-view">
+                    <div class="unlock-phrase-wrap">
+                        <p class="unlock-instruction">Type the phrase below to proceed:</p>
+                        <p id="unlock-phrase" class="unlock-phrase"></p>
                     </div>
 
-                    <!-- Retype View -->
-                    <div id="unlock-retype-view">
-                        <div class="unlock-phrase-wrap">
-                            <p class="unlock-instruction">Type the phrase below to confirm:</p>
-                            <p id="unlock-phrase" class="unlock-phrase"></p>
-                        </div>
+                    <textarea id="unlock-input" class="unlock-input" rows="2" spellcheck="false"
+                        autocomplete="off" autocapitalize="off" autocorrect="off"
+                        placeholder="Type the exact phrase above"></textarea>
 
-                        <textarea id="unlock-input" class="unlock-input" rows="2" spellcheck="false"
-                            autocomplete="off" autocapitalize="off" autocorrect="off"
-                            placeholder="Type the exact phrase above"></textarea>
+                    <div id="unlock-error" class="unlock-error hidden">That does not match. Type it exactly.</div>
 
-                        <div id="unlock-error" class="unlock-error hidden">That does not match. Type it exactly.</div>
+                    <button id="unlock-btn" class="btn btn-primary" disabled>
+                        <span id="unlock-btn-label">Let me through once</span>
+                    </button>
+                </div>
 
-                        <button id="unlock-btn" class="btn btn-primary" disabled>
-                            <span id="unlock-btn-label">Let me through once</span>
+                <!-- Warning View -->
+                <div id="unlock-warning-view" class="hidden">
+                    <div id="unlock-warning-step1">
+                        <p id="unlock-warning-text" class="unlock-warning-text"></p>
+                        <button id="unlock-warning-btn" class="btn btn-primary">
+                            <span>Let me through once</span>
                         </button>
                     </div>
-
-                    <!-- Warning View -->
-                    <div id="unlock-warning-view" class="hidden">
-                        <div id="unlock-warning-step1">
-                            <p id="unlock-warning-text" class="unlock-warning-text"></p>
-                            <button id="unlock-warning-btn" class="btn btn-primary">
-                                <span>Let me through once</span>
-                            </button>
-                        </div>
-                        <div id="unlock-warning-step2" class="hidden">
-                            <div class="unlock-confirm-card">
-                                <h4 class="unlock-confirm-title">Are you sure?</h4>
-                                <p class="help-text">This will grant one temporary visit to this site in this tab.</p>
-                                <div class="unlock-confirm-actions">
-                                    <button id="unlock-confirm-yes" class="btn btn-primary">Yes, I'm sure: let me through</button>
-                                    <button id="unlock-confirm-no" class="btn btn-secondary">No, stay blocked</button>
-                                </div>
+                    <div id="unlock-warning-step2" class="hidden">
+                        <div class="unlock-confirm-card">
+                            <h4 class="unlock-confirm-title">Are you sure?</h4>
+                            <p class="help-text">This will grant one temporary visit to this site in this tab.</p>
+                            <div class="unlock-confirm-actions">
+                                <button id="unlock-confirm-yes" class="btn btn-primary">Yes, let me through</button>
+                                <button id="unlock-confirm-no" class="btn btn-secondary">No, stay blocked</button>
                             </div>
                         </div>
                     </div>
-
-                    <p id="unlock-note" class="help-text"></p>
                 </div>
 
-                <!-- Blocked by the user's own restricted list: no pass offered -->
-                <div id="refused-panel" class="refused-panel hidden">
-                    <div class="unlock-head">
-                        <span class="unlock-title">Blocked</span>
-                        <span id="refused-host" class="unlock-host"></span>
-                    </div>
-                    <p class="refused-text">You put this on your restricted list yourself. There is no temporary pass for it.</p>
-                </div>
-
-                <!-- Active pass -->
-                <div id="pass-panel" class="pass-panel hidden">
-                    <div class="pass-head">
-                        <span class="pass-dot"></span>
-                        <span class="pass-title">Temporary pass active</span>
-                    </div>
-                    <p id="pass-detail" class="pass-detail"></p>
-                    <button id="pass-end-btn" class="btn btn-ghost" type="button">End it now</button>
-                </div>
-
-                <!-- Context Action -->
-                <div id="context-action" class="context-card">
-                    <div class="card-body">
-                        <div id="site-info" class="site-info">
-                            <span id="display-name" class="domain-text">Detecting...</span>
-                            <span id="context-type" class="type-badge">Domain</span>
-                        </div>
-                        <button id="block-btn" class="btn btn-danger">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                            </svg>
-                            Block this <span id="block-type-label">Site</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Quick Add Toggle -->
-                <button id="toggle-quick-add" class="expand-btn">
-                    <span>Quick Add Manually</span>
-                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </button>
-
-                <!-- Quick Add Input (Collapsible) -->
-                <div id="quick-add-panel" class="quick-add-panel hidden">
-                    <div class="input-group">
-                        <input type="text" id="quick-input" placeholder="Enter domain or keyword...">
-                        <button id="quick-save-btn" class="btn btn-primary">Add</button>
-                    </div>
-                    <p class="help-text">Auto-detects: domains (e.g. site.com) or keywords.</p>
-                </div>
-            </main>
-
-            <!-- Status Indicator -->
-            <footer class="popup-footer">
-                <div class="status">
-                    <span class="dot pulse"></span>
-                    <span>Real-time Protection Active</span>
-                </div>
-            </footer>
+                <p id="unlock-note" class="help-text"></p>
             </div>
-            <script src="../config.js"></script>
-            <script src="../icon-helper.js"></script>
-            <script src="popup.js"></script>
+
+            <!-- Current Site Context (Clean & Direct) -->
+            <div id="context-action" class="context-card">
+                <div id="site-info" class="site-info">
+                    <svg class="site-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <div class="site-meta">
+                        <span id="display-name" class="domain-text">Detecting...</span>
+                        <span id="context-type" class="type-badge">Domain</span>
+                    </div>
+                </div>
+                <button id="block-btn" class="btn btn-danger">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                    </svg>
+                    <span>Block <span id="block-type-label">Site</span></span>
+                </button>
+            </div>
+
+            <!-- Hidden toggle element for JS backwards-compatibility -->
+            <button id="toggle-quick-add" class="hidden"></button>
+
+            <!-- Direct Quick Add Bar -->
+            <div id="quick-add-panel" class="quick-add-bar">
+                <div class="input-group">
+                    <input type="text" id="quick-input" placeholder="Block domain or keyword...">
+                    <button id="quick-save-btn" class="btn btn-primary" title="Add to blocklist">Add</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="../icon-helper.js"></script>
+    <script src="popup.js"></script>
 </body>
 
 </html>
