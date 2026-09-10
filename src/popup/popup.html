@@ -40,13 +40,13 @@
                     <!-- Retype View -->
                     <div id="unlock-retype-view">
                         <div class="unlock-phrase-wrap">
-                            <span class="unlock-phrase-tag">Required Phrase</span>
+                            <p class="unlock-instruction">Type the phrase below to confirm:</p>
                             <p id="unlock-phrase" class="unlock-phrase"></p>
                         </div>
 
                         <textarea id="unlock-input" class="unlock-input" rows="2" spellcheck="false"
                             autocomplete="off" autocapitalize="off" autocorrect="off"
-                            placeholder="Type the exact phrase above..."></textarea>
+                            placeholder="Type the exact phrase above"></textarea>
 
                         <div id="unlock-error" class="unlock-error hidden">That does not match. Type it exactly.</div>
 
@@ -58,10 +58,7 @@
                     <!-- Warning View -->
                     <div id="unlock-warning-view" class="hidden">
                         <div id="unlock-warning-step1">
-                            <div class="unlock-warning-card">
-                                <span class="unlock-warning-tag">Reflection Warning</span>
-                                <p id="unlock-warning-text" class="unlock-warning-text"></p>
-                            </div>
+                            <p id="unlock-warning-text" class="unlock-warning-text"></p>
                             <button id="unlock-warning-btn" class="btn btn-primary">
                                 <span>Let me through once</span>
                             </button>

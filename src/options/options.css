@@ -1579,16 +1579,24 @@ body[data-user-theme="dark"] .seg.active .seg-subtitle {
 }
 
 .weakening-retype-wrap {
-    margin-top: 16px;
     text-align: left;
 }
 
-.weakening-retype-prompt {
-    font-size: 13px;
-    line-height: 1.5;
-    font-weight: 500;
+.weakening-retype-instruction {
+    font-size: 14px;
+    font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 8px;
+    margin: 0 0 8px 0;
+}
+
+.weakening-retype-phrase {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--accent);
+    margin: 0 0 16px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
     user-select: none;
 }
 
@@ -1601,21 +1609,15 @@ body[data-user-theme="dark"] .seg.active .seg-subtitle {
     background: var(--bg-card);
     color: var(--text-primary);
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: 14px;
     outline: none;
+    margin-bottom: 22px;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .weakening-retype-input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.confirm-action-desc {
-    margin-top: 6px;
-    font-size: 12.5px;
-    color: var(--text-secondary);
-    line-height: 1.4;
 }
 
 .help-select {

@@ -316,33 +316,27 @@ body {
 }
 
 .unlock-phrase-wrap {
-    background: var(--bg-card);
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    border-radius: 12px;
-    padding: 12px 14px;
     margin-bottom: 12px;
+    text-align: left;
     user-select: none;
 }
 
-.unlock-phrase-tag {
-    display: block;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 4px;
+.unlock-instruction {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin: 0 0 6px 0;
 }
 
 .unlock-phrase {
-    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
-    font-size: 13px;
+    font-family: inherit;
+    font-size: 14px;
     font-weight: 600;
     line-height: 1.5;
-    color: var(--text-main);
-    margin: 0;
+    color: var(--accent);
+    margin: 0 0 12px 0;
     white-space: pre-wrap;
-    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .unlock-input {
@@ -351,14 +345,14 @@ body {
     font-family: inherit;
     font-size: 13.5px;
     line-height: 1.5;
-    padding: 12px 14px;
-    border-radius: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
     border: 1.5px solid var(--border);
     background: var(--bg-card);
     color: var(--text-main);
     resize: none;
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -375,29 +369,12 @@ body {
     margin-bottom: 10px;
 }
 
-.unlock-warning-card {
-    background: var(--bg-card);
-    border: 1px solid rgba(245, 158, 11, 0.25);
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 14px;
-}
-
-.unlock-warning-tag {
-    display: block;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #f59e0b;
-    margin-bottom: 6px;
-}
-
 .unlock-warning-text {
-    font-size: 13.5px;
+    font-size: 14.5px;
+    font-weight: 600;
     line-height: 1.6;
     color: var(--text-main);
-    margin: 0;
+    margin: 0 0 18px 0;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     user-select: none;

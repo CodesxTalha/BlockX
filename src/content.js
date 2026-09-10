@@ -172,31 +172,8 @@
       animation: blockx-rise 220ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .prompt-badge {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
-    .prompt-badge svg { width: 22px; height: 22px; }
-
-    .retype-badge {
-      background: rgba(99, 102, 241, 0.15);
-      color: #818cf8;
-      border: 1px solid rgba(99, 102, 241, 0.3);
-    }
-
-    .warning-badge {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-
     .prompt-title {
-      margin: 0 0 6px;
+      margin: 0 0 8px;
       font-size: 19px;
       font-weight: 700;
       letter-spacing: -0.02em;
@@ -205,56 +182,59 @@
     }
 
     .prompt-subtitle {
-      margin: 0 0 18px;
-      font-size: 13.5px;
+      margin: 0 0 20px;
+      font-size: 14px;
       line-height: 1.5;
       color: #94a3b8;
       text-align: start;
     }
 
-    .target-phrase-card, .retype-phrase {
-      background: rgba(99, 102, 241, 0.06);
-      border: 1px solid rgba(99, 102, 241, 0.22);
-      border-radius: 12px;
-      padding: 12px 14px;
-      margin-bottom: 14px;
-      user-select: none;
-    }
-
-    .target-phrase-label {
-      display: block;
-      font-size: 10.5px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #818cf8;
-      margin-bottom: 4px;
-    }
-
-    .target-phrase-text {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 13.5px;
+    .warning-text {
+      margin: 0 0 24px 0;
+      font-size: 18px;
       font-weight: 600;
-      line-height: 1.5;
-      color: #e0e7ff;
+      line-height: 1.65;
+      color: #ffffff;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
+      word-break: break-word;
+      unicode-bidi: plaintext;
+      text-align: start;
+    }
+
+    .retype-instruction {
+      font-size: 14px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin: 0 0 8px 0;
+      text-align: start;
+    }
+
+    .retype-phrase {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.5;
+      color: #818cf8;
+      margin: 0 0 16px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      user-select: none;
+      text-align: start;
     }
 
     .retype-input {
       width: 100%;
       box-sizing: border-box;
       font-family: inherit;
-      font-size: 13.5px;
+      font-size: 14px;
       line-height: 1.5;
       padding: 12px 14px;
       border-radius: 12px;
-      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border: 1.5px solid rgba(255, 255, 255, 0.14);
       background: #08090d;
       color: #ffffff;
-      resize: none;
       display: block;
-      margin-bottom: 14px;
+      margin-bottom: 22px;
       outline: none;
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
       transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
@@ -263,27 +243,6 @@
     .retype-input:focus {
       border-color: #6366f1;
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), inset 0 2px 4px rgba(0, 0, 0, 0.35);
-    }
-
-    .warning-callout {
-      background: rgba(245, 158, 11, 0.08);
-      border: 1px solid rgba(245, 158, 11, 0.25);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 20px;
-    }
-
-    .warning-text {
-      margin: 0;
-      font-size: 14.5px;
-      font-weight: 500;
-      line-height: 1.6;
-      color: #fef3c7;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-      unicode-bidi: plaintext;
-      text-align: start;
     }
 
     .view[hidden] { display: none !important; }
@@ -349,12 +308,9 @@
     }
     :host([data-theme="light"]) .prompt-title { color: #0f172a; }
     :host([data-theme="light"]) .prompt-subtitle { color: #64748b; }
-    :host([data-theme="light"]) .target-phrase-card {
-      background: #f5f3ff;
-      border-color: #ddd6fe;
-    }
-    :host([data-theme="light"]) .target-phrase-label { color: #6d28d9; }
-    :host([data-theme="light"]) .target-phrase-text { color: #4338ca; }
+    :host([data-theme="light"]) .warning-text { color: #0f172a; }
+    :host([data-theme="light"]) .retype-instruction { color: #64748b; }
+    :host([data-theme="light"]) .retype-phrase { color: #4f46e5; }
     :host([data-theme="light"]) .retype-input {
       background: #f8fafc;
       border-color: #cbd5e1;
@@ -366,11 +322,6 @@
       border-color: #4f46e5;
       box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
     }
-    :host([data-theme="light"]) .warning-callout {
-      background: #fffbeb;
-      border-color: #fde68a;
-    }
-    :host([data-theme="light"]) .warning-text { color: #92400e; }
     :host([data-theme="light"]) .show {
       background: #f1f5f9;
       color: #475569;
@@ -479,36 +430,17 @@
     const view1 = document.createElement('div');
     view1.className = 'view';
 
-    const badge1 = document.createElement('div');
-    badge1.className = 'prompt-badge warning-badge';
-    badge1.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-
-    const heading1 = document.createElement('h2');
-    heading1.className = 'prompt-title';
-    heading1.textContent = 'Restricted Content Warning';
-
-    const warningBox = document.createElement('div');
-    warningBox.className = 'warning-callout';
-
     const message = document.createElement('p');
     message.className = 'warning-text';
     message.dir = 'auto';
     message.textContent = ((CONFIG && CONFIG.WEAKENING_MESSAGE) || '').trim()
-      || 'This page looks explicit. Do you still want to open it?';
+      || 'Remember why you set this protection up.';
 
-    warningBox.appendChild(message);
-
-    view1.appendChild(badge1);
-    view1.appendChild(heading1);
-    view1.appendChild(warningBox);
+    view1.appendChild(message);
 
     const view2 = document.createElement('div');
     view2.className = 'view';
     view2.hidden = true;
-
-    const badge2 = document.createElement('div');
-    badge2.className = 'prompt-badge warning-badge';
-    badge2.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 
     const heading2 = document.createElement('h2');
     heading2.className = 'prompt-title';
@@ -518,7 +450,6 @@
     hint.className = 'prompt-subtitle';
     hint.textContent = 'This page will be unblurred and shown. Only continue if you truly mean to.';
 
-    view2.appendChild(badge2);
     view2.appendChild(heading2);
     view2.appendChild(hint);
 
@@ -629,34 +560,19 @@
       const viewRetype = document.createElement('div');
       viewRetype.className = 'view';
 
-      const badge = document.createElement('div');
-      badge.className = 'prompt-badge retype-badge';
-      badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>';
+      const instruction = document.createElement('p');
+      instruction.className = 'retype-instruction';
+      instruction.textContent = 'Type the phrase below to confirm:';
 
-      const heading = document.createElement('h2');
-      heading.className = 'prompt-title';
-      heading.textContent = 'Verification Required';
-
-      const hint = document.createElement('p');
-      hint.className = 'prompt-subtitle';
-      hint.textContent = 'This page was flagged by your protection filters. Retype the phrase below word-for-word to continue:';
-
-      const phraseBox = document.createElement('div');
-      phraseBox.className = 'target-phrase-card';
-      const phraseTag = document.createElement('span');
-      phraseTag.className = 'target-phrase-label';
-      phraseTag.textContent = 'Required Unlock Phrase';
-      const phraseText = document.createElement('div');
-      phraseText.className = 'target-phrase-text';
+      const phraseText = document.createElement('p');
+      phraseText.className = 'retype-phrase';
       const requiredPhrase = ((CONFIG && CONFIG.UNLOCK_PHRASE) || 'I am choosing to break my own rule').trim();
       phraseText.textContent = requiredPhrase;
-      phraseBox.appendChild(phraseTag);
-      phraseBox.appendChild(phraseText);
 
-      const input = document.createElement('textarea');
+      const input = document.createElement('input');
+      input.type = 'text';
       input.className = 'retype-input';
-      input.rows = 2;
-      input.placeholder = 'Type the exact phrase above...';
+      input.placeholder = 'Type the exact phrase above';
       input.spellcheck = false;
       input.autocomplete = 'off';
 
@@ -680,10 +596,8 @@
       });
       unlockBtn.addEventListener('click', reveal);
 
-      viewRetype.appendChild(badge);
-      viewRetype.appendChild(heading);
-      viewRetype.appendChild(hint);
-      viewRetype.appendChild(phraseBox);
+      viewRetype.appendChild(instruction);
+      viewRetype.appendChild(phraseText);
       viewRetype.appendChild(input);
       viewRetype.appendChild(unlockBtn);
       viewRetype.appendChild(leaveBtn);

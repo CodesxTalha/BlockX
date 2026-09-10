@@ -262,14 +262,34 @@ function describeWeakeningAction(staged) {
     return `You are exempting "${staged.value}" from content scanning.`;
 }
 
+function getConfirmButtonLabel(staged) {
+    if (!staged) return 'Yes, apply change';
+    if (staged.type === 'switch_mode') {
+        const target = staged.targetMode === 'retype' ? 'Retype Phrase' : 'Warning Message';
+        return `Yes, switch to ${target}`;
+    }
+    if (staged.type === 'toggle_scan') {
+        return 'Yes, turn off scanning';
+    }
+    if (staged.op === 'remove') {
+        return 'Yes, remove item';
+    }
+    if (staged.stateKey === 'CUSTOM_ALLOWED_DOMAINS') {
+        return 'Yes, add to whitelist';
+    }
+    if (staged.stateKey === 'CUSTOM_SCAN_EXCLUDED') {
+        return 'Yes, exempt from scanning';
+    }
+    return 'Yes, apply change';
+}
+
 function promptWeakeningWarning(staged) {
     stagedWeakening = staged;
 
     const modal = document.getElementById('weakening-modal');
     const textEl = document.getElementById('weakening-warning-text');
-    const descEl = document.getElementById('weakening-action-desc');
     const retypeWrap = document.getElementById('weakening-retype-wrap');
-    const retypePrompt = document.getElementById('weakening-retype-prompt');
+    const retypePhraseEl = document.getElementById('weakening-retype-phrase');
     const retypeInput = document.getElementById('weakening-retype-input');
     const proceedBtn = document.getElementById('weakening-proceed-btn');
 
@@ -279,18 +299,18 @@ function promptWeakeningWarning(staged) {
         return;
     }
 
-    const message = (state.WEAKENING_MESSAGE || CONFIG.WEAKENING_MESSAGE || '').trim()
-        || 'Remember why you set this protection up.';
-    if (textEl) textEl.textContent = message;
-    if (descEl) descEl.textContent = describeWeakeningAction(staged);
+    if (proceedBtn) {
+        proceedBtn.textContent = getConfirmButtonLabel(staged);
+    }
 
     const isRetypeMode = state.BYPASS_MODE === 'retype';
-    if (retypeWrap && proceedBtn) {
-        if (isRetypeMode) {
+    if (isRetypeMode) {
+        if (textEl) textEl.classList.add('hidden');
+        if (retypeWrap) {
             retypeWrap.classList.remove('hidden');
             const requiredPhrase = (state.UNLOCK_PHRASE || CONFIG.UNLOCK_PHRASE || 'I am choosing to break my own rule').trim();
-            if (retypePrompt) retypePrompt.textContent = `Type "${requiredPhrase}" to confirm:`;
-            if (retypeInput) {
+            if (retypePhraseEl) retypePhraseEl.textContent = requiredPhrase;
+            if (retypeInput && proceedBtn) {
                 retypeInput.value = '';
                 proceedBtn.disabled = true;
                 const normalize = (text) => (text || '').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -299,10 +319,16 @@ function promptWeakeningWarning(staged) {
                 };
                 setTimeout(() => retypeInput.focus(), 50);
             }
-        } else {
-            retypeWrap.classList.add('hidden');
-            proceedBtn.disabled = false;
         }
+    } else {
+        if (textEl) {
+            textEl.classList.remove('hidden');
+            const message = (state.WEAKENING_MESSAGE || CONFIG.WEAKENING_MESSAGE || '').trim()
+                || 'Remember why you set this protection up.';
+            textEl.textContent = message;
+        }
+        if (retypeWrap) retypeWrap.classList.add('hidden');
+        if (proceedBtn) proceedBtn.disabled = false;
     }
 
     modal.classList.remove('hidden');
@@ -312,13 +338,22 @@ function hideWeakeningModal() {
     const modal = document.getElementById('weakening-modal');
     if (modal) modal.classList.add('hidden');
 
+    const textEl = document.getElementById('weakening-warning-text');
+    if (textEl) textEl.classList.remove('hidden');
+
+    const retypeWrap = document.getElementById('weakening-retype-wrap');
+    if (retypeWrap) retypeWrap.classList.add('hidden');
+
     const retypeInput = document.getElementById('weakening-retype-input');
     if (retypeInput) {
         retypeInput.value = '';
         retypeInput.oninput = null;
     }
     const proceedBtn = document.getElementById('weakening-proceed-btn');
-    if (proceedBtn) proceedBtn.disabled = false;
+    if (proceedBtn) {
+        proceedBtn.disabled = false;
+        proceedBtn.textContent = 'Yes, apply change';
+    }
 
     if (stagedWeakening && stagedWeakening.type === 'toggle_scan') {
         const toggle = document.getElementById('content-scanning-toggle');

@@ -1233,15 +1233,15 @@ python3 install.py</pre>
         <div id="weakening-modal" class="confirm-modal-overlay hidden">
             <div class="confirm-modal-card">
                 <p id="weakening-warning-text" class="confirm-warning-text" dir="auto"></p>
-                <p id="weakening-action-desc" class="confirm-action-desc"></p>
                 <div id="weakening-retype-wrap" class="weakening-retype-wrap hidden">
-                    <p class="weakening-retype-prompt" id="weakening-retype-prompt"></p>
-                    <input type="text" id="weakening-retype-input" class="weakening-retype-input" autocomplete="off" spellcheck="false" placeholder="Type the phrase above to confirm">
+                    <p class="weakening-retype-instruction">Type the phrase below to confirm:</p>
+                    <p class="weakening-retype-phrase" id="weakening-retype-phrase"></p>
+                    <input type="text" id="weakening-retype-input" class="weakening-retype-input" autocomplete="off" spellcheck="false" placeholder="Type the exact phrase above">
                 </div>
 
                 <div class="confirm-modal-actions">
-                    <button id="weakening-proceed-btn" class="btn btn-primary" type="button">Yes, Go Ahead</button>
-                    <button id="weakening-goback-btn" class="btn btn-secondary" type="button">No, Don't Change</button>
+                    <button id="weakening-proceed-btn" class="btn btn-primary" type="button">Yes, apply change</button>
+                    <button id="weakening-goback-btn" class="btn btn-secondary" type="button">No, cancel</button>
                 </div>
             </div>
         </div>
