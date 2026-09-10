@@ -19,6 +19,27 @@ try {
   }
 }
 
+try {
+  importScripts('icon-helper.js');
+} catch (e1) {
+  try {
+    importScripts('/src/icon-helper.js');
+  } catch (e2) {
+    console.warn('[BlockX] Icon helper not available:', e2);
+  }
+}
+
+async function syncDynamicActionIcon() {
+  if (typeof updateDynamicActionIcon !== 'function') return;
+  try {
+    const { COLOR_THEME = 'blue' } = await chrome.storage.local.get({ COLOR_THEME: 'blue' });
+    updateDynamicActionIcon(COLOR_THEME);
+  } catch (e) {
+    console.warn('[BlockX] Could not sync dynamic action icon:', e);
+  }
+}
+syncDynamicActionIcon();
+
 // Fallbacks if settings-sync.js was unavailable
 if (typeof reconcileSettings !== 'function') {
   globalThis.reconcileSettings = async () => null;
@@ -387,6 +408,10 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
   ].some(key => changes[key] !== undefined);
 
   if (shouldUpdate) await queueRuleUpdate();
+
+  if (changes.COLOR_THEME !== undefined && typeof updateDynamicActionIcon === 'function') {
+    updateDynamicActionIcon(changes.COLOR_THEME.newValue || 'blue');
+  }
 
   if (SETTINGS_KEYS.some(key => changes[key] !== undefined)) schedulePublish();
 });

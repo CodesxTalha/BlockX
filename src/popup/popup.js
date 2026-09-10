@@ -9,6 +9,12 @@ async function init() {
     await loadConfig();
     if (CONFIG.COLOR_THEME) {
         document.body.setAttribute('data-color-theme', CONFIG.COLOR_THEME);
+        if (typeof updateDynamicActionIcon === 'function') {
+            updateDynamicActionIcon(CONFIG.COLOR_THEME);
+        }
+        if (typeof updatePageFavicon === 'function') {
+            updatePageFavicon(CONFIG.COLOR_THEME);
+        }
     }
     await detectContext();
     setupListeners();

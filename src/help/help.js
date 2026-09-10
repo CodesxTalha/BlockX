@@ -20,8 +20,20 @@ function init() {
 }
 
 function applyTheme() {
-    chrome.storage.local.get({ THEME: 'system' }, (items) => {
+    chrome.storage.local.get({ THEME: 'system', COLOR_THEME: 'blue' }, (items) => {
         document.body.setAttribute('data-user-theme', items.THEME || 'system');
+        document.body.setAttribute('data-color-theme', items.COLOR_THEME || 'blue');
+        if (typeof updatePageFavicon === 'function') {
+            updatePageFavicon(items.COLOR_THEME || 'blue');
+        }
+    });
+}
+
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && (changes.THEME !== undefined || changes.COLOR_THEME !== undefined)) {
+            applyTheme();
+        }
     });
 }
 

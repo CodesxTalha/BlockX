@@ -715,6 +715,13 @@ function applyColorTheme(colorTheme) {
     if (radio) {
         radio.checked = true;
     }
+
+    if (typeof updateDynamicActionIcon === 'function') {
+        updateDynamicActionIcon(chosen);
+    }
+    if (typeof updatePageFavicon === 'function') {
+        updatePageFavicon(chosen);
+    }
 }
 
 function getColorThemeLabel(value) {

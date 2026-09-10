@@ -86,7 +86,16 @@ body {
 .logo {
     width: 28px;
     height: 28px;
-    border-radius: 8px;
+    display: block;
+}
+
+.brand-dynamic-icon .brand-icon-rect {
+    fill: var(--accent);
+    transition: fill 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.brand-dynamic-icon path {
+    fill: none;
 }
 
 .brand-name {

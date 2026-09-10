@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>BlockX Popup</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/icons/icon.svg">
     <link rel="stylesheet" href="popup.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +16,10 @@
         <!-- Header -->
         <header class="popup-header">
                 <div class="brand">
-                    <img src="../../assets/icons/icon128.png" alt="Logo" class="logo">
+                    <svg class="logo brand-dynamic-icon" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect class="brand-icon-rect" width="256" height="256" rx="70" fill="var(--accent, #1500CD)"/>
+                        <path fill="none" d="M168.976 87.6586L87.6587 168.976M168.976 87.6586C146.521 65.2035 110.114 65.2035 87.6587 87.6586C65.2036 110.114 65.2036 146.521 87.6587 168.976M168.976 87.6586C191.431 110.114 191.431 146.521 168.976 168.976C146.521 191.431 110.114 191.431 87.6587 168.976" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                     <span class="brand-name">BlockX</span>
                 </div>
                 <button id="open-settings" class="icon-btn" title="Settings">
@@ -143,6 +147,7 @@
             </footer>
             </div>
             <script src="../config.js"></script>
+            <script src="../icon-helper.js"></script>
             <script src="popup.js"></script>
 </body>
 
