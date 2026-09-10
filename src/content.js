@@ -150,34 +150,135 @@
       padding: 24px;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
-      -webkit-backdrop-filter: blur(64px) saturate(0.4) brightness(0.72);
-      backdrop-filter: blur(64px) saturate(0.4) brightness(0.72);
-      background: rgba(9, 9, 11, 0.55);
-      animation: blockx-fade 220ms ease-out;
+      -webkit-backdrop-filter: blur(48px) saturate(1.8) brightness(0.7);
+      backdrop-filter: blur(48px) saturate(1.8) brightness(0.7);
+      background: rgba(8, 10, 15, 0.72);
+      animation: blockx-fade 200ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .card {
       box-sizing: border-box;
       width: 100%;
-      max-width: 480px;
+      max-width: 460px;
       max-height: calc(100vh - 48px);
       overflow-y: auto;
-      padding: 24px;
+      padding: 28px;
       text-align: left;
-      border-radius: 16px;
-      border: 1px solid #3f3f46;
-      background: #1c1c1c;
-      color: #f9fafb;
-      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.7);
-      animation: blockx-rise 200ms cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #0f1117;
+      color: #f8fafc;
+      box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 28px -4px rgba(99, 102, 241, 0.12);
+      animation: blockx-rise 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .prompt-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .prompt-badge svg { width: 22px; height: 22px; }
+
+    .retype-badge {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .warning-badge {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .prompt-title {
+      margin: 0 0 6px;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      text-align: start;
+    }
+
+    .prompt-subtitle {
+      margin: 0 0 18px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #94a3b8;
+      text-align: start;
+    }
+
+    .target-phrase-card, .retype-phrase {
+      background: rgba(99, 102, 241, 0.06);
+      border: 1px solid rgba(99, 102, 241, 0.22);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      user-select: none;
+    }
+
+    .target-phrase-label {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #818cf8;
+      margin-bottom: 4px;
+    }
+
+    .target-phrase-text {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.5;
+      color: #e0e7ff;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .retype-input {
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 13.5px;
+      line-height: 1.5;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      background: #08090d;
+      color: #ffffff;
+      resize: none;
+      display: block;
+      margin-bottom: 14px;
+      outline: none;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    }
+    .retype-input::placeholder { color: #64748b; }
+    .retype-input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), inset 0 2px 4px rgba(0, 0, 0, 0.35);
+    }
+
+    .warning-callout {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
     }
 
     .warning-text {
-      margin: 0 0 22px 0;
-      font-size: 18px;
-      font-weight: 600;
-      line-height: 1.7;
-      color: inherit;
+      margin: 0;
+      font-size: 14.5px;
+      font-weight: 500;
+      line-height: 1.6;
+      color: #fef3c7;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       word-break: break-word;
@@ -187,23 +288,6 @@
 
     .view[hidden] { display: none !important; }
 
-    h2 {
-      margin: 0 0 8px;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: inherit;
-      text-align: start;
-    }
-
-    .hint {
-      margin: 0 0 20px;
-      font-size: 14px;
-      line-height: 1.5;
-      color: #a1a1aa;
-      text-align: start;
-    }
-
     button {
       display: block;
       width: 100%;
@@ -211,37 +295,97 @@
       font-family: inherit;
       font-size: 14px;
       font-weight: 600;
-      padding: 11px 16px;
-      border-radius: 10px;
-      border: 1px solid transparent;
+      padding: 12px 18px;
+      border-radius: 12px;
+      border: none;
       cursor: pointer;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    button:focus-visible { outline: 2px solid #1900FF; outline-offset: 2px; }
+    button:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
 
-    .leave { background: #f9fafb; color: #111827; margin-bottom: 10px; }
-    .leave:hover { background: #ffffff; }
+    .leave {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+      margin-bottom: 10px;
+    }
+    .leave:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+    }
 
-    .show { background: transparent; color: #a1a1aa; border-color: #3f3f46; }
-    .show:hover { color: #f9fafb; border-color: #71717a; }
+    .show {
+      background: rgba(255, 255, 255, 0.04);
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .show:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    button:disabled {
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+      pointer-events: none;
+    }
 
     :host([data-theme="light"]) .wrap {
-      background: rgba(249, 250, 251, 0.72);
-      -webkit-backdrop-filter: blur(64px) saturate(0.35) brightness(1.15);
-      backdrop-filter: blur(64px) saturate(0.35) brightness(1.15);
+      background: rgba(241, 245, 249, 0.75);
+      -webkit-backdrop-filter: blur(48px) saturate(1.8) brightness(1.05);
+      backdrop-filter: blur(48px) saturate(1.8) brightness(1.05);
     }
     :host([data-theme="light"]) .card {
       background: #ffffff;
-      border-color: #e5e7eb;
-      color: #111827;
-      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
+      border-color: #e2e8f0;
+      color: #0f172a;
+      box-shadow: 0 24px 64px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.04);
     }
-    :host([data-theme="light"]) .warning-text { color: #111827; }
-    :host([data-theme="light"]) .hint { color: #6b7280; }
-    :host([data-theme="light"]) .leave { background: #111827; color: #ffffff; }
-    :host([data-theme="light"]) .leave:hover { background: #000000; }
-    :host([data-theme="light"]) .show { color: #6b7280; border-color: #e5e7eb; }
-    :host([data-theme="light"]) .show:hover { color: #111827; border-color: #9ca3af; }
+    :host([data-theme="light"]) .prompt-title { color: #0f172a; }
+    :host([data-theme="light"]) .prompt-subtitle { color: #64748b; }
+    :host([data-theme="light"]) .target-phrase-card {
+      background: #f5f3ff;
+      border-color: #ddd6fe;
+    }
+    :host([data-theme="light"]) .target-phrase-label { color: #6d28d9; }
+    :host([data-theme="light"]) .target-phrase-text { color: #4338ca; }
+    :host([data-theme="light"]) .retype-input {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    :host([data-theme="light"]) .retype-input:focus {
+      background: #ffffff;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+    :host([data-theme="light"]) .warning-callout {
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+    :host([data-theme="light"]) .warning-text { color: #92400e; }
+    :host([data-theme="light"]) .show {
+      background: #f1f5f9;
+      color: #475569;
+      border-color: #e2e8f0;
+    }
+    :host([data-theme="light"]) .show:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+    :host([data-theme="light"]) button:disabled {
+      background: #f1f5f9;
+      color: #94a3b8;
+      border-color: #e2e8f0;
+    }
 
     @keyframes blockx-fade { from { opacity: 0; } to { opacity: 1; } }
     @keyframes blockx-rise {
@@ -335,25 +479,46 @@
     const view1 = document.createElement('div');
     view1.className = 'view';
 
+    const badge1 = document.createElement('div');
+    badge1.className = 'prompt-badge warning-badge';
+    badge1.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
+    const heading1 = document.createElement('h2');
+    heading1.className = 'prompt-title';
+    heading1.textContent = 'Restricted Content Warning';
+
+    const warningBox = document.createElement('div');
+    warningBox.className = 'warning-callout';
+
     const message = document.createElement('p');
     message.className = 'warning-text';
     message.dir = 'auto';
     message.textContent = ((CONFIG && CONFIG.WEAKENING_MESSAGE) || '').trim()
       || 'This page looks explicit. Do you still want to open it?';
 
-    view1.appendChild(message);
+    warningBox.appendChild(message);
+
+    view1.appendChild(badge1);
+    view1.appendChild(heading1);
+    view1.appendChild(warningBox);
 
     const view2 = document.createElement('div');
     view2.className = 'view';
     view2.hidden = true;
 
+    const badge2 = document.createElement('div');
+    badge2.className = 'prompt-badge warning-badge';
+    badge2.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
     const heading2 = document.createElement('h2');
+    heading2.className = 'prompt-title';
     heading2.textContent = 'Are you sure?';
 
     const hint = document.createElement('p');
-    hint.className = 'hint';
+    hint.className = 'prompt-subtitle';
     hint.textContent = 'This page will be unblurred and shown. Only continue if you truly mean to.';
 
+    view2.appendChild(badge2);
     view2.appendChild(heading2);
     view2.appendChild(hint);
 
@@ -458,20 +623,96 @@
     });
     sureBtn.addEventListener('click', reveal);
 
-    view1.appendChild(leaveBtn);
-    view1.appendChild(showBtn);
-    view2.appendChild(sureBtn);
-    view2.appendChild(backBtn);
-    card.appendChild(view1);
-    card.appendChild(view2);
-    wrap.appendChild(card);
-    root.appendChild(style);
-    root.appendChild(wrap);
+    const isRetypeMode = CONFIG && CONFIG.BYPASS_MODE === 'retype';
 
-    document.documentElement.appendChild(host);
-    raiseBarrier(BARRIER_FROZEN);
-    freezeMedia();
-    leaveBtn.focus();
+    if (isRetypeMode) {
+      const viewRetype = document.createElement('div');
+      viewRetype.className = 'view';
+
+      const badge = document.createElement('div');
+      badge.className = 'prompt-badge retype-badge';
+      badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>';
+
+      const heading = document.createElement('h2');
+      heading.className = 'prompt-title';
+      heading.textContent = 'Verification Required';
+
+      const hint = document.createElement('p');
+      hint.className = 'prompt-subtitle';
+      hint.textContent = 'This page was flagged by your protection filters. Retype the phrase below word-for-word to continue:';
+
+      const phraseBox = document.createElement('div');
+      phraseBox.className = 'target-phrase-card';
+      const phraseTag = document.createElement('span');
+      phraseTag.className = 'target-phrase-label';
+      phraseTag.textContent = 'Required Unlock Phrase';
+      const phraseText = document.createElement('div');
+      phraseText.className = 'target-phrase-text';
+      const requiredPhrase = ((CONFIG && CONFIG.UNLOCK_PHRASE) || 'I am choosing to break my own rule').trim();
+      phraseText.textContent = requiredPhrase;
+      phraseBox.appendChild(phraseTag);
+      phraseBox.appendChild(phraseText);
+
+      const input = document.createElement('textarea');
+      input.className = 'retype-input';
+      input.rows = 2;
+      input.placeholder = 'Type the exact phrase above...';
+      input.spellcheck = false;
+      input.autocomplete = 'off';
+
+      const unlockBtn = document.createElement('button');
+      unlockBtn.className = 'leave';
+      unlockBtn.type = 'button';
+      unlockBtn.disabled = true;
+      unlockBtn.textContent = 'Unlock and show page';
+
+      const leaveBtn = document.createElement('button');
+      leaveBtn.className = 'show';
+      leaveBtn.type = 'button';
+      leaveBtn.textContent = 'No, close this tab';
+      leaveBtn.addEventListener('click', () => {
+        chrome.runtime.sendMessage({ action: 'closeTab' });
+      });
+
+      const collapse = (text) => (text || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      input.addEventListener('input', () => {
+        unlockBtn.disabled = collapse(input.value) !== collapse(requiredPhrase);
+      });
+      unlockBtn.addEventListener('click', reveal);
+
+      viewRetype.appendChild(badge);
+      viewRetype.appendChild(heading);
+      viewRetype.appendChild(hint);
+      viewRetype.appendChild(phraseBox);
+      viewRetype.appendChild(input);
+      viewRetype.appendChild(unlockBtn);
+      viewRetype.appendChild(leaveBtn);
+      card.appendChild(viewRetype);
+
+      wrap.appendChild(card);
+      root.appendChild(style);
+      root.appendChild(wrap);
+
+      document.documentElement.appendChild(host);
+      raiseBarrier(BARRIER_FROZEN);
+      freezeMedia();
+      setTimeout(() => input.focus(), 50);
+    } else {
+      view1.appendChild(leaveBtn);
+      view1.appendChild(showBtn);
+      view2.appendChild(sureBtn);
+      view2.appendChild(backBtn);
+      card.appendChild(view1);
+      card.appendChild(view2);
+      wrap.appendChild(card);
+      root.appendChild(style);
+      root.appendChild(wrap);
+
+      document.documentElement.appendChild(host);
+      raiseBarrier(BARRIER_FROZEN);
+      freezeMedia();
+      leaveBtn.focus();
+    }
 
     setTimeout(() => {
       if (!scanPrompted || scanAcknowledged) return;

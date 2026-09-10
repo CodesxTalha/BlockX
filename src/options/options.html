@@ -295,10 +295,71 @@
 
                     <div class="settings-group">
                         <div class="group-header">
-                            <h3>Warning Message</h3>
-                            <p>The one message shown whenever you try to loosen protection:
-                                removing a restricted entry, adding a site to the whitelist,
-                                or exempting one from scanning. Write something that will actually stop you.</p>
+                            <h3>Bypass &amp; Verification Mode</h3>
+                            <p>Choose the verification method required to grant temporary passes, reveal flagged content, or loosen protection settings.</p>
+                        </div>
+                        <div class="enforcement-grid bypass-mode-grid" id="bypass-mode-grid">
+                            <label class="enforcement-card" data-mode="warning">
+                                <input type="radio" name="bypassMode" value="warning" class="sr-only">
+                                <div class="card-content">
+                                    <div class="card-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                            <line x1="12" y1="9" x2="12" y2="13" />
+                                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                                        </svg>
+                                    </div>
+                                    <div class="card-info">
+                                        <span class="title">Warning Message</span>
+                                        <span class="desc">Two-step confirmation prompt displaying your custom reflection warning.</span>
+                                    </div>
+                                    <div class="selection-check">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="enforcement-card" data-mode="retype">
+                                <input type="radio" name="bypassMode" value="retype" class="sr-only">
+                                <div class="card-content">
+                                    <div class="card-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+                                            <line x1="6" y1="8" x2="6" y2="8" />
+                                            <line x1="10" y1="8" x2="10" y2="8" />
+                                            <line x1="14" y1="8" x2="14" y2="8" />
+                                            <line x1="18" y1="8" x2="18" y2="8" />
+                                            <line x1="6" y1="12" x2="6" y2="12" />
+                                            <line x1="10" y1="12" x2="10" y2="12" />
+                                            <line x1="14" y1="12" x2="14" y2="12" />
+                                            <line x1="18" y1="12" x2="18" y2="12" />
+                                            <line x1="7" y1="16" x2="17" y2="16" />
+                                        </svg>
+                                    </div>
+                                    <div class="card-info">
+                                        <span class="title">Retype Phrase</span>
+                                        <span class="desc">Requires typing your custom unlock phrase verbatim word-for-word.</span>
+                                    </div>
+                                    <div class="selection-check">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-group" id="group-warning-message">
+                        <div class="group-header">
+                            <h3>Warning Message Content</h3>
+                            <p>Shown as a two-step confirmation before temporary access or changes that loosen your protection. Write something that will give you pause.</p>
                         </div>
                         <div class="interactive-list-manager">
                             <textarea id="weakening-message" class="scan-message" rows="3" maxlength="400"
@@ -306,16 +367,14 @@
                             <div class="input-row" style="margin-top: 12px;">
                                 <button id="save-weakening-message-btn" class="btn btn-secondary">Save Message</button>
                             </div>
-                            <p class="help-text">Shown as a confirmation before any change that loosens your protection.
-                                The change applies the moment you say yes.</p>
+                            <p class="help-text">Used on explicit scan warnings, popup temporary visits, and dashboard modification prompts when Warning Message mode is active.</p>
                         </div>
                     </div>
 
-                    <div class="settings-group">
+                    <div class="settings-group" id="group-unlock-phrase" style="display: none;">
                         <div class="group-header">
-                            <h3>One-Time Visit</h3>
-                            <p>Getting past a block (from the toolbar icon, or from the warning on a
-                                flagged page) means retyping this word for word.</p>
+                            <h3>One-Time Unlock Phrase</h3>
+                            <p>Word-for-word phrase required to earn temporary passes or loosen protection when Retype Phrase mode is active.</p>
                         </div>
                         <div class="interactive-list-manager">
                             <textarea id="unlock-phrase" class="scan-message" rows="2" maxlength="300"
@@ -323,8 +382,7 @@
                             <div class="input-row" style="margin-top: 12px;">
                                 <button id="save-unlock-phrase-btn" class="btn btn-secondary">Save Phrase</button>
                             </div>
-                            <p class="help-text">Longer is better. From the toolbar it buys one visit in that tab; on a
-                                flagged page it just reveals the page.</p>
+                            <p class="help-text">Longer is better. When active, you must type this phrase verbatim to unlock a blocked site or reveal a flagged page.</p>
                         </div>
                     </div>
                 </div>
@@ -1175,6 +1233,11 @@ python3 install.py</pre>
         <div id="weakening-modal" class="confirm-modal-overlay hidden">
             <div class="confirm-modal-card">
                 <p id="weakening-warning-text" class="confirm-warning-text" dir="auto"></p>
+                <p id="weakening-action-desc" class="confirm-action-desc"></p>
+                <div id="weakening-retype-wrap" class="weakening-retype-wrap hidden">
+                    <p class="weakening-retype-prompt" id="weakening-retype-prompt"></p>
+                    <input type="text" id="weakening-retype-input" class="weakening-retype-input" autocomplete="off" spellcheck="false" placeholder="Type the phrase above to confirm">
+                </div>
 
                 <div class="confirm-modal-actions">
                     <button id="weakening-proceed-btn" class="btn btn-primary" type="button">Yes, Go Ahead</button>

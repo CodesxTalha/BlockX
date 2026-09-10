@@ -1,5 +1,38 @@
 // background.js
-importScripts('config.js', 'settings-sync.js');
+try {
+  importScripts('config.js');
+} catch (e1) {
+  try {
+    importScripts('/src/config.js');
+  } catch (e2) {
+    console.error('[BlockX] Failed to load config.js:', e2);
+  }
+}
+
+try {
+  importScripts('settings-sync.js');
+} catch (e1) {
+  try {
+    importScripts('/src/settings-sync.js');
+  } catch (e2) {
+    console.warn('[BlockX] Settings sync helper not available:', e2);
+  }
+}
+
+// Fallbacks if settings-sync.js was unavailable
+if (typeof reconcileSettings !== 'function') {
+  globalThis.reconcileSettings = async () => null;
+}
+if (typeof publishSettings !== 'function') {
+  globalThis.publishSettings = async () => null;
+}
+if (typeof settingsSyncStatus !== 'function') {
+  globalThis.settingsSyncStatus = async () => ({
+    revision: 0,
+    file: { available: false, path: null, error: 'sync unavailable' },
+    sync: { available: false }
+  });
+}
 
 const DYNAMIC_RULE_LIMIT = chrome.declarativeNetRequest.MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES || 30000;
 
@@ -436,6 +469,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       sendResponse({
         phrase: config.UNLOCK_PHRASE || '',
+        warningMessage: config.WEAKENING_MESSAGE || '',
+        bypassMode: config.BYPASS_MODE || 'warning',
         durationMs: TEMP_GRANT_MS,
         target: refused ? null : target,
         refusedHost: refused ? target.host : null,
@@ -448,9 +483,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'grantTempPass') {
     (async () => {
       const config = await loadConfig();
-      if (!unlockPhraseMatches(config.UNLOCK_PHRASE, request.typed)) {
-        sendResponse({ ok: false, reason: 'mismatch' });
-        return;
+      const bypassMode = config.BYPASS_MODE || 'warning';
+
+      if (bypassMode === 'retype') {
+        if (!unlockPhraseMatches(config.UNLOCK_PHRASE, request.typed)) {
+          sendResponse({ ok: false, reason: 'mismatch' });
+          return;
+        }
       }
 
       // Never issue a pass for the user's own restricted domains, even if the

@@ -38,7 +38,8 @@ async function setupUnlock() {
         showRefused(context.refusedHost);
         return;
     }
-    if (!context.target || !(context.phrase || '').trim()) return;
+    if (!context.target) return;
+    if (context.bypassMode === 'retype' && !(context.phrase || '').trim()) return;
 
     showUnlockPanel(context, context.target);
 }
@@ -46,15 +47,8 @@ async function setupUnlock() {
 function showUnlockPanel(context, target) {
     const panel = document.getElementById('unlock-panel');
     const hostEl = document.getElementById('unlock-host');
-    const phraseEl = document.getElementById('unlock-phrase');
-    const input = document.getElementById('unlock-input');
-    const button = document.getElementById('unlock-btn');
-    const errorEl = document.getElementById('unlock-error');
     const note = document.getElementById('unlock-note');
-    if (!panel || !input || !button) return;
-
-    const phrase = (context.phrase || '').trim();
-    if (!phrase) return;
+    if (!panel) return;
 
     // The unlock is the only thing worth showing on a blocked page.
     panel.classList.remove('hidden');
@@ -63,39 +57,98 @@ function showUnlockPanel(context, target) {
     document.getElementById('quick-add-panel')?.classList.add('hidden');
 
     if (hostEl) hostEl.textContent = target.host;
-    if (phraseEl) phraseEl.textContent = phrase;
     if (note) {
         note.textContent = `One visit to ${target.host} in this tab. Reloading or opening it again blocks it.`;
     }
 
-    const collapse = (text) => text.trim().replace(/\s+/g, ' ');
+    const isWarningMode = (context.bypassMode || 'warning') === 'warning';
+    const retypeView = document.getElementById('unlock-retype-view');
+    const warningView = document.getElementById('unlock-warning-view');
 
-    input.addEventListener('input', () => {
-        errorEl?.classList.add('hidden');
-        button.disabled = collapse(input.value) !== collapse(phrase);
-    });
+    if (isWarningMode) {
+        if (retypeView) retypeView.classList.add('hidden');
+        if (warningView) warningView.classList.remove('hidden');
 
-    button.addEventListener('click', async () => {
-        button.disabled = true;
-        const response = await sendMessage({
-            action: 'grantTempPass',
-            host: target.host,
-            tabId: currentTab.id,
-            typed: input.value
-        });
-
-        if (!response || !response.ok) {
-            errorEl?.classList.remove('hidden');
-            button.disabled = false;
-            return;
+        const warningText = document.getElementById('unlock-warning-text');
+        if (warningText) {
+            warningText.textContent = (context.warningMessage || '').trim()
+                || 'Stop. This page was blocked by your rules. Are you sure you want to proceed?';
         }
 
-        // Send the tab back to what it was trying to reach.
-        if (target.url) chrome.tabs.update(currentTab.id, { url: target.url });
-        window.close();
-    });
+        const step1 = document.getElementById('unlock-warning-step1');
+        const step2 = document.getElementById('unlock-warning-step2');
+        const warnBtn = document.getElementById('unlock-warning-btn');
+        const confirmYes = document.getElementById('unlock-confirm-yes');
+        const confirmNo = document.getElementById('unlock-confirm-no');
 
-    input.focus();
+        if (step1) step1.classList.remove('hidden');
+        if (step2) step2.classList.add('hidden');
+
+        warnBtn?.addEventListener('click', () => {
+            step1?.classList.add('hidden');
+            step2?.classList.remove('hidden');
+        });
+
+        confirmNo?.addEventListener('click', () => {
+            window.close();
+        });
+
+        confirmYes?.addEventListener('click', async () => {
+            confirmYes.disabled = true;
+            const response = await sendMessage({
+                action: 'grantTempPass',
+                host: target.host,
+                tabId: currentTab.id
+            });
+            if (response && response.ok) {
+                if (target.url) chrome.tabs.update(currentTab.id, { url: target.url });
+                window.close();
+            } else {
+                confirmYes.disabled = false;
+            }
+        });
+    } else {
+        if (warningView) warningView.classList.add('hidden');
+        if (retypeView) retypeView.classList.remove('hidden');
+
+        const phraseEl = document.getElementById('unlock-phrase');
+        const input = document.getElementById('unlock-input');
+        const button = document.getElementById('unlock-btn');
+        const errorEl = document.getElementById('unlock-error');
+        if (!input || !button) return;
+
+        const phrase = (context.phrase || '').trim();
+        if (phraseEl) phraseEl.textContent = phrase;
+
+        const collapse = (text) => text.trim().replace(/\s+/g, ' ').toLowerCase();
+
+        input.addEventListener('input', () => {
+            errorEl?.classList.add('hidden');
+            button.disabled = collapse(input.value) !== collapse(phrase);
+        });
+
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            const response = await sendMessage({
+                action: 'grantTempPass',
+                host: target.host,
+                tabId: currentTab.id,
+                typed: input.value
+            });
+
+            if (!response || !response.ok) {
+                errorEl?.classList.remove('hidden');
+                button.disabled = false;
+                return;
+            }
+
+            // Send the tab back to what it was trying to reach.
+            if (target.url) chrome.tabs.update(currentTab.id, { url: target.url });
+            window.close();
+        });
+
+        input.focus();
+    }
 }
 
 function showRefused(host) {

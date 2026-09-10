@@ -291,18 +291,23 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 .unlock-title {
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    padding: 3px 8px;
+    border-radius: 6px;
     flex: none;
 }
 .unlock-host {
-    font-size: 12px;
+    font-size: 12.5px;
+    font-weight: 600;
     color: var(--text-sub);
     min-width: 0;
     overflow: hidden;
@@ -310,41 +315,114 @@ body {
     white-space: nowrap;
 }
 
+.unlock-phrase-wrap {
+    background: var(--bg-card);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    user-select: none;
+}
+
+.unlock-phrase-tag {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+}
+
 .unlock-phrase {
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
     font-size: 13px;
+    font-weight: 600;
     line-height: 1.5;
     color: var(--text-main);
-    background: var(--bg-sub);
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin: 0 0 8px;
+    margin: 0;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    user-select: none;
 }
 
 .unlock-input {
     width: 100%;
     box-sizing: border-box;
     font-family: inherit;
-    font-size: 13px;
+    font-size: 13.5px;
     line-height: 1.5;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg-main);
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
     color: var(--text-main);
     resize: none;
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 .unlock-input::placeholder { color: var(--text-sub); }
-.unlock-input:focus { outline: none; border-color: var(--accent); }
+.unlock-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
 
 .unlock-error {
     font-size: 12px;
+    font-weight: 600;
     color: #ef4444;
     margin-bottom: 10px;
+}
+
+.unlock-warning-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+
+.unlock-warning-tag {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #f59e0b;
+    margin-bottom: 6px;
+}
+
+.unlock-warning-text {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text-main);
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: none;
+}
+
+.unlock-confirm-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+
+.unlock-confirm-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 6px;
+}
+
+.unlock-confirm-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
 }
 
 .unlock-panel .btn:disabled {

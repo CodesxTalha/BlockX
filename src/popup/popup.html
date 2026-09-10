@@ -37,18 +37,47 @@
                         <span id="unlock-host" class="unlock-host"></span>
                     </div>
 
+                    <!-- Retype View -->
+                    <div id="unlock-retype-view">
+                        <div class="unlock-phrase-wrap">
+                            <span class="unlock-phrase-tag">Required Phrase</span>
+                            <p id="unlock-phrase" class="unlock-phrase"></p>
+                        </div>
 
-                    <p id="unlock-phrase" class="unlock-phrase"></p>
+                        <textarea id="unlock-input" class="unlock-input" rows="2" spellcheck="false"
+                            autocomplete="off" autocapitalize="off" autocorrect="off"
+                            placeholder="Type the exact phrase above..."></textarea>
 
-                    <textarea id="unlock-input" class="unlock-input" rows="2" spellcheck="false"
-                        autocomplete="off" autocapitalize="off" autocorrect="off"
-                        placeholder="Type the message above, exactly"></textarea>
+                        <div id="unlock-error" class="unlock-error hidden">That does not match. Type it exactly.</div>
 
-                    <div id="unlock-error" class="unlock-error hidden">That does not match. Type it exactly.</div>
+                        <button id="unlock-btn" class="btn btn-primary" disabled>
+                            <span id="unlock-btn-label">Let me through once</span>
+                        </button>
+                    </div>
 
-                    <button id="unlock-btn" class="btn btn-primary" disabled>
-                        <span id="unlock-btn-label">Let me through once</span>
-                    </button>
+                    <!-- Warning View -->
+                    <div id="unlock-warning-view" class="hidden">
+                        <div id="unlock-warning-step1">
+                            <div class="unlock-warning-card">
+                                <span class="unlock-warning-tag">Reflection Warning</span>
+                                <p id="unlock-warning-text" class="unlock-warning-text"></p>
+                            </div>
+                            <button id="unlock-warning-btn" class="btn btn-primary">
+                                <span>Let me through once</span>
+                            </button>
+                        </div>
+                        <div id="unlock-warning-step2" class="hidden">
+                            <div class="unlock-confirm-card">
+                                <h4 class="unlock-confirm-title">Are you sure?</h4>
+                                <p class="help-text">This will grant one temporary visit to this site in this tab.</p>
+                                <div class="unlock-confirm-actions">
+                                    <button id="unlock-confirm-yes" class="btn btn-primary">Yes, I'm sure: let me through</button>
+                                    <button id="unlock-confirm-no" class="btn btn-secondary">No, stay blocked</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <p id="unlock-note" class="help-text"></p>
                 </div>
 

@@ -40,6 +40,9 @@ let CONFIG = {
   // Master toggle for on-page content and input scanning
   SCANNING_ENABLED: true,
 
+  // Friction and bypass verification mode: 'warning' (two-step confirmation) or 'retype' (retype phrase)
+  BYPASS_MODE: 'warning',
+
   // The one warning message. Shown by the on-page content warning and by
   // every confirmation that loosens protection in the dashboard.
   WEAKENING_MESSAGE: 'Stop. This weakens the protection you built. Remember why you set this up. Is this really what you want right now?',
@@ -98,7 +101,8 @@ const IMPORTABLE_KEYS = [
   'SECURITY_ENABLED',
   'PASSWORD',
   'THEME',
-  'SCANNING_ENABLED'
+  'SCANNING_ENABLED',
+  'BYPASS_MODE'
 ];
 
 // ------------------------------------------------------------------
@@ -174,6 +178,7 @@ function weakensProtection(current, incoming) {
 
   if (current.SECURITY_ENABLED && incoming.SECURITY_ENABLED === false) return true;
   if ((current.SCANNING_ENABLED ?? true) && incoming.SCANNING_ENABLED === false) return true;
+  if (current.BYPASS_MODE === 'retype' && incoming.BYPASS_MODE === 'warning') return true;
 
   return false;
 }
@@ -216,7 +221,8 @@ async function loadConfig() {
       TEMP_GRANTS: [],
       THEME: 'system',
       ACTIVE_GAME_INDEX: -1,
-      SCANNING_ENABLED: true
+      SCANNING_ENABLED: true,
+      BYPASS_MODE: 'warning'
     }, (items) => {
       CONFIG.BLOCK_METHOD = items.BLOCK_METHOD;
       CONFIG.CUSTOM_REDIRECT_URL = items.CUSTOM_REDIRECT_URL;
@@ -235,6 +241,7 @@ async function loadConfig() {
       CONFIG.THEME = items.THEME;
       CONFIG.ACTIVE_GAME_INDEX = items.ACTIVE_GAME_INDEX;
       CONFIG.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
+      CONFIG.BYPASS_MODE = items.BYPASS_MODE || 'warning';
       resolve(CONFIG);
     });
   });

@@ -38,7 +38,8 @@ let state = {
     ACTIVE_GAME_INDEX: -1,
     SECURITY_ENABLED: false,
     PASSWORD: '',
-    THEME: 'system' // 'light', 'dark', 'system'
+    THEME: 'system', // 'light', 'dark', 'system'
+    BYPASS_MODE: 'warning'
 };
 
 async function init() {
@@ -87,6 +88,7 @@ async function init() {
     }
 
     // 4. Settings UI
+    setupBypassModePicker();
     setupScanSettings();
     setupWeakeningSettings();
     setupImportOath();
@@ -243,6 +245,10 @@ const LIST_LABELS = {
 };
 
 function describeWeakeningAction(staged) {
+    if (staged.type === 'switch_mode') {
+        const modeLabel = staged.targetMode === 'retype' ? 'Retype Phrase' : 'Warning Message';
+        return `You are switching your verification mode to ${modeLabel}.`;
+    }
     if (staged.type === 'toggle_scan') {
         return 'You are turning off live content scanning. Explicit pages on unlisted sites will no longer be detected or blocked.';
     }
@@ -262,6 +268,10 @@ function promptWeakeningWarning(staged) {
     const modal = document.getElementById('weakening-modal');
     const textEl = document.getElementById('weakening-warning-text');
     const descEl = document.getElementById('weakening-action-desc');
+    const retypeWrap = document.getElementById('weakening-retype-wrap');
+    const retypePrompt = document.getElementById('weakening-retype-prompt');
+    const retypeInput = document.getElementById('weakening-retype-input');
+    const proceedBtn = document.getElementById('weakening-proceed-btn');
 
     if (!modal) {
         applyWeakeningChange(staged);
@@ -274,12 +284,42 @@ function promptWeakeningWarning(staged) {
     if (textEl) textEl.textContent = message;
     if (descEl) descEl.textContent = describeWeakeningAction(staged);
 
+    const isRetypeMode = state.BYPASS_MODE === 'retype';
+    if (retypeWrap && proceedBtn) {
+        if (isRetypeMode) {
+            retypeWrap.classList.remove('hidden');
+            const requiredPhrase = (state.UNLOCK_PHRASE || CONFIG.UNLOCK_PHRASE || 'I am choosing to break my own rule').trim();
+            if (retypePrompt) retypePrompt.textContent = `Type "${requiredPhrase}" to confirm:`;
+            if (retypeInput) {
+                retypeInput.value = '';
+                proceedBtn.disabled = true;
+                const normalize = (text) => (text || '').trim().replace(/\s+/g, ' ').toLowerCase();
+                retypeInput.oninput = () => {
+                    proceedBtn.disabled = normalize(retypeInput.value) !== normalize(requiredPhrase);
+                };
+                setTimeout(() => retypeInput.focus(), 50);
+            }
+        } else {
+            retypeWrap.classList.add('hidden');
+            proceedBtn.disabled = false;
+        }
+    }
+
     modal.classList.remove('hidden');
 }
 
 function hideWeakeningModal() {
     const modal = document.getElementById('weakening-modal');
     if (modal) modal.classList.add('hidden');
+
+    const retypeInput = document.getElementById('weakening-retype-input');
+    if (retypeInput) {
+        retypeInput.value = '';
+        retypeInput.oninput = null;
+    }
+    const proceedBtn = document.getElementById('weakening-proceed-btn');
+    if (proceedBtn) proceedBtn.disabled = false;
+
     if (stagedWeakening && stagedWeakening.type === 'toggle_scan') {
         const toggle = document.getElementById('content-scanning-toggle');
         if (toggle) toggle.checked = true;
@@ -288,6 +328,14 @@ function hideWeakeningModal() {
 }
 
 function applyWeakeningChange(staged) {
+    if (staged.type === 'switch_mode') {
+        state.BYPASS_MODE = staged.targetMode;
+        saveState();
+        updateBypassModeUI();
+        const modeLabel = staged.targetMode === 'retype' ? 'Retype Phrase' : 'Warning Message';
+        showToast(`Verification mode switched to ${modeLabel}.`);
+        return;
+    }
     if (staged.type === 'toggle_scan') {
         state.SCANNING_ENABLED = false;
         const toggle = document.getElementById('content-scanning-toggle');
@@ -372,6 +420,47 @@ function setupWeakeningSettings() {
     }
 }
 
+function updateBypassModeUI() {
+    const currentMode = state.BYPASS_MODE || 'warning';
+
+    // Update radio cards
+    document.querySelectorAll('input[name="bypassMode"]').forEach(radio => {
+        radio.checked = radio.value === currentMode;
+    });
+
+    // Toggle corresponding input group visibility: ONLY the active mode's input is shown
+    const warningGroup = document.getElementById('group-warning-message');
+    if (warningGroup) {
+        warningGroup.style.display = currentMode === 'warning' ? 'block' : 'none';
+    }
+
+    const retypeGroup = document.getElementById('group-unlock-phrase');
+    if (retypeGroup) {
+        retypeGroup.style.display = currentMode === 'retype' ? 'block' : 'none';
+    }
+}
+
+function setupBypassModePicker() {
+    updateBypassModeUI();
+    document.querySelectorAll('input[name="bypassMode"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const targetMode = radio.value;
+            const currentMode = state.BYPASS_MODE || 'warning';
+            if (targetMode === currentMode) return;
+
+            // Revert radio button state visually while modal prompt is pending
+            radio.checked = false;
+            const activeRadio = document.querySelector(`input[name="bypassMode"][value="${currentMode}"]`);
+            if (activeRadio) activeRadio.checked = true;
+
+            promptWeakeningWarning({
+                type: 'switch_mode',
+                targetMode
+            });
+        });
+    });
+}
+
 /**
  * Changes to storage land from the sync reconciliation too, so mirror any
  * change back into the dashboard.
@@ -391,6 +480,11 @@ function watchExternalChanges() {
                 dirty = true;
             }
         });
+
+        if (changes.BYPASS_MODE) {
+            state.BYPASS_MODE = changes.BYPASS_MODE.newValue || 'warning';
+            updateBypassModeUI();
+        }
 
         if (dirty) renderAllLists();
     });
@@ -584,7 +678,8 @@ function saveState() {
         ACTIVE_GAME_INDEX: state.ACTIVE_GAME_INDEX,
         SECURITY_ENABLED: state.SECURITY_ENABLED,
         PASSWORD: state.PASSWORD,
-        THEME: state.THEME
+        THEME: state.THEME,
+        BYPASS_MODE: state.BYPASS_MODE || 'warning'
     }, () => {
         if (!chrome.runtime.lastError) {
             showToast('Settings auto-saved.');
@@ -1655,11 +1750,14 @@ async function restore_options() {
             ACTIVE_GAME_INDEX: -1,
             SECURITY_ENABLED: false,
             PASSWORD: '',
-            THEME: 'system'
+            THEME: 'system',
+            BYPASS_MODE: 'warning'
         }, (items) => {
             state = items;
             state.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
+            state.BYPASS_MODE = items.BYPASS_MODE || 'warning';
             applyTheme(state.THEME); // Re-apply theme after load
+            updateBypassModeUI();
 
             const scanToggle = document.getElementById('content-scanning-toggle');
             if (scanToggle) scanToggle.checked = state.SCANNING_ENABLED;
@@ -1721,7 +1819,8 @@ function exportSettings() {
         "ACTIVE_GAME_INDEX",
         "SECURITY_ENABLED",
         "PASSWORD",
-        "THEME"
+        "THEME",
+        "BYPASS_MODE"
     ], (items) => {
         const backupData = {
             version: "1.0",
