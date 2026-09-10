@@ -75,6 +75,107 @@ body[data-user-theme="dark"] {
     }
 }
 
+/* ==========================================================================
+   Scientifically Grounded Theme Color Palettes
+   ========================================================================== */
+
+/* 1. Electric Blue (Default) */
+:root,
+body[data-color-theme="blue"] {
+    --accent: #1900FF;
+    --accent-soft: rgba(25, 0, 255, 0.06);
+    --accent-dark: #1100cc;
+    --accent-disabled: #1100cc;
+}
+
+body[data-user-theme="dark"][data-color-theme="blue"] {
+    --accent: #3b49df;
+    --accent-soft: rgba(59, 73, 223, 0.18);
+    --accent-dark: #1900FF;
+    --accent-disabled: #1900FF;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-user-theme="light"])[data-color-theme="blue"] {
+        --accent: #3b49df;
+        --accent-soft: rgba(59, 73, 223, 0.18);
+        --accent-dark: #1900FF;
+        --accent-disabled: #1900FF;
+    }
+}
+
+/* 2. Boreal Pine - Scientifically proven to lower cortisol and down-regulate sympathetic arousal */
+body[data-color-theme="pine"] {
+    --accent: #059669;
+    --accent-soft: rgba(5, 150, 105, 0.08);
+    --accent-dark: #047857;
+    --accent-disabled: #047857;
+}
+
+body[data-user-theme="dark"][data-color-theme="pine"] {
+    --accent: #10b981;
+    --accent-soft: rgba(16, 185, 129, 0.18);
+    --accent-dark: #059669;
+    --accent-disabled: #059669;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-user-theme="light"])[data-color-theme="pine"] {
+        --accent: #10b981;
+        --accent-soft: rgba(16, 185, 129, 0.18);
+        --accent-dark: #059669;
+        --accent-disabled: #059669;
+    }
+}
+
+/* 3. Nordic Slate - Short-wavelength cyan/slate quiets sensory hyperactivity and triggers analytical focus */
+body[data-color-theme="slate"] {
+    --accent: #0284c7;
+    --accent-soft: rgba(2, 132, 199, 0.08);
+    --accent-dark: #0369a1;
+    --accent-disabled: #0369a1;
+}
+
+body[data-user-theme="dark"][data-color-theme="slate"] {
+    --accent: #38bdf8;
+    --accent-soft: rgba(56, 189, 248, 0.18);
+    --accent-dark: #0284c7;
+    --accent-disabled: #0284c7;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-user-theme="light"])[data-color-theme="slate"] {
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.18);
+        --accent-dark: #0284c7;
+        --accent-disabled: #0284c7;
+    }
+}
+
+/* 4. Monochrome Slate - Dopamine fasting principles, eliminating chromatic arousal cues entirely */
+body[data-color-theme="monochrome"] {
+    --accent: #334155;
+    --accent-soft: rgba(51, 65, 85, 0.08);
+    --accent-dark: #1e293b;
+    --accent-disabled: #1e293b;
+}
+
+body[data-user-theme="dark"][data-color-theme="monochrome"] {
+    --accent: #94a3b8;
+    --accent-soft: rgba(148, 163, 184, 0.18);
+    --accent-dark: #64748b;
+    --accent-disabled: #64748b;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-user-theme="light"])[data-color-theme="monochrome"] {
+        --accent: #94a3b8;
+        --accent-soft: rgba(148, 163, 184, 0.18);
+        --accent-dark: #64748b;
+        --accent-disabled: #64748b;
+    }
+}
+
 .app-container {
     display: flex;
     height: 100vh;
@@ -224,24 +325,24 @@ body.is-locked .app-main {
 }
 
 .pulse {
-    box-shadow: 0 0 0 rgba(25, 0, 255, 0.4);
+    box-shadow: 0 0 0 var(--accent);
     animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
     0% {
         transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(25, 0, 255, 0.7);
+        box-shadow: 0 0 0 0 var(--accent);
     }
 
     70% {
         transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(25, 0, 255, 0);
+        box-shadow: 0 0 0 8px transparent;
     }
 
     100% {
         transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(25, 0, 255, 0);
+        box-shadow: 0 0 0 0 transparent;
     }
 }
 
@@ -352,11 +453,12 @@ body.is-locked .app-main {
 }
 
 .btn-primary {
-    background: var(--text-primary);
-    color: var(--bg-sidebar);
+    background: var(--accent);
+    color: #ffffff;
 }
 
 .btn-primary:hover {
+    background: var(--accent-dark);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
@@ -2185,4 +2287,171 @@ body[data-user-theme="dark"] .seg.active .seg-subtitle {
 
 .warn-list li:last-child {
     margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Theme Color Grid Components
+   ========================================================================== */
+
+.theme-color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.theme-color-card {
+    cursor: pointer;
+    position: relative;
+}
+
+.theme-card-inner {
+    background: var(--bg-card);
+    border: 1px solid var(--border-base);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.theme-card-inner:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.theme-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.theme-swatch-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.color-swatch-ring {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--swatch-color) 16%, transparent);
+    border: 2px solid color-mix(in srgb, var(--swatch-color) 38%, transparent);
+}
+
+.color-swatch-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--swatch-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.theme-card-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: var(--border-base);
+    color: var(--text-secondary);
+}
+
+.theme-card-badge.calming-badge {
+    background: rgba(16, 185, 129, 0.15);
+    color: #059669;
+}
+
+.theme-card-badge.cooling-badge {
+    background: rgba(2, 132, 199, 0.15);
+    color: #0284c7;
+}
+
+.theme-card-badge.detox-badge {
+    background: rgba(71, 85, 105, 0.15);
+    color: #475569;
+}
+
+body[data-user-theme="dark"] .theme-card-badge.calming-badge {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+body[data-user-theme="dark"] .theme-card-badge.cooling-badge {
+    background: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+}
+
+body[data-user-theme="dark"] .theme-card-badge.detox-badge {
+    background: rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-user-theme="light"]) .theme-card-badge.calming-badge {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+    }
+    body:not([data-user-theme="light"]) .theme-card-badge.cooling-badge {
+        background: rgba(56, 189, 248, 0.2);
+        color: #38bdf8;
+    }
+    body:not([data-user-theme="light"]) .theme-card-badge.detox-badge {
+        background: rgba(148, 163, 184, 0.2);
+        color: #cbd5e1;
+    }
+}
+
+.theme-card-meta .title {
+    display: block;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.theme-card-meta .desc {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.theme-card-inner .selection-check {
+    position: static;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: all 0.2s ease;
+}
+
+.theme-card-inner .selection-check svg {
+    width: 13px;
+    height: 13px;
+}
+
+input:checked + .theme-card-inner {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
+input:checked + .theme-card-inner .selection-check {
+    opacity: 1;
+    transform: scale(1);
 }

@@ -381,6 +381,76 @@
       border-color: #3f3f46;
     }
 
+    /* Color Theme Overrides */
+    :host([data-color-theme="pine"]) .confirm-modal-actions .btn-primary {
+      background: #059669;
+      border-color: #059669;
+    }
+    :host([data-color-theme="pine"]) .confirm-modal-actions .btn-primary:hover {
+      background: #047857;
+      border-color: #047857;
+    }
+    :host([data-color-theme="pine"]) .weakening-retype-phrase {
+      color: #059669;
+    }
+    :host([data-color-theme="pine"]) .weakening-retype-input:focus {
+      border-color: #059669;
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+    }
+    :host([data-theme="dark"][data-color-theme="pine"]) .confirm-modal-actions .btn-primary {
+      background: #10b981;
+      border-color: #10b981;
+    }
+    :host([data-theme="dark"][data-color-theme="pine"]) .weakening-retype-phrase {
+      color: #34d399;
+    }
+
+    :host([data-color-theme="slate"]) .confirm-modal-actions .btn-primary {
+      background: #0284c7;
+      border-color: #0284c7;
+    }
+    :host([data-color-theme="slate"]) .confirm-modal-actions .btn-primary:hover {
+      background: #0369a1;
+      border-color: #0369a1;
+    }
+    :host([data-color-theme="slate"]) .weakening-retype-phrase {
+      color: #0284c7;
+    }
+    :host([data-color-theme="slate"]) .weakening-retype-input:focus {
+      border-color: #0284c7;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+    :host([data-theme="dark"][data-color-theme="slate"]) .confirm-modal-actions .btn-primary {
+      background: #38bdf8;
+      border-color: #38bdf8;
+    }
+    :host([data-theme="dark"][data-color-theme="slate"]) .weakening-retype-phrase {
+      color: #38bdf8;
+    }
+
+    :host([data-color-theme="monochrome"]) .confirm-modal-actions .btn-primary {
+      background: #334155;
+      border-color: #334155;
+    }
+    :host([data-color-theme="monochrome"]) .confirm-modal-actions .btn-primary:hover {
+      background: #1e293b;
+      border-color: #1e293b;
+    }
+    :host([data-color-theme="monochrome"]) .weakening-retype-phrase {
+      color: #475569;
+    }
+    :host([data-color-theme="monochrome"]) .weakening-retype-input:focus {
+      border-color: #475569;
+      box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.15);
+    }
+    :host([data-theme="dark"][data-color-theme="monochrome"]) .confirm-modal-actions .btn-primary {
+      background: #64748b;
+      border-color: #64748b;
+    }
+    :host([data-theme="dark"][data-color-theme="monochrome"]) .weakening-retype-phrase {
+      color: #94a3b8;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .confirm-modal-overlay, .confirm-modal-card { animation: none; }
     }
@@ -446,6 +516,7 @@
     const host = document.createElement('div');
     host.id = 'blockx-scan-prompt';
     host.setAttribute('data-theme', resolveTheme());
+    host.setAttribute('data-color-theme', (CONFIG && CONFIG.COLOR_THEME) || 'blue');
     host.style.setProperty('all', 'initial', 'important');
     host.style.setProperty('display', 'block', 'important');
     host.style.setProperty('position', 'fixed', 'important');

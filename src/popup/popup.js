@@ -7,6 +7,9 @@ let unlockContext = null;
 
 async function init() {
     await loadConfig();
+    if (CONFIG.COLOR_THEME) {
+        document.body.setAttribute('data-color-theme', CONFIG.COLOR_THEME);
+    }
     await detectContext();
     setupListeners();
     await setupUnlock();

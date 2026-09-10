@@ -101,6 +101,7 @@ const IMPORTABLE_KEYS = [
   'SECURITY_ENABLED',
   'PASSWORD',
   'THEME',
+  'COLOR_THEME',
   'SCANNING_ENABLED',
   'BYPASS_MODE'
 ];
@@ -220,6 +221,7 @@ async function loadConfig() {
       WEAKENING_MESSAGE: '',
       TEMP_GRANTS: [],
       THEME: 'system',
+      COLOR_THEME: 'blue',
       ACTIVE_GAME_INDEX: -1,
       SCANNING_ENABLED: true,
       BYPASS_MODE: 'warning'
@@ -239,6 +241,7 @@ async function loadConfig() {
       CONFIG.UNLOCK_PHRASE = items.UNLOCK_PHRASE;
       CONFIG.TEMP_GRANTS = items.TEMP_GRANTS;
       CONFIG.THEME = items.THEME;
+      CONFIG.COLOR_THEME = items.COLOR_THEME || 'blue';
       CONFIG.ACTIVE_GAME_INDEX = items.ACTIVE_GAME_INDEX;
       CONFIG.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
       CONFIG.BYPASS_MODE = items.BYPASS_MODE || 'warning';

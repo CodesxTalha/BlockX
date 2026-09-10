@@ -39,6 +39,7 @@ let state = {
     SECURITY_ENABLED: false,
     PASSWORD: '',
     THEME: 'system', // 'light', 'dark', 'system'
+    COLOR_THEME: 'blue', // 'blue', 'pine', 'slate', 'monochrome'
     BYPASS_MODE: 'warning'
 };
 
@@ -46,9 +47,11 @@ async function init() {
     await loadConfig();
     await restore_options();
     
-    // 0. Apply Theme
+    // 0. Apply Theme & Color Theme
     applyTheme(state.THEME);
     setupThemeSelector();
+    applyColorTheme(state.COLOR_THEME || 'blue');
+    setupColorThemeSelector();
 
     // 1. Initial lock state
     if (state.SECURITY_ENABLED) {
@@ -701,6 +704,41 @@ function setupThemeSelector() {
     });
 }
 
+function applyColorTheme(colorTheme) {
+    const validThemes = ['blue', 'pine', 'slate', 'monochrome'];
+    const chosen = validThemes.includes(colorTheme) ? colorTheme : 'blue';
+    state.COLOR_THEME = chosen;
+    document.body.setAttribute('data-color-theme', chosen);
+    
+    // Sync matching radio input
+    const radio = document.querySelector(`input[name="colorTheme"][value="${chosen}"]`);
+    if (radio) {
+        radio.checked = true;
+    }
+}
+
+function getColorThemeLabel(value) {
+    switch (value) {
+        case 'pine': return 'Boreal Pine';
+        case 'slate': return 'Nordic Slate';
+        case 'monochrome': return 'Monochrome Slate';
+        case 'blue':
+        default: return 'Electric Blue';
+    }
+}
+
+function setupColorThemeSelector() {
+    document.querySelectorAll('input[name="colorTheme"]').forEach(input => {
+        input.addEventListener('change', () => {
+            if (input.checked) {
+                applyColorTheme(input.value);
+                saveState();
+                showToast(`Theme color switched to ${getColorThemeLabel(input.value)}.`);
+            }
+        });
+    });
+}
+
 function saveState() {
     const activeGameRadio = document.querySelector('input[name="activeGame"]:checked');
     state.ACTIVE_GAME_INDEX = activeGameRadio ? parseInt(activeGameRadio.value) : -1;
@@ -723,6 +761,7 @@ function saveState() {
         SECURITY_ENABLED: state.SECURITY_ENABLED,
         PASSWORD: state.PASSWORD,
         THEME: state.THEME,
+        COLOR_THEME: state.COLOR_THEME || 'blue',
         BYPASS_MODE: state.BYPASS_MODE || 'warning'
     }, () => {
         if (!chrome.runtime.lastError) {
@@ -1795,12 +1834,14 @@ async function restore_options() {
             SECURITY_ENABLED: false,
             PASSWORD: '',
             THEME: 'system',
+            COLOR_THEME: 'blue',
             BYPASS_MODE: 'warning'
         }, (items) => {
             state = items;
             state.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
             state.BYPASS_MODE = items.BYPASS_MODE || 'warning';
             applyTheme(state.THEME); // Re-apply theme after load
+            applyColorTheme(state.COLOR_THEME || 'blue');
             updateBypassModeUI();
 
             const scanToggle = document.getElementById('content-scanning-toggle');
