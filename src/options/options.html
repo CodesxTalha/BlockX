@@ -863,7 +863,7 @@
                 <div id="section-help" class="settings-section">
                     <nav class="help-tabs">
                         <button class="help-tab active" data-tab="setup" type="button">Setup</button>
-                        <button class="help-tab" data-tab="harden" type="button">Lock down Chrome</button>
+                        <button class="help-tab" data-tab="harden" type="button">Lock down browser</button>
                     </nav>
 
                     <!-- ============================ SETUP ============================ -->
@@ -1026,8 +1026,21 @@ python3 install.py</pre>
                                         </div>
                                     </div>
                                     <div class="picker">
-                                        <label for="browser-picker">Target Browser</label>
-                                        <select id="browser-picker" class="help-select"></select>
+                                        <label id="browser-target-title">Target Browser</label>
+                                        <div class="custom-dropdown" id="browser-target-dropdown">
+                                            <button type="button" class="dropdown-trigger" id="browser-target-trigger"
+                                                aria-haspopup="listbox" aria-expanded="false" aria-labelledby="browser-target-title browser-target-label">
+                                                <span id="browser-target-label">Google Chrome</span>
+                                                <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                                                    stroke-linejoin="round">
+                                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                                </svg>
+                                            </button>
+                                            <input type="hidden" id="browser-target-value" value="chrome">
+                                            <div class="dropdown-menu" id="browser-target-menu" role="listbox"
+                                                aria-label="Target Browser"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1087,12 +1100,12 @@ python3 install.py</pre>
                                 <div class="advisory-grid">
                                     <div class="advisory-item">
                                         <h6>Check Existing Policies</h6>
-                                        <p>Chrome merges all policy files in the directory. Run this command to inspect existing policy files:</p>
+                                        <p>Browsers merge all policy files in the directory. Run this command to inspect existing policy files:</p>
                                         <div class="cmd-block cmd-block-sm">
                                             <pre id="list-cmd"></pre>
                                             <button class="copy-btn" data-copy="list-cmd" type="button">Copy</button>
                                         </div>
-                                        <p class="muted">Navigate to <code>chrome://policy</code> in your browser to inspect effective policies at any time.</p>
+                                        <p class="muted">Navigate to <code id="policy-url-note">chrome://policy</code> in your browser to inspect effective policies at any time.</p>
                                     </div>
 
                                     <div class="advisory-item">

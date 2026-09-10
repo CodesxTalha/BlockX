@@ -1544,6 +1544,23 @@ body[data-user-theme="dark"] .seg.active {
     border-color: var(--accent);
 }
 
+.picker .custom-dropdown {
+    width: 100%;
+}
+
+.picker .dropdown-trigger {
+    width: 100%;
+    min-height: 44px;
+    background: var(--bg-app);
+}
+
+.picker .dropdown-menu {
+    width: 100%;
+    left: 0;
+    right: 0;
+    min-width: 250px;
+}
+
 /* Results & Execution */
 .empty-note {
     padding: 28px;

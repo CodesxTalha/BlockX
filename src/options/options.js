@@ -1873,7 +1873,7 @@ let helpCurrentBrowser = 'chrome';
 function setupHelpSection() {
     setupHelpTabs();
     renderHelpOptions();
-    renderHelpBrowserPicker();
+    setupHelpBrowserDropdown();
     setupHelpPickers();
     setupHelpCopyButtons();
     renderHelpCommands();
@@ -1937,20 +1937,118 @@ function renderHelpOptions() {
     }
 }
 
-function renderHelpBrowserPicker() {
-    const select = document.getElementById('browser-picker');
-    if (!select || typeof BROWSER_TARGETS === 'undefined') return;
-    select.innerHTML = '';
-    for (const [id, target] of Object.entries(BROWSER_TARGETS)) {
-        const option = document.createElement('option');
-        option.value = id;
-        option.textContent = target.label;
-        select.appendChild(option);
+function setupHelpBrowserDropdown() {
+    const dropdown = document.getElementById('browser-target-dropdown');
+    const trigger = document.getElementById('browser-target-trigger');
+    const labelEl = document.getElementById('browser-target-label');
+    const menu = document.getElementById('browser-target-menu');
+    const valueInput = document.getElementById('browser-target-value');
+    const legacySelect = document.getElementById('browser-picker');
+
+    if (legacySelect && typeof BROWSER_TARGETS !== 'undefined') {
+        legacySelect.innerHTML = '';
+        for (const [id, target] of Object.entries(BROWSER_TARGETS)) {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = target.label;
+            legacySelect.appendChild(option);
+        }
+        legacySelect.value = helpCurrentBrowser;
+        legacySelect.addEventListener('change', () => {
+            setBrowser(legacySelect.value);
+        });
     }
-    select.value = helpCurrentBrowser;
-    select.addEventListener('change', () => {
-        helpCurrentBrowser = select.value;
+
+    if (!dropdown || !trigger || !menu || typeof BROWSER_TARGETS === 'undefined') return;
+
+    menu.innerHTML = '';
+    for (const [id, target] of Object.entries(BROWSER_TARGETS)) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = `dropdown-item${id === helpCurrentBrowser ? ' active' : ''}`;
+        item.setAttribute('data-value', id);
+        item.setAttribute('role', 'option');
+        item.setAttribute('aria-selected', id === helpCurrentBrowser ? 'true' : 'false');
+
+        const content = document.createElement('div');
+        content.className = 'dropdown-item-content';
+
+        const title = document.createElement('span');
+        title.className = 'dropdown-item-title';
+        title.textContent = target.label;
+
+        const desc = document.createElement('span');
+        desc.className = 'dropdown-item-desc';
+        desc.textContent = target.desc || '';
+
+        content.appendChild(title);
+        content.appendChild(desc);
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'dropdown-item-check');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '2.5');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
+
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', '20 6 9 17 4 12');
+        svg.appendChild(polyline);
+
+        item.appendChild(content);
+        item.appendChild(svg);
+
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setBrowser(id);
+            dropdown.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+        });
+
+        menu.appendChild(item);
+    }
+
+    function setBrowser(id) {
+        if (!BROWSER_TARGETS[id]) return;
+        helpCurrentBrowser = id;
+        if (valueInput) valueInput.value = id;
+        if (legacySelect) legacySelect.value = id;
+        if (labelEl) labelEl.textContent = BROWSER_TARGETS[id].label;
+
+        menu.querySelectorAll('.dropdown-item').forEach(item => {
+            const match = item.getAttribute('data-value') === id;
+            item.classList.toggle('active', match);
+            item.setAttribute('aria-selected', match ? 'true' : 'false');
+        });
+
         renderHelpCommands();
+    }
+
+    setBrowser(helpCurrentBrowser);
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.custom-dropdown.is-open').forEach(d => {
+            if (d !== dropdown) d.classList.remove('is-open');
+        });
+        const isOpen = dropdown.classList.toggle('is-open');
+        trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && dropdown.classList.contains('is-open')) {
+            dropdown.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
     });
 }
 
@@ -1976,7 +2074,7 @@ function renderHelpCommands() {
     const target = BROWSER_TARGETS[helpCurrentBrowser];
     const updateUrl = document.getElementById('update-url')?.value.trim() || '';
     const extensionId = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) ? chrome.runtime.id : '';
-    const policies = (typeof buildPolicies === 'function') ? buildPolicies([...helpSelected], extensionId, updateUrl) : {};
+    const policies = (typeof buildPolicies === 'function') ? buildPolicies([...helpSelected], extensionId, updateUrl, target) : {};
 
     const empty = document.getElementById('empty-note');
     const area = document.getElementById('command-area');
@@ -1985,6 +2083,16 @@ function renderHelpCommands() {
     const listCmd = document.getElementById('list-cmd');
     if (listCmd && typeof buildListCommand === 'function' && target) {
         listCmd.textContent = buildListCommand(helpCurrentOs, target);
+    }
+
+    const policyUrlNote = document.getElementById('policy-url-note');
+    if (policyUrlNote && target) {
+        policyUrlNote.textContent = target.policyUrl || 'chrome://policy';
+    }
+
+    const flatpakCmd = document.getElementById('flatpak-cmd');
+    if (flatpakCmd && target) {
+        flatpakCmd.textContent = `flatpak kill ${target.flatpakId || 'com.google.Chrome'}`;
     }
 
     empty?.classList.toggle('hidden', hasAny);
@@ -2002,9 +2110,12 @@ function renderHelpCommands() {
     }
 
     const steps = document.getElementById('run-steps');
-    if (steps && typeof RUN_NOTES !== 'undefined' && RUN_NOTES[helpCurrentOs]) {
+    if (steps) {
+        const notes = (typeof buildRunNotes === 'function' && target)
+            ? buildRunNotes(helpCurrentOs, target)
+            : (typeof RUN_NOTES !== 'undefined' && RUN_NOTES[helpCurrentOs]) || [];
         steps.innerHTML = '';
-        for (const note of RUN_NOTES[helpCurrentOs]) {
+        for (const note of notes) {
             const li = document.createElement('li');
             li.textContent = note;
             steps.appendChild(li);

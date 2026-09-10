@@ -41,9 +41,25 @@ const HARDENING_OPTIONS = [
   {
     id: 'extensionspage',
     label: 'Block the extensions page',
-    detail: 'Without reaching chrome://extensions there is no way to switch BlockX off or delete it. '
+    detail: 'Without reaching extension settings there is no way to switch BlockX off or delete it. '
           + 'This is what actually makes the extension stick for a locally loaded copy.',
-    policies: { URLBlocklist: ['chrome://extensions', 'chrome://extensions/*'] }
+    extend(policies, extensionId, updateUrl, target) {
+      if (target?.isGecko) {
+        policies.BlockAboutAddons = true;
+        policies.BlockAboutConfig = true;
+        policies.BlockAboutProfiles = true;
+        return;
+      }
+      const scheme = target?.scheme || 'chrome';
+      const urls = [
+        `${scheme}://extensions`,
+        `${scheme}://extensions/*`
+      ];
+      if (scheme !== 'chrome') {
+        urls.push('chrome://extensions', 'chrome://extensions/*');
+      }
+      policies.URLBlocklist = [...new Set([...(policies.URLBlocklist || []), ...urls])];
+    }
   },
   {
     id: 'devtools',
@@ -98,30 +114,71 @@ const HARDENING_OPTIONS = [
 const BROWSER_TARGETS = {
   chrome: {
     label: 'Google Chrome',
+    scheme: 'chrome',
+    policyUrl: 'chrome://policy',
+    extensionsUrl: 'chrome://extensions',
+    desc: 'Standard Chromium engine',
     linuxDir: '/etc/opt/chrome/policies/managed',
-    // Written by an earlier version of this page to a directory Chrome never
-    // reads. Cleaned up so it cannot sit there looking like it does something.
     legacyLinuxDir: '/etc/opt/chrome/policy/managed',
     macDomain: 'com.google.Chrome',
-    winKey: 'HKLM:\\SOFTWARE\\Policies\\Google\\Chrome'
-  },
-  chromium: {
-    label: 'Chromium',
-    linuxDir: '/etc/chromium/policies/managed',
-    macDomain: 'org.chromium.Chromium',
-    winKey: 'HKLM:\\SOFTWARE\\Policies\\Chromium'
+    winKey: 'HKLM:\\SOFTWARE\\Policies\\Google\\Chrome',
+    flatpakId: 'com.google.Chrome'
   },
   brave: {
     label: 'Brave',
+    scheme: 'brave',
+    policyUrl: 'brave://policy',
+    extensionsUrl: 'brave://extensions',
+    desc: 'Privacy-focused Chromium browser',
     linuxDir: '/etc/brave/policies/managed',
     macDomain: 'com.brave.Browser',
-    winKey: 'HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave'
+    winKey: 'HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave',
+    flatpakId: 'com.brave.Browser'
   },
   edge: {
     label: 'Microsoft Edge',
+    scheme: 'edge',
+    policyUrl: 'edge://policy',
+    extensionsUrl: 'edge://extensions',
+    desc: 'Microsoft Enterprise browser',
     linuxDir: '/etc/opt/edge/policies/managed',
     macDomain: 'com.microsoft.Edge',
-    winKey: 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge'
+    winKey: 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge',
+    flatpakId: 'com.microsoft.Edge'
+  },
+  chromium: {
+    label: 'Chromium',
+    scheme: 'chromium',
+    policyUrl: 'chrome://policy',
+    extensionsUrl: 'chrome://extensions',
+    desc: 'Open-source Chromium base',
+    linuxDir: '/etc/chromium/policies/managed',
+    macDomain: 'org.chromium.Chromium',
+    winKey: 'HKLM:\\SOFTWARE\\Policies\\Chromium',
+    flatpakId: 'org.chromium.Chromium'
+  },
+  vivaldi: {
+    label: 'Vivaldi',
+    scheme: 'vivaldi',
+    policyUrl: 'vivaldi://policy',
+    extensionsUrl: 'vivaldi://extensions',
+    desc: 'Customizable power-user browser',
+    linuxDir: '/etc/vivaldi/policies/managed',
+    macDomain: 'com.vivaldi.Vivaldi',
+    winKey: 'HKLM:\\SOFTWARE\\Policies\\Vivaldi',
+    flatpakId: 'com.vivaldi.Vivaldi'
+  },
+  firefox: {
+    label: 'Mozilla Firefox',
+    scheme: 'about',
+    isGecko: true,
+    policyUrl: 'about:policies',
+    extensionsUrl: 'about:addons',
+    desc: 'Gecko engine browser',
+    linuxDir: '/etc/firefox/policies',
+    macDomain: 'org.mozilla.firefox',
+    winKey: 'HKLM:\\SOFTWARE\\Policies\\Mozilla\\Firefox',
+    flatpakId: 'org.mozilla.firefox'
   }
 };
 
@@ -130,8 +187,42 @@ const POLICY_FILE_NAME = 'blockx.json';
 /**
  * Merges the selected options into one policy object.
  */
-function buildPolicies(selectedIds, extensionId, updateUrl) {
+function buildPolicies(selectedIds, extensionId, updateUrl, target) {
   const policies = {};
+
+  if (target?.isGecko) {
+    for (const id of selectedIds) {
+      if (id === 'incognito') policies.DisablePrivateBrowsing = true;
+      if (id === 'guest' || id === 'profiles') policies.BlockAboutProfiles = true;
+      if (id === 'devtools') policies.DisableDeveloperTools = true;
+      if (id === 'extensionspage') {
+        policies.BlockAboutAddons = true;
+        policies.BlockAboutConfig = true;
+        policies.BlockAboutProfiles = true;
+      }
+      if (id === 'otherextensions') {
+        policies.ExtensionSettings = policies.ExtensionSettings || {};
+        policies.ExtensionSettings['*'] = { installation_mode: 'blocked' };
+        policies.ExtensionSettings['blockx@local'] = { installation_mode: 'allowed' };
+      }
+      if (id === 'pin') {
+        policies.ExtensionSettings = policies.ExtensionSettings || {};
+        policies.ExtensionSettings['blockx@local'] = {
+          ...(policies.ExtensionSettings['blockx@local'] || {}),
+          default_area: 'navbar'
+        };
+      }
+      if (id === 'forceinstall') {
+        policies.ExtensionSettings = policies.ExtensionSettings || {};
+        policies.ExtensionSettings['blockx@local'] = {
+          ...(policies.ExtensionSettings['blockx@local'] || {}),
+          installation_mode: 'force_installed',
+          update_url: updateUrl || 'https://addons.mozilla.org/update.xml'
+        };
+      }
+    }
+    return policies;
+  }
 
   for (const option of HARDENING_OPTIONS) {
     if (!selectedIds.includes(option.id)) continue;
@@ -143,7 +234,7 @@ function buildPolicies(selectedIds, extensionId, updateUrl) {
         policies[key] = value;
       }
     }
-    if (typeof option.extend === 'function') option.extend(policies, extensionId, updateUrl);
+    if (typeof option.extend === 'function') option.extend(policies, extensionId, updateUrl, target);
   }
 
   return policies;
@@ -158,19 +249,28 @@ function shellQuote(text) {
 // ------------------------------------------------------------------
 
 function linuxCommand(policies, target) {
-  const json = JSON.stringify(policies);
-  const path = `${target.linuxDir}/${POLICY_FILE_NAME}`;
+  const json = target?.isGecko
+    ? JSON.stringify({ policies: policies }, null, 2)
+    : JSON.stringify(policies);
+  const fileName = target?.isGecko ? 'policies.json' : POLICY_FILE_NAME;
+  const path = `${target.linuxDir}/${fileName}`;
   const cleanup = target.legacyLinuxDir
     ? ` && sudo rm -f ${target.legacyLinuxDir}/${POLICY_FILE_NAME}`
     : '';
 
-  // Deliberately one line. A multi-line heredoc is fragile when pasted.
   return `sudo mkdir -p ${target.linuxDir} && printf '%s' ${shellQuote(json)}`
     + ` | sudo tee ${path} > /dev/null${cleanup}`
     + ` && echo "Applied. Now quit ${target.label} completely and start it again."`;
 }
 
 function macCommand(policies, target) {
+  if (target?.isGecko) {
+    const json = JSON.stringify({ policies: policies }, null, 2);
+    const dir = '/Library/Application Support/Mozilla/policies';
+    return `sudo mkdir -p "${dir}" && printf '%s' ${shellQuote(json)}`
+      + ` | sudo tee "${dir}/policies.json" > /dev/null`
+      + ` && echo "Applied. Now quit ${target.label} completely and start it again."`;
+  }
   const json = JSON.stringify(policies);
   const plist = `/Library/Managed Preferences/${target.macDomain}.plist`;
   return `sudo mkdir -p "/Library/Managed Preferences" && printf '%s' ${shellQuote(json)}`
@@ -180,8 +280,7 @@ function macCommand(policies, target) {
 }
 
 /**
- * Chrome on Windows reads scalars as registry values, list policies from a
- * numbered subkey, and dictionary policies from a single JSON string.
+ * Windows policy engine: Chromium and Firefox read from HKLM:\SOFTWARE\Policies.
  */
 function windowsCommand(policies, target) {
   const lines = [`New-Item -Path '${target.winKey}' -Force | Out-Null`];
@@ -215,48 +314,75 @@ function buildCommand(os, policies, target) {
 
 function buildRevertCommand(os, target) {
   if (os === 'linux') {
+    if (target?.isGecko) {
+      return `sudo rm -f ${target.linuxDir}/policies.json`;
+    }
     const paths = [`${target.linuxDir}/${POLICY_FILE_NAME}`];
     if (target.legacyLinuxDir) paths.push(`${target.legacyLinuxDir}/${POLICY_FILE_NAME}`);
     return `sudo rm -f ${paths.join(' ')}`;
   }
   if (os === 'macos') {
+    if (target?.isGecko) {
+      return `sudo rm -f "/Library/Application Support/Mozilla/policies/policies.json"`;
+    }
     return `sudo rm -f ${shellQuote(`/Library/Managed Preferences/${target.macDomain}.plist`)} && sudo killall cfprefsd`;
   }
   return `Remove-Item -Path '${target.winKey}' -Recurse -Force`;
 }
 
 /**
- * Shows what else is already in the policy directory. Chrome merges every file
- * there, so a stray one can quietly override this.
+ * Shows what else is already in the policy directory.
  */
 function buildListCommand(os, target) {
-  if (os === 'linux') return `ls -la ${target.linuxDir}/ && head -n -0 ${target.linuxDir}/*.json`;
-  if (os === 'macos') return `ls -la "/Library/Managed Preferences/"`;
+  if (os === 'linux') {
+    if (target?.isGecko) {
+      return `cat ${target.linuxDir}/policies.json 2>/dev/null || echo "No policy file found."`;
+    }
+    return `ls -la ${target.linuxDir}/ && head -n -0 ${target.linuxDir}/*.json`;
+  }
+  if (os === 'macos') {
+    if (target?.isGecko) {
+      return `cat "/Library/Application Support/Mozilla/policies/policies.json" 2>/dev/null || echo "No policy file found."`;
+    }
+    return `ls -la "/Library/Managed Preferences/"`;
+  }
   return `Get-ChildItem -Path '${target.winKey}' -Recurse | Format-List`;
 }
 
-const RUN_NOTES = {
-  linux: [
-    'Open a terminal.',
-    'Paste the line and press Enter.',
-    'Enter your password when sudo asks: this writes to /etc, which is why it needs one.',
-    'Quit the browser completely and start it again. Closing every window is not always '
-      + 'enough; if it still does not show up, end the remaining process and relaunch.',
-    'On a Flatpak browser, quitting properly matters more than usual (see the note below).',
-    'Open chrome://policy. The entries should be listed with Source: Platform. If the page '
-      + 'is empty, the browser was never restarted.'
-  ],
-  macos: [
-    'Open Terminal.',
-    'Paste the line and press Enter.',
-    'Enter your password when sudo asks.',
-    'Quit the browser completely (Cmd+Q) and start it again.',
-    'Check chrome://policy: the entries should be listed as Source: Platform.'
-  ],
-  windows: [
+function buildRunNotes(os, target) {
+  const policyPage = target?.policyUrl || 'chrome://policy';
+  const label = target?.label || 'the browser';
+
+  if (os === 'linux') {
+    return [
+      'Open a terminal.',
+      'Paste the line and press Enter.',
+      'Enter your password when sudo asks: this writes to system policy directories.',
+      `Quit ${label} completely and start it again. Closing every window is not always enough; if it still does not show up, end the remaining process and relaunch.`,
+      'On a Flatpak browser, quitting properly matters more than usual (see the note below).',
+      `Open ${policyPage}. The entries should be listed with Source: Platform/Enterprise. If the page is empty, the browser was never restarted.`
+    ];
+  }
+  if (os === 'macos') {
+    return [
+      'Open Terminal.',
+      'Paste the line and press Enter.',
+      'Enter your password when sudo asks.',
+      `Quit ${label} completely (Cmd+Q) and start it again.`,
+      `Check ${policyPage}: the entries should be listed as Source: Platform/Enterprise.`
+    ];
+  }
+  return [
     'Press Start, type PowerShell, right-click it and choose Run as administrator.',
     'Paste the whole block and press Enter.',
-    'Close every browser window and start the browser again.',
-    'Check chrome://policy: the entries should be listed as Source: Platform.'
-  ]
+    `Close every ${label} window and start the browser again.`,
+    `Check ${policyPage}: the entries should be listed as Source: Platform/Enterprise.`
+  ];
+}
+
+const RUN_NOTES = {
+  linux: buildRunNotes('linux', BROWSER_TARGETS.chrome),
+  macos: buildRunNotes('macos', BROWSER_TARGETS.chrome),
+  windows: buildRunNotes('windows', BROWSER_TARGETS.chrome)
 };
+
