@@ -6,10 +6,11 @@ const sections = {
     whitelist: { title: "Whitelist", subtitle: "Destinations that bypass every rule." },
     keywords: { title: "Blocked Keywords", subtitle: "Block URLs, search queries, and keystrokes matching specific terms." },
     scanning: { title: "Content Scanning", subtitle: "Catch explicit pages on unlisted sites using on-page text inspection." },
-    friction: { title: "Friction", subtitle: "The warning message you must read before loosening your own protection." },
-    security: { title: "Security Protection", subtitle: "Secure your configuration with a dashboard password." }
+    settings: { title: "Settings", subtitle: "Manage cross-device sync, configuration backups, and dashboard security." }
 };
 sections.pages = sections.lists;
+sections.friction = sections.general;
+sections.security = sections.settings;
 
 const LIST_BINDINGS = [
     { inputId: 'allowed-domain-input', btnId: 'add-allowed-domain-btn', listId: 'allowed-domain-list', stateKey: 'CUSTOM_ALLOWED_DOMAINS' },
@@ -590,15 +591,14 @@ function saveState() {
 }
 
 function setupNavigation() {
-    // Scoped to the section nav on purpose. The Help link shares the .nav-link
-    // look but is a real link, and this handler used to swallow its click.
-    document.querySelectorAll('.app-nav .nav-link').forEach(link => {
+    // Attach to all nav links that declare a data-section. This excludes the external Help link.
+    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
         link.addEventListener('click', (e) => {
             const sectionId = link.getAttribute('data-section');
             if (!sections[sectionId]) return;
             e.preventDefault();
 
-            document.querySelectorAll('.app-nav .nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.nav-link[data-section]').forEach(l => l.classList.remove('active'));
             link.classList.add('active');
 
             const titleEl = document.getElementById('page-title');

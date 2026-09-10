@@ -69,24 +69,6 @@
                     </svg>
                     <span>Scanning</span>
                 </a>
-                <a href="#" class="nav-link" data-section="friction">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path
-                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
-                        </path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                    </svg>
-                    <span>Friction</span>
-                </a>
-                <a href="#" class="nav-link" data-section="security">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                    </svg>
-                    <span>Security</span>
-                </a>
             </nav>
 
             <div class="sidebar-help">
@@ -98,6 +80,14 @@
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
                     <span>Help &amp; Setup</span>
+                </a>
+                <a href="#" class="nav-link" data-section="settings" id="settings-link">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span>Settings</span>
                 </a>
             </div>
 
@@ -305,29 +295,19 @@
 
                     <div class="settings-group">
                         <div class="group-header">
-                            <h3>Shared Settings</h3>
-                            <p>One set of settings across every profile and machine.</p>
+                            <h3>Warning Message</h3>
+                            <p>The one message shown whenever you try to loosen protection:
+                                removing a restricted entry, adding a site to the whitelist,
+                                or exempting one from scanning. Write something that will actually stop you.</p>
                         </div>
-                        <div class="security-card">
-                            <div class="sync-row">
-                                <span class="sync-dot" id="sync-account-dot"></span>
-                                <div class="sync-info">
-                                    <span class="title">Account sync</span>
-                                    <span class="desc" id="sync-account-desc">Shares settings with every profile signed
-                                        into this Google account.</span>
-                                </div>
+                        <div class="interactive-list-manager">
+                            <textarea id="weakening-message" class="scan-message" rows="3" maxlength="400"
+                                placeholder="Write the message you need to read in that moment..."></textarea>
+                            <div class="input-row" style="margin-top: 12px;">
+                                <button id="save-weakening-message-btn" class="btn btn-secondary">Save Message</button>
                             </div>
-                            <div class="sync-row">
-                                <span class="sync-dot" id="sync-file-dot"></span>
-                                <div class="sync-info">
-                                    <span class="title">Settings file</span>
-                                    <span class="desc" id="sync-file-desc">Checking…</span>
-                                </div>
-                            </div>
-                            <div class="sync-footer">
-                                <span id="sync-revision" class="sync-revision"></span>
-                                <button id="sync-refresh-btn" class="tag-keep" type="button">Check again</button>
-                            </div>
+                            <p class="help-text">Shown as a confirmation before any change that loosens your protection.
+                                The change applies the moment you say yes.</p>
                         </div>
                     </div>
 
@@ -345,39 +325,6 @@
                             </div>
                             <p class="help-text">Longer is better. From the toolbar it buys one visit in that tab; on a
                                 flagged page it just reveals the page.</p>
-                        </div>
-                    </div>
-
-                    <div class="settings-group">
-                        <div class="security-card">
-                            <div class="security-row" style="align-items: center;">
-                                <div class="security-info">
-                                    <span class="title">Configuration Backup</span>
-                                    <span class="desc">Transfer your settings, domains, and keywords.</span>
-                                </div>
-                                <div class="backup-action-group">
-                                    <button id="export-btn" class="backup-text-btn">
-                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="17 8 12 3 7 8"></polyline>
-                                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                                        </svg>
-                                        <span>Export</span>
-                                    </button>
-                                    <div class="backup-divider">|</div>
-                                    <label class="backup-text-btn">
-                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="7 10 12 15 17 10"></polyline>
-                                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                                        </svg>
-                                        <span>Import</span>
-                                        <input type="file" id="import-file" accept=".json" style="display: none;">
-                                    </label>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -815,29 +762,73 @@
                     </div>
                 </div>
 
-                <!-- Friction Section -->
-                <div id="section-friction" class="settings-section">
+                <!-- Settings Section -->
+                <div id="section-settings" class="settings-section">
                     <div class="settings-group">
                         <div class="group-header">
-                            <h3>Warning Message</h3>
-                            <p>The one message shown whenever you try to loosen protection:
-                                removing a restricted entry, adding a site to the whitelist,
-                                or exempting one from scanning. Write something that will actually stop you.</p>
+                            <h3>Shared Settings</h3>
+                            <p>One set of settings across every profile and machine.</p>
                         </div>
-                        <div class="interactive-list-manager">
-                            <textarea id="weakening-message" class="scan-message" rows="3" maxlength="400"
-                                placeholder="Write the message you need to read in that moment..."></textarea>
-                            <div class="input-row" style="margin-top: 12px;">
-                                <button id="save-weakening-message-btn" class="btn btn-secondary">Save Message</button>
+                        <div class="security-card">
+                            <div class="sync-row">
+                                <span class="sync-dot" id="sync-account-dot"></span>
+                                <div class="sync-info">
+                                    <span class="title">Account sync</span>
+                                    <span class="desc" id="sync-account-desc">Shares settings with every profile signed
+                                        into this Google account.</span>
+                                </div>
                             </div>
-                            <p class="help-text">Shown as a confirmation before any change that loosens your protection.
-                                The change applies the moment you say yes.</p>
+                            <div class="sync-row">
+                                <span class="sync-dot" id="sync-file-dot"></span>
+                                <div class="sync-info">
+                                    <span class="title">Settings file</span>
+                                    <span class="desc" id="sync-file-desc">Checking...</span>
+                                </div>
+                            </div>
+                            <div class="sync-footer">
+                                <span id="sync-revision" class="sync-revision"></span>
+                                <button id="sync-refresh-btn" class="tag-keep" type="button">Check again</button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Security Section -->
-                <div id="section-security" class="settings-section">
+                    <div class="settings-group">
+                        <div class="group-header">
+                            <h3>Configuration Backup</h3>
+                            <p>Transfer your settings, domains, and keywords.</p>
+                        </div>
+                        <div class="security-card">
+                            <div class="security-row" style="align-items: center;">
+                                <div class="security-info">
+                                    <span class="title">Configuration Backup</span>
+                                    <span class="desc">Transfer your settings, domains, and keywords.</span>
+                                </div>
+                                <div class="backup-action-group">
+                                    <button id="export-btn" class="backup-text-btn">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="17 8 12 3 7 8"></polyline>
+                                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                                        </svg>
+                                        <span>Export</span>
+                                    </button>
+                                    <div class="backup-divider">|</div>
+                                    <label class="backup-text-btn">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="7 10 12 15 17 10"></polyline>
+                                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                        <span>Import</span>
+                                        <input type="file" id="import-file" accept=".json" style="display: none;">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="settings-group">
                         <div class="group-header">
                             <h3>Dashboard Protection</h3>
@@ -866,7 +857,6 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
