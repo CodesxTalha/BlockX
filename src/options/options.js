@@ -317,6 +317,14 @@ function promptWeakeningWarning(staged) {
                 retypeInput.oninput = () => {
                     proceedBtn.disabled = normalize(retypeInput.value) !== normalize(requiredPhrase);
                 };
+                retypeInput.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (!proceedBtn.disabled) {
+                            proceedBtn.click();
+                        }
+                    }
+                };
                 setTimeout(() => retypeInput.focus(), 50);
             }
         }
@@ -348,6 +356,7 @@ function hideWeakeningModal() {
     if (retypeInput) {
         retypeInput.value = '';
         retypeInput.oninput = null;
+        retypeInput.onkeydown = null;
     }
     const proceedBtn = document.getElementById('weakening-proceed-btn');
     if (proceedBtn) {

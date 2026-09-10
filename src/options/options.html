@@ -1197,50 +1197,50 @@ python3 install.py</pre>
                 <span id="toast-text">Changes synced across system.</span>
             </div>
         </main>
+    </div>
 
-        <!-- Security Gateway Overlay -->
-        <div id="security-gateway" class="gateway-overlay hidden">
-            <div class="gateway-card">
-                <div class="gateway-brand">
-                    <img src="../../assets/icons/icon128.png" alt="BlockX Logo" class="gateway-logo">
-                </div>
-                <h2 id="gateway-title">Dashboard Locked</h2>
-                <p id="gateway-desc">Please enter your password to continue.</p>
+    <!-- Security Gateway Overlay -->
+    <div id="security-gateway" class="gateway-overlay hidden">
+        <div class="gateway-card">
+            <div class="gateway-brand">
+                <img src="../../assets/icons/icon128.png" alt="BlockX Logo" class="gateway-logo">
+            </div>
+            <h2 id="gateway-title">Dashboard Locked</h2>
+            <p id="gateway-desc">Please enter your password to continue.</p>
 
-                <div id="gateway-input-group" class="gateway-input-group">
-                    <input type="password" id="gateway-password" placeholder="Password">
-                    <button id="gateway-unlock-btn" class="btn btn-primary">Unlock</button>
-                </div>
-                <div id="gateway-error" class="error-msg hidden">Incorrect password.</div>
+            <div id="gateway-input-group" class="gateway-input-group">
+                <input type="password" id="gateway-password" placeholder="Password">
+                <button id="gateway-unlock-btn" class="btn btn-primary">Unlock</button>
+            </div>
+            <div id="gateway-error" class="error-msg hidden">Incorrect password.</div>
+        </div>
+    </div>
+
+    <!-- Import Confirmation Warning Modal -->
+    <div id="import-oath" class="confirm-modal-overlay hidden">
+        <div class="confirm-modal-card">
+            <p id="import-warning-text" class="confirm-warning-text" dir="auto"></p>
+
+            <div class="confirm-modal-actions">
+                <button id="oath-yes" class="btn btn-primary" type="button">Yes, Import Settings</button>
+                <button id="oath-no" class="btn btn-secondary" type="button">No, Don't Import</button>
             </div>
         </div>
+    </div>
 
-        <!-- Import Confirmation Warning Modal -->
-        <div id="import-oath" class="confirm-modal-overlay hidden">
-            <div class="confirm-modal-card">
-                <p id="import-warning-text" class="confirm-warning-text" dir="auto"></p>
-
-                <div class="confirm-modal-actions">
-                    <button id="oath-yes" class="btn btn-primary" type="button">Yes, Import Settings</button>
-                    <button id="oath-no" class="btn btn-secondary" type="button">No, Don't Import</button>
-                </div>
+    <!-- Protection Confirmation Warning Modal -->
+    <div id="weakening-modal" class="confirm-modal-overlay hidden">
+        <div class="confirm-modal-card">
+            <p id="weakening-warning-text" class="confirm-warning-text" dir="auto"></p>
+            <div id="weakening-retype-wrap" class="weakening-retype-wrap hidden">
+                <p class="weakening-retype-instruction">Type the phrase below to confirm:</p>
+                <p class="weakening-retype-phrase" id="weakening-retype-phrase"></p>
+                <input type="text" id="weakening-retype-input" class="weakening-retype-input" autocomplete="off" spellcheck="false" placeholder="Type the exact phrase above">
             </div>
-        </div>
 
-        <!-- Protection Confirmation Warning Modal -->
-        <div id="weakening-modal" class="confirm-modal-overlay hidden">
-            <div class="confirm-modal-card">
-                <p id="weakening-warning-text" class="confirm-warning-text" dir="auto"></p>
-                <div id="weakening-retype-wrap" class="weakening-retype-wrap hidden">
-                    <p class="weakening-retype-instruction">Type the phrase below to confirm:</p>
-                    <p class="weakening-retype-phrase" id="weakening-retype-phrase"></p>
-                    <input type="text" id="weakening-retype-input" class="weakening-retype-input" autocomplete="off" spellcheck="false" placeholder="Type the exact phrase above">
-                </div>
-
-                <div class="confirm-modal-actions">
-                    <button id="weakening-proceed-btn" class="btn btn-primary" type="button">Yes, apply change</button>
-                    <button id="weakening-goback-btn" class="btn btn-secondary" type="button">No, cancel</button>
-                </div>
+            <div class="confirm-modal-actions">
+                <button id="weakening-proceed-btn" class="btn btn-primary" type="button">Yes, apply change</button>
+                <button id="weakening-goback-btn" class="btn btn-secondary" type="button">No, cancel</button>
             </div>
         </div>
     </div>

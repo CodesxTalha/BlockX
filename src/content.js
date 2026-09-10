@@ -176,9 +176,9 @@
     .confirm-modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(50px);
+      -webkit-backdrop-filter: blur(50px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -260,11 +260,20 @@
       background: #1900FF;
       border: 1px solid #1900FF;
       color: #ffffff;
+      transition: opacity 0.2s ease, background-color 0.15s ease;
     }
 
     .confirm-modal-actions .btn-primary:hover {
       background: #1100cc;
       border-color: #1100cc;
+    }
+
+    .confirm-modal-actions .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+      box-shadow: none;
+      transform: none;
     }
 
     .confirm-modal-actions .btn-secondary {
