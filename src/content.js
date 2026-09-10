@@ -113,7 +113,37 @@
 
   function dropBarrier() {
     if (scanPrompted || isBlocked) return;
-    if (securityBarrier.parentNode) securityBarrier.parentNode.removeChild(securityBarrier);
+    try {
+      if (securityBarrier) {
+        securityBarrier.textContent = '';
+        if (securityBarrier.parentNode) {
+          securityBarrier.parentNode.removeChild(securityBarrier);
+        }
+      }
+    } catch {}
+    try {
+      const extra = document.getElementById('blockx-security-barrier');
+      if (extra) {
+        extra.textContent = '';
+        if (extra.parentNode) {
+          extra.parentNode.removeChild(extra);
+        }
+      }
+    } catch {}
+    try {
+      if (document.body) {
+        document.body.style.removeProperty('filter');
+        document.body.style.removeProperty('-webkit-filter');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('pointer-events');
+        document.body.style.removeProperty('user-select');
+      }
+      if (document.documentElement) {
+        document.documentElement.style.removeProperty('overflow');
+        document.documentElement.style.removeProperty('visibility');
+        document.documentElement.style.removeProperty('opacity');
+      }
+    } catch {}
   }
 
   function isScanExcluded(customUrl) {
@@ -139,82 +169,132 @@
   // 3. PROMPT STYLES & OVERLAY RENDERING (AVAILABLE SYNCHRONOUSLY)
   // ------------------------------------------------------------------
   const PROMPT_STYLES = `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
     :host { all: initial; }
 
-    .wrap {
+    .confirm-modal-overlay {
       position: fixed;
       inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      z-index: 2147483647;
+      padding: 16px;
+      box-sizing: border-box;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
-      -webkit-backdrop-filter: blur(48px) saturate(1.8) brightness(0.7);
-      backdrop-filter: blur(48px) saturate(1.8) brightness(0.7);
-      background: rgba(8, 10, 15, 0.72);
-      animation: blockx-fade 200ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: confirm-modal-fade 0.15s ease-out;
     }
 
-    .card {
-      box-sizing: border-box;
+    @keyframes confirm-modal-fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .confirm-modal-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
+      padding: 24px;
+      max-width: 480px;
       width: 100%;
-      max-width: 460px;
-      max-height: calc(100vh - 48px);
-      overflow-y: auto;
-      padding: 28px;
+      box-sizing: border-box;
       text-align: left;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: #0f1117;
-      color: #f8fafc;
-      box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 28px -4px rgba(99, 102, 241, 0.12);
-      animation: blockx-rise 220ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: confirm-modal-rise 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .prompt-title {
-      margin: 0 0 8px;
-      font-size: 19px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: #ffffff;
-      text-align: start;
+    @keyframes confirm-modal-rise {
+      from {
+        opacity: 0;
+        transform: scale(0.97) translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
     }
 
-    .prompt-subtitle {
-      margin: 0 0 20px;
-      font-size: 14px;
-      line-height: 1.5;
-      color: #94a3b8;
-      text-align: start;
-    }
-
-    .warning-text {
-      margin: 0 0 24px 0;
+    .confirm-warning-text {
+      margin: 0 0 22px 0;
       font-size: 18px;
       font-weight: 600;
-      line-height: 1.65;
-      color: #ffffff;
+      line-height: 1.7;
+      color: #111827;
       white-space: pre-wrap;
-      overflow-wrap: anywhere;
       word-break: break-word;
       unicode-bidi: plaintext;
       text-align: start;
     }
 
-    .retype-instruction {
+    .confirm-modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .confirm-modal-actions .btn {
+      width: 100%;
+      box-sizing: border-box;
+      justify-content: center;
+      text-align: center;
       font-size: 14px;
       font-weight: 600;
-      color: #94a3b8;
+      padding: 11px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      line-height: 1.4;
+      font-family: inherit;
+      border: none;
+      outline: none;
+    }
+
+    .confirm-modal-actions .btn-primary {
+      background: #1900FF;
+      border: 1px solid #1900FF;
+      color: #ffffff;
+    }
+
+    .confirm-modal-actions .btn-primary:hover {
+      background: #1100cc;
+      border-color: #1100cc;
+    }
+
+    .confirm-modal-actions .btn-secondary {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      color: #111827;
+    }
+
+    .confirm-modal-actions .btn-secondary:hover {
+      background: #f3f4f6;
+      border-color: #e5e7eb;
+    }
+
+    .weakening-retype-wrap {
+      text-align: left;
+    }
+
+    .weakening-retype-instruction {
+      font-size: 14px;
+      font-weight: 600;
+      color: #4b5563;
       margin: 0 0 8px 0;
       text-align: start;
     }
 
-    .retype-phrase {
+    .weakening-retype-phrase {
       font-size: 17px;
       font-weight: 600;
       line-height: 1.5;
-      color: #818cf8;
+      color: #1900FF;
       margin: 0 0 16px 0;
       white-space: pre-wrap;
       word-break: break-word;
@@ -222,130 +302,78 @@
       text-align: start;
     }
 
-    .retype-input {
+    .weakening-retype-input {
       width: 100%;
       box-sizing: border-box;
-      font-family: inherit;
-      font-size: 14px;
-      line-height: 1.5;
       padding: 12px 14px;
       border-radius: 12px;
-      border: 1.5px solid rgba(255, 255, 255, 0.14);
-      background: #08090d;
-      color: #ffffff;
-      display: block;
-      margin-bottom: 22px;
-      outline: none;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
-      transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
-    }
-    .retype-input::placeholder { color: #64748b; }
-    .retype-input:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), inset 0 2px 4px rgba(0, 0, 0, 0.35);
-    }
-
-    .view[hidden] { display: none !important; }
-
-    button {
-      display: block;
-      width: 100%;
-      box-sizing: border-box;
+      border: 1.5px solid #e5e7eb;
+      background: #ffffff;
+      color: #111827;
       font-family: inherit;
       font-size: 14px;
-      font-weight: 600;
-      padding: 12px 18px;
-      border-radius: 12px;
-      border: none;
-      cursor: pointer;
-      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    button:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
-
-    .leave {
-      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-      color: #ffffff;
-      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
-      margin-bottom: 10px;
-    }
-    .leave:hover:not(:disabled) {
-      filter: brightness(1.1);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+      outline: none;
+      margin-bottom: 22px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      display: block;
     }
 
-    .show {
-      background: rgba(255, 255, 255, 0.04);
-      color: #94a3b8;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .show:hover {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.2);
+    .weakening-retype-input::placeholder {
+      color: #9ca3af;
     }
 
-    button:disabled {
-      background: rgba(255, 255, 255, 0.05);
-      color: rgba(255, 255, 255, 0.25);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: none;
-      cursor: not-allowed;
-      transform: none;
-      pointer-events: none;
+    .weakening-retype-input:focus {
+      border-color: #1900FF;
+      box-shadow: 0 0 0 3px rgba(25, 0, 255, 0.05);
     }
 
-    :host([data-theme="light"]) .wrap {
-      background: rgba(241, 245, 249, 0.75);
-      -webkit-backdrop-filter: blur(48px) saturate(1.8) brightness(1.05);
-      backdrop-filter: blur(48px) saturate(1.8) brightness(1.05);
-    }
-    :host([data-theme="light"]) .card {
-      background: #ffffff;
-      border-color: #e2e8f0;
-      color: #0f172a;
-      box-shadow: 0 24px 64px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.04);
-    }
-    :host([data-theme="light"]) .prompt-title { color: #0f172a; }
-    :host([data-theme="light"]) .prompt-subtitle { color: #64748b; }
-    :host([data-theme="light"]) .warning-text { color: #0f172a; }
-    :host([data-theme="light"]) .retype-instruction { color: #64748b; }
-    :host([data-theme="light"]) .retype-phrase { color: #4f46e5; }
-    :host([data-theme="light"]) .retype-input {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-      color: #0f172a;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-    }
-    :host([data-theme="light"]) .retype-input:focus {
-      background: #ffffff;
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-    }
-    :host([data-theme="light"]) .show {
-      background: #f1f5f9;
-      color: #475569;
-      border-color: #e2e8f0;
-    }
-    :host([data-theme="light"]) .show:hover {
-      background: #e2e8f0;
-      color: #0f172a;
-      border-color: #cbd5e1;
-    }
-    :host([data-theme="light"]) button:disabled {
-      background: #f1f5f9;
-      color: #94a3b8;
-      border-color: #e2e8f0;
+    /* Dark Theme Overrides */
+    :host([data-theme="dark"]) .confirm-modal-card {
+      background: #1c1c1c;
+      border-color: #3f3f46;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
     }
 
-    @keyframes blockx-fade { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes blockx-rise {
-      from { opacity: 0; transform: translateY(8px) scale(0.97); }
-      to { opacity: 1; transform: none; }
+    :host([data-theme="dark"]) .confirm-warning-text {
+      color: #f9fafb;
+    }
+
+    :host([data-theme="dark"]) .weakening-retype-instruction {
+      color: #a1a1aa;
+    }
+
+    :host([data-theme="dark"]) .weakening-retype-phrase {
+      color: #1900FF;
+    }
+
+    :host([data-theme="dark"]) .weakening-retype-input {
+      background: #1c1c1c;
+      border-color: #3f3f46;
+      color: #f9fafb;
+    }
+
+    :host([data-theme="dark"]) .weakening-retype-input::placeholder {
+      color: #71717a;
+    }
+
+    :host([data-theme="dark"]) .weakening-retype-input:focus {
+      border-color: #1900FF;
+      box-shadow: 0 0 0 3px rgba(25, 0, 255, 0.15);
+    }
+
+    :host([data-theme="dark"]) .confirm-modal-actions .btn-secondary {
+      background: #0f0f0f;
+      border-color: #3f3f46;
+      color: #f9fafb;
+    }
+
+    :host([data-theme="dark"]) .confirm-modal-actions .btn-secondary:hover {
+      background: #27272a;
+      border-color: #3f3f46;
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .wrap, .card { animation: none; }
+      .confirm-modal-overlay, .confirm-modal-card { animation: none; }
     }
   `;
 
@@ -421,50 +449,11 @@
     const style = document.createElement('style');
     style.textContent = PROMPT_STYLES;
 
-    const wrap = document.createElement('div');
-    wrap.className = 'wrap';
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-modal-overlay';
 
     const card = document.createElement('div');
-    card.className = 'card';
-
-    const view1 = document.createElement('div');
-    view1.className = 'view';
-
-    const message = document.createElement('p');
-    message.className = 'warning-text';
-    message.dir = 'auto';
-    message.textContent = ((CONFIG && CONFIG.WEAKENING_MESSAGE) || '').trim()
-      || 'Remember why you set this protection up.';
-
-    view1.appendChild(message);
-
-    const view2 = document.createElement('div');
-    view2.className = 'view';
-    view2.hidden = true;
-
-    const heading2 = document.createElement('h2');
-    heading2.className = 'prompt-title';
-    heading2.textContent = 'Are you sure?';
-
-    const hint = document.createElement('p');
-    hint.className = 'prompt-subtitle';
-    hint.textContent = 'This page will be unblurred and shown. Only continue if you truly mean to.';
-
-    view2.appendChild(heading2);
-    view2.appendChild(hint);
-
-    const leaveBtn = document.createElement('button');
-    leaveBtn.className = 'leave';
-    leaveBtn.type = 'button';
-    leaveBtn.textContent = 'No, close this tab';
-    leaveBtn.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ action: 'closeTab' });
-    });
-
-    const showBtn = document.createElement('button');
-    showBtn.className = 'show';
-    showBtn.type = 'button';
-    showBtn.textContent = 'Yes, show it';
+    card.className = 'confirm-modal-card';
 
     const keepKeys = (event) => {
       if (event.composedPath().includes(host)) event.stopPropagation();
@@ -474,6 +463,185 @@
 
     let tamperObserver = null;
     let tamperInterval = null;
+
+    const reveal = () => {
+      scanAcknowledged = true;
+      scanPrompted = false;
+      cancelRescan();
+      for (const kw of pendingPromptKeywords) {
+        acknowledgedKeywords.add(kw);
+      }
+      const query = extractSearchQuery(window.location.href);
+      if (query) {
+        for (const word of query.toLowerCase().split(/[^a-z0-9]+/i)) {
+          if (word.length >= 2) acknowledgedKeywords.add(word);
+        }
+      }
+      pendingPromptKeywords.clear();
+      tamperNotes.clear();
+      if (tamperObserver) { tamperObserver.disconnect(); tamperObserver = null; }
+      if (tamperInterval) { clearInterval(tamperInterval); tamperInterval = null; }
+      activeTamperObserver = null;
+      activeTamperInterval = null;
+      KEY_EVENTS.forEach(type => window.removeEventListener(type, keepKeys, true));
+      if (host.parentNode) host.parentNode.removeChild(host);
+      thawMedia();
+      dropBarrier();
+    };
+
+    const isRetypeMode = CONFIG && CONFIG.BYPASS_MODE === 'retype';
+
+    if (isRetypeMode) {
+      const retypeWrap = document.createElement('div');
+      retypeWrap.className = 'weakening-retype-wrap';
+
+      const instruction = document.createElement('p');
+      instruction.className = 'weakening-retype-instruction';
+      instruction.textContent = 'Type the phrase below to confirm:';
+
+      const phraseText = document.createElement('p');
+      phraseText.className = 'weakening-retype-phrase';
+      const requiredPhrase = ((CONFIG && CONFIG.UNLOCK_PHRASE) || 'I am choosing to break my own rule').trim();
+      phraseText.textContent = requiredPhrase;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'weakening-retype-input';
+      input.placeholder = 'Type the exact phrase above';
+      input.spellcheck = false;
+      input.autocomplete = 'off';
+
+      const actions = document.createElement('div');
+      actions.className = 'confirm-modal-actions';
+
+      const unlockBtn = document.createElement('button');
+      unlockBtn.className = 'btn btn-primary';
+      unlockBtn.type = 'button';
+      unlockBtn.disabled = true;
+      unlockBtn.textContent = 'Unlock and show page';
+
+      const leaveBtn = document.createElement('button');
+      leaveBtn.className = 'btn btn-secondary';
+      leaveBtn.type = 'button';
+      leaveBtn.textContent = 'No, close this tab';
+      leaveBtn.addEventListener('click', () => {
+        chrome.runtime.sendMessage({ action: 'closeTab' });
+      });
+
+      const collapse = (text) => (text || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      input.addEventListener('input', () => {
+        unlockBtn.disabled = collapse(input.value) !== collapse(requiredPhrase);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !unlockBtn.disabled) {
+          reveal();
+        }
+      });
+      unlockBtn.addEventListener('click', reveal);
+
+      retypeWrap.appendChild(instruction);
+      retypeWrap.appendChild(phraseText);
+      retypeWrap.appendChild(input);
+      card.appendChild(retypeWrap);
+
+      actions.appendChild(unlockBtn);
+      actions.appendChild(leaveBtn);
+      card.appendChild(actions);
+
+      overlay.appendChild(card);
+      root.appendChild(style);
+      root.appendChild(overlay);
+
+      document.documentElement.appendChild(host);
+      raiseBarrier(BARRIER_FROZEN);
+      freezeMedia();
+      setTimeout(() => input.focus(), 50);
+    } else {
+      // 2-Step Confirmation for Warning Message Mode
+      const step1 = document.createElement('div');
+      step1.className = 'warning-step-1';
+
+      const message = document.createElement('p');
+      message.className = 'confirm-warning-text';
+      message.dir = 'auto';
+      message.textContent = ((CONFIG && CONFIG.WEAKENING_MESSAGE) || '').trim()
+        || 'Remember why you set this protection up.';
+
+      const actions1 = document.createElement('div');
+      actions1.className = 'confirm-modal-actions';
+
+      const unlockBtn1 = document.createElement('button');
+      unlockBtn1.className = 'btn btn-primary';
+      unlockBtn1.type = 'button';
+      unlockBtn1.textContent = 'Unlock and show page';
+
+      const leaveBtn1 = document.createElement('button');
+      leaveBtn1.className = 'btn btn-secondary';
+      leaveBtn1.type = 'button';
+      leaveBtn1.textContent = 'No, close this tab';
+      leaveBtn1.addEventListener('click', () => {
+        chrome.runtime.sendMessage({ action: 'closeTab' });
+      });
+
+      actions1.appendChild(unlockBtn1);
+      actions1.appendChild(leaveBtn1);
+      step1.appendChild(message);
+      step1.appendChild(actions1);
+
+      // Step 2: Confirmation
+      const step2 = document.createElement('div');
+      step2.className = 'warning-step-2';
+      step2.style.display = 'none';
+
+      const confirmText = document.createElement('p');
+      confirmText.className = 'confirm-warning-text';
+      confirmText.dir = 'auto';
+      confirmText.textContent = 'Are you sure you want to show this page?';
+
+      const actions2 = document.createElement('div');
+      actions2.className = 'confirm-modal-actions';
+
+      const sureBtn = document.createElement('button');
+      sureBtn.className = 'btn btn-primary';
+      sureBtn.type = 'button';
+      sureBtn.textContent = "Yes, I'm sure: show it";
+
+      const backBtn = document.createElement('button');
+      backBtn.className = 'btn btn-secondary';
+      backBtn.type = 'button';
+      backBtn.textContent = 'No, go back';
+
+      unlockBtn1.addEventListener('click', () => {
+        step1.style.display = 'none';
+        step2.style.display = 'block';
+        sureBtn.focus();
+      });
+
+      backBtn.addEventListener('click', () => {
+        step2.style.display = 'none';
+        step1.style.display = 'block';
+        leaveBtn1.focus();
+      });
+
+      sureBtn.addEventListener('click', reveal);
+
+      actions2.appendChild(sureBtn);
+      actions2.appendChild(backBtn);
+      step2.appendChild(confirmText);
+      step2.appendChild(actions2);
+
+      card.appendChild(step1);
+      card.appendChild(step2);
+
+      overlay.appendChild(card);
+      root.appendChild(style);
+      root.appendChild(overlay);
+
+      document.documentElement.appendChild(host);
+      raiseBarrier(BARRIER_FROZEN);
+      freezeMedia();
+      leaveBtn1.focus();
+    }
 
     function enforceOverlayIntegrity() {
       if (!scanPrompted || scanAcknowledged) return;
@@ -512,120 +680,6 @@
         noteTamper('stray', '[BlockX] Content moved outside <body>: moving back.');
         if (document.body) document.body.appendChild(node);
       }
-    }
-
-    const reveal = () => {
-      scanAcknowledged = true;
-      scanPrompted = false;
-      for (const kw of pendingPromptKeywords) {
-        acknowledgedKeywords.add(kw);
-      }
-      pendingPromptKeywords.clear();
-      tamperNotes.clear();
-      if (tamperObserver) { tamperObserver.disconnect(); tamperObserver = null; }
-      if (tamperInterval) { clearInterval(tamperInterval); tamperInterval = null; }
-      activeTamperObserver = null;
-      activeTamperInterval = null;
-      KEY_EVENTS.forEach(type => window.removeEventListener(type, keepKeys, true));
-      if (host.parentNode) host.parentNode.removeChild(host);
-      thawMedia();
-      dropBarrier();
-    };
-
-    const sureBtn = document.createElement('button');
-    sureBtn.className = 'leave';
-    sureBtn.type = 'button';
-    sureBtn.textContent = "Yes, I'm sure: show it";
-
-    const backBtn = document.createElement('button');
-    backBtn.className = 'show';
-    backBtn.type = 'button';
-    backBtn.textContent = 'No, go back';
-
-    showBtn.addEventListener('click', () => {
-      view1.hidden = true;
-      view2.hidden = false;
-      sureBtn.focus();
-    });
-    backBtn.addEventListener('click', () => {
-      view2.hidden = true;
-      view1.hidden = false;
-      leaveBtn.focus();
-    });
-    sureBtn.addEventListener('click', reveal);
-
-    const isRetypeMode = CONFIG && CONFIG.BYPASS_MODE === 'retype';
-
-    if (isRetypeMode) {
-      const viewRetype = document.createElement('div');
-      viewRetype.className = 'view';
-
-      const instruction = document.createElement('p');
-      instruction.className = 'retype-instruction';
-      instruction.textContent = 'Type the phrase below to confirm:';
-
-      const phraseText = document.createElement('p');
-      phraseText.className = 'retype-phrase';
-      const requiredPhrase = ((CONFIG && CONFIG.UNLOCK_PHRASE) || 'I am choosing to break my own rule').trim();
-      phraseText.textContent = requiredPhrase;
-
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'retype-input';
-      input.placeholder = 'Type the exact phrase above';
-      input.spellcheck = false;
-      input.autocomplete = 'off';
-
-      const unlockBtn = document.createElement('button');
-      unlockBtn.className = 'leave';
-      unlockBtn.type = 'button';
-      unlockBtn.disabled = true;
-      unlockBtn.textContent = 'Unlock and show page';
-
-      const leaveBtn = document.createElement('button');
-      leaveBtn.className = 'show';
-      leaveBtn.type = 'button';
-      leaveBtn.textContent = 'No, close this tab';
-      leaveBtn.addEventListener('click', () => {
-        chrome.runtime.sendMessage({ action: 'closeTab' });
-      });
-
-      const collapse = (text) => (text || '').trim().replace(/\s+/g, ' ').toLowerCase();
-      input.addEventListener('input', () => {
-        unlockBtn.disabled = collapse(input.value) !== collapse(requiredPhrase);
-      });
-      unlockBtn.addEventListener('click', reveal);
-
-      viewRetype.appendChild(instruction);
-      viewRetype.appendChild(phraseText);
-      viewRetype.appendChild(input);
-      viewRetype.appendChild(unlockBtn);
-      viewRetype.appendChild(leaveBtn);
-      card.appendChild(viewRetype);
-
-      wrap.appendChild(card);
-      root.appendChild(style);
-      root.appendChild(wrap);
-
-      document.documentElement.appendChild(host);
-      raiseBarrier(BARRIER_FROZEN);
-      freezeMedia();
-      setTimeout(() => input.focus(), 50);
-    } else {
-      view1.appendChild(leaveBtn);
-      view1.appendChild(showBtn);
-      view2.appendChild(sureBtn);
-      view2.appendChild(backBtn);
-      card.appendChild(view1);
-      card.appendChild(view2);
-      wrap.appendChild(card);
-      root.appendChild(style);
-      root.appendChild(wrap);
-
-      document.documentElement.appendChild(host);
-      raiseBarrier(BARRIER_FROZEN);
-      freezeMedia();
-      leaveBtn.focus();
     }
 
     setTimeout(() => {
@@ -724,6 +778,7 @@
     const lowerHit = String(hit || '').toLowerCase().trim();
     if (acknowledgedKeywords.has(lowerHit)) return;
 
+    scanAcknowledged = false;
     scanPrompted = false;
     console.log(`[BlockX] Flagged keyword "${hit}" detected in input! Prompting immediately.`);
     if (target && target.blur) {
@@ -732,7 +787,27 @@
     raiseBarrier(BARRIER_FROZEN);
     try { freezeMedia(); } catch {}
     try {
-      showScanPrompt(lowerHit);
+      const allHits = new Set([lowerHit]);
+      if (target) {
+        const text = target.value || (target.isContentEditable ? (target.innerText || target.textContent || '') : '');
+        if (text) {
+          for (const kw of ((CONFIG && CONFIG.KEYWORDS) || [])) {
+            const lkw = String(kw || '').toLowerCase().trim();
+            if (lkw && matchesUrlKeyword(text, kw)) allHits.add(lkw);
+          }
+          const activeRegex = scanRegex || testRegex;
+          if (activeRegex) {
+            activeRegex.lastIndex = 0;
+            let m;
+            while ((m = activeRegex.exec(text)) !== null) {
+              allHits.add(m[0].toLowerCase());
+              if (activeRegex.lastIndex === m.index) activeRegex.lastIndex++;
+            }
+            activeRegex.lastIndex = 0;
+          }
+        }
+      }
+      showScanPrompt(allHits);
     } catch (e) {
       console.warn('[BlockX] Prompt failed; keeping page blurred.', e);
       raiseBarrier(BARRIER_FROZEN);
@@ -744,6 +819,7 @@
     if (CONFIG && CONFIG.SCANNING_ENABLED === false) return false;
     if (!isTopFrame) return false;
     if (isScanExcluded()) return false;
+    if (scanAcknowledged) return false;
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return false;
     const inputs = document.querySelectorAll('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"], [role="combobox"], [aria-label*="search" i]');
     for (const el of inputs) {
@@ -854,6 +930,7 @@
       if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
       if (!isTopFrame) return;
       if (isScanExcluded()) return;
+      if (scanAcknowledged) return;
       if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
       if (document.activeElement) {
         const el = document.activeElement;
@@ -1221,6 +1298,7 @@
     if (CONFIG && CONFIG.SCANNING_ENABLED === false) return false;
     if (!isTopFrame || (scanPrompted && document.getElementById('blockx-scan-prompt'))) return false;
     if (isScanExcluded()) return false;
+    if (scanAcknowledged) return false;
 
     if (checkAllInputsOnPage()) return true;
 
@@ -1241,6 +1319,7 @@
   function scheduleRescan() {
     if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
     if (isScanExcluded()) return;
+    if (scanAcknowledged) return;
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
 
     const now = Date.now();
@@ -1357,13 +1436,19 @@
 
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return true;
 
-    if (checkAllInputsOnPage()) return true;
-
     const routeChanged = currentUrl !== scanUrl;
     if (routeChanged) {
       scanUrl = currentUrl;
+      scanAcknowledged = false;
       cancelRescan();
     }
+
+    if (scanAcknowledged) {
+      dropBarrier();
+      return false;
+    }
+
+    if (checkAllInputsOnPage()) return true;
 
     const query = extractSearchQuery(currentUrl);
     if (query && checkTextForFlaggedKeywords(query)) {
@@ -1376,7 +1461,7 @@
         isBlockedDomain(currentHost) ||
         isBlockedPage(currentUrl) ||
         isExactBlockedPage(currentUrl) ||
-        matchesAnyUrlKeyword(currentUrl, CONFIG.KEYWORDS)
+        (!isSearchPage() && matchesAnyUrlKeyword(currentUrl, CONFIG.KEYWORDS))
       )
     ) {
       if (observer) observer.disconnect();
@@ -1397,6 +1482,10 @@
 
   const cleanup = () => {
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
+    if (scanAcknowledged) {
+      dropBarrier();
+      return;
+    }
     if (!verifyPageSafety()) {
       dropBarrier();
     }
@@ -1405,6 +1494,7 @@
   observer = new MutationObserver(() => {
     if (CONFIG && CONFIG.SCANNING_ENABLED === false) return;
     if (isScanExcluded()) return;
+    if (scanAcknowledged) return;
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
     if (document.title) verifyPageSafety();
     checkAllInputsOnPage();
