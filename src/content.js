@@ -1,5 +1,5 @@
 // content.js
-(async function() {
+(async function () {
   // ------------------------------------------------------------------
   // 1. INSTANT SYNCHRONOUS BARRIER (THE FLASH FIX)
   // Hide the page immediately BEFORE any network requests or DOM parsing
@@ -120,7 +120,7 @@
           securityBarrier.parentNode.removeChild(securityBarrier);
         }
       }
-    } catch {}
+    } catch { }
     try {
       const extra = document.getElementById('blockx-security-barrier');
       if (extra) {
@@ -129,7 +129,7 @@
           extra.parentNode.removeChild(extra);
         }
       }
-    } catch {}
+    } catch { }
     try {
       if (document.body) {
         document.body.style.removeProperty('filter');
@@ -143,7 +143,7 @@
         document.documentElement.style.removeProperty('visibility');
         document.documentElement.style.removeProperty('opacity');
       }
-    } catch {}
+    } catch { }
   }
 
   function isScanExcluded(customUrl) {
@@ -719,7 +719,7 @@
     const promptHost = document.getElementById('blockx-scan-prompt');
     if (promptHost) promptHost.remove();
     dropBarrier();
-    try { thawMedia(); } catch {}
+    try { thawMedia(); } catch { }
   }
 
   // ------------------------------------------------------------------
@@ -782,10 +782,10 @@
     scanPrompted = false;
     console.log(`[BlockX] Flagged keyword "${hit}" detected in input! Prompting immediately.`);
     if (target && target.blur) {
-      try { target.blur(); } catch {}
+      try { target.blur(); } catch { }
     }
     raiseBarrier(BARRIER_FROZEN);
-    try { freezeMedia(); } catch {}
+    try { freezeMedia(); } catch { }
     try {
       const allHits = new Set([lowerHit]);
       if (target) {
@@ -811,8 +811,40 @@
     } catch (e) {
       console.warn('[BlockX] Prompt failed; keeping page blurred.', e);
       raiseBarrier(BARRIER_FROZEN);
-      try { freezeMedia(); } catch {}
+      try { freezeMedia(); } catch { }
     }
+  }
+
+  // Elements whose value was actually TYPED by the user, as opposed to a
+  // wrapper/container the page happens to label "search" or "combobox".
+  // Sites like Google wrap the entire search widget - box plus the live
+  // suggestions dropdown - in one element carrying role="combobox" and/or
+  // aria-label="Search". Reading that wrapper's innerText/textContent picks
+  // up every suggestion currently rendered underneath it, not just what the
+  // user typed, so a single flagged word appearing in the *suggestions* gets
+  // treated as if the user typed it themselves - bypassing SCAN_SENSITIVITY
+  // entirely. Only a real <input>/<textarea>/contenteditable element carries
+  // literal typed text, so only those qualify here.
+  const NON_TEXT_INPUT_TYPES = new Set([
+    'button', 'submit', 'reset', 'checkbox', 'radio', 'range',
+    'color', 'file', 'image', 'hidden'
+  ]);
+
+  function isGenuineTextInput(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.tagName === 'TEXTAREA') return true;
+    if (el.tagName === 'INPUT') {
+      const type = (el.getAttribute('type') || 'text').toLowerCase();
+      return !NON_TEXT_INPUT_TYPES.has(type);
+    }
+    return !!el.isContentEditable;
+  }
+
+  function getTypedText(el) {
+    if (!isGenuineTextInput(el)) return '';
+    if (typeof el.value === 'string') return el.value;
+    if (el.isContentEditable) return el.innerText || el.textContent || '';
+    return '';
   }
 
   function checkAllInputsOnPage() {
@@ -821,9 +853,9 @@
     if (isScanExcluded()) return false;
     if (scanAcknowledged) return false;
     if (scanPrompted && document.getElementById('blockx-scan-prompt')) return false;
-    const inputs = document.querySelectorAll('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"], [role="combobox"], [aria-label*="search" i]');
+    const inputs = document.querySelectorAll('input, textarea, [contenteditable="true"]');
     for (const el of inputs) {
-      const text = el.value || (el.isContentEditable ? (el.innerText || el.textContent || '') : (el.innerText || el.textContent || ''));
+      const text = getTypedText(el);
       if (text) {
         const hit = checkTextForFlaggedKeywords(text);
         if (hit && !acknowledgedKeywords.has(hit.toLowerCase())) {
@@ -849,11 +881,11 @@
     } else if (target.isContentEditable) {
       text = target.innerText || target.textContent || '';
     } else {
-      const inputEl = target.closest && target.closest('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"], [role="combobox"]');
+      const inputEl = target.closest && target.closest('input, textarea, [contenteditable="true"]');
       if (inputEl) {
-        text = inputEl.value || inputEl.innerText || inputEl.textContent || '';
-      } else if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) {
-        text = document.activeElement.value || document.activeElement.innerText || document.activeElement.textContent || '';
+        text = getTypedText(inputEl);
+      } else if (document.activeElement && isGenuineTextInput(document.activeElement)) {
+        text = getTypedText(document.activeElement);
       } else {
         return;
       }
@@ -934,8 +966,8 @@
       if (scanPrompted && document.getElementById('blockx-scan-prompt')) return;
       if (document.activeElement) {
         const el = document.activeElement;
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable || el.getAttribute('role') === 'textbox' || el.getAttribute('role') === 'searchbox') {
-          const text = el.value || el.innerText || el.textContent || '';
+        if (isGenuineTextInput(el)) {
+          const text = getTypedText(el);
           const hit = checkTextForFlaggedKeywords(text);
           if (hit && !acknowledgedKeywords.has(hit.toLowerCase())) {
             triggerInputBlocked(hit, el);
@@ -1004,7 +1036,7 @@
     if (isBlocked) return;
     isBlocked = true;
 
-    try { window.stop(); } catch {}
+    try { window.stop(); } catch { }
 
     if (realtimeInputInterval) {
       clearInterval(realtimeInputInterval);
@@ -1027,7 +1059,7 @@
     let hostname = window.location.hostname;
     try {
       if (url) hostname = new URL(url, window.location.href).hostname;
-    } catch {}
+    } catch { }
 
     const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, hostname);
 
@@ -1377,7 +1409,7 @@
     let currentHost = window.location.hostname;
     try {
       if (customUrl) currentHost = new URL(customUrl, window.location.href).hostname;
-    } catch {}
+    } catch { }
 
     if (isWhitelisted(false, currentUrl)) {
       dropBarrier();
