@@ -1102,13 +1102,14 @@ body[data-user-theme="dark"] .help-tab.active {
 }
 
 .layer-card {
-    padding: 20px;
-    border-radius: var(--radius-md);
+    padding: 24px;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-base);
-    background: var(--bg-app);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .layer-header {
