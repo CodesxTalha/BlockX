@@ -544,8 +544,9 @@ function watchExternalChanges() {
         }
 
         if (changes.FAVICON_CACHE) {
-            faviconMemoryCache = Object.assign(faviconMemoryCache, changes.FAVICON_CACHE.newValue || {});
-            if (state.SHOW_FAVICONS) dirty = true;
+            const newCache = changes.FAVICON_CACHE.newValue || {};
+            faviconMemoryCache = Object.assign(faviconMemoryCache, newCache);
+            updateFaviconsInPlace(newCache);
         }
 
         if (dirty) renderAllLists();
@@ -1579,8 +1580,14 @@ function createFaviconElement(host) {
     if (!host) return null;
     const cleanHost = String(host).toLowerCase().replace(/^www\./, '').trim();
 
+    // If this website is known to have no icon, skip it
+    if (faviconMemoryCache[cleanHost] === 'none') {
+        return null;
+    }
+
     const img = document.createElement('img');
     img.className = 'tag-favicon';
+    img.dataset.host = cleanHost;
     img.alt = '';
     img.loading = 'lazy';
     img.width = 16;
@@ -1594,24 +1601,43 @@ function createFaviconElement(host) {
 
         chrome.runtime.sendMessage({ action: 'getFavicon', host: cleanHost }, (response) => {
             if (chrome.runtime.lastError) return;
-            if (response && response.success && response.dataUrl) {
-                faviconMemoryCache[cleanHost] = response.dataUrl;
-                if (img.isConnected) {
-                    img.src = response.dataUrl;
-                    img.classList.remove('is-loading');
+            if (response && response.success) {
+                if (response.dataUrl === 'none') {
+                    faviconMemoryCache[cleanHost] = 'none';
+                    if (img.isConnected) img.remove();
+                } else if (response.dataUrl) {
+                    faviconMemoryCache[cleanHost] = response.dataUrl;
+                    if (img.isConnected) {
+                        img.src = response.dataUrl;
+                        img.classList.remove('is-loading');
+                    }
                 }
-            } else {
+            } else if (response && response.reason === 'offline') {
                 img.classList.remove('is-loading');
             }
         });
     }
 
     img.onerror = () => {
-        img.src = GLOBE_SVG_DATA_URL;
-        img.classList.remove('is-loading');
+        if (img.isConnected) img.remove();
     };
 
     return img;
+}
+
+function updateFaviconsInPlace(cache) {
+    if (!cache) return;
+    document.querySelectorAll('img.tag-favicon[data-host]').forEach((img) => {
+        const host = img.dataset.host;
+        if (!host || !cache[host]) return;
+
+        if (cache[host] === 'none') {
+            img.remove();
+        } else if (img.src !== cache[host]) {
+            img.src = cache[host];
+            img.classList.remove('is-loading');
+        }
+    });
 }
 
 function renderList(listId, stateKey) {

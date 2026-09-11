@@ -578,8 +578,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
 
-    getOrFetchFavicon(host).then((dataUrl) => {
-      sendResponse({ success: !!dataUrl, dataUrl: dataUrl || null });
+    getOrFetchFavicon(host).then((res) => {
+      sendResponse(res || { success: false, reason: 'offline' });
     });
     return true;
   }
@@ -593,12 +593,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 const pendingFaviconRequests = new Map();
 
+function arrayBufferToDataUrl(contentType, buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const len = bytes.byteLength;
+  const chunkSize = 8192;
+  for (let i = 0; i < len; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  const base64 = btoa(binary);
+  return `data:${contentType};base64,${base64}`;
+}
+
 async function getOrFetchFavicon(host) {
   // 1. Check local storage cache
   const stored = await chrome.storage.local.get({ FAVICON_CACHE: {} });
   const cache = stored.FAVICON_CACHE || {};
   if (cache[host]) {
-    return cache[host];
+    return { success: true, dataUrl: cache[host] };
   }
 
   // 2. Reuse in-flight request if already fetching
@@ -608,61 +621,115 @@ async function getOrFetchFavicon(host) {
 
   const fetchPromise = (async () => {
     try {
-      const dataUrl = await fetchFaviconAsDataUrl(host);
-      if (dataUrl) {
+      const result = await fetchFaviconResult(host);
+      if (result.status === 'found') {
         const freshStored = await chrome.storage.local.get({ FAVICON_CACHE: {} });
         const freshCache = freshStored.FAVICON_CACHE || {};
-        freshCache[host] = dataUrl;
+        freshCache[host] = result.dataUrl;
         await chrome.storage.local.set({ FAVICON_CACHE: freshCache });
-        return dataUrl;
+        return { success: true, dataUrl: result.dataUrl };
       }
+
+      if (result.status === 'no_icon') {
+        // Website definitely has no icon: save 'none' so we skip it permanently
+        const freshStored = await chrome.storage.local.get({ FAVICON_CACHE: {} });
+        const freshCache = freshStored.FAVICON_CACHE || {};
+        freshCache[host] = 'none';
+        await chrome.storage.local.set({ FAVICON_CACHE: freshCache });
+        return { success: true, dataUrl: 'none' };
+      }
+
+      // Offline or network failure: do not mark as 'none', allow retry later
+      return { success: false, reason: 'offline' };
     } catch {
-      // Ignore errors and return null
+      return { success: false, reason: 'offline' };
     } finally {
       pendingFaviconRequests.delete(host);
     }
-    return null;
   })();
 
   pendingFaviconRequests.set(host, fetchPromise);
   return fetchPromise;
 }
 
-async function fetchFaviconAsDataUrl(host) {
-  const urlsToTry = [
-    `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`,
-    `https://icons.duckduckgo.com/ip3/${encodeURIComponent(host)}.ico`,
-    `https://${host}/favicon.ico`
-  ];
-
-  for (const url of urlsToTry) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const contentType = res.headers.get('content-type') || 'image/png';
-        const buffer = await res.arrayBuffer();
-        if (buffer && buffer.byteLength > 0) {
-          const bytes = new Uint8Array(buffer);
-          let binary = '';
-          const len = bytes.byteLength;
-          const chunkSize = 8192;
-          for (let i = 0; i < len; i += chunkSize) {
-            const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
-            binary += String.fromCharCode.apply(null, chunk);
-          }
-          const base64 = btoa(binary);
-          return `data:${contentType};base64,${base64}`;
-        }
-      }
-    } catch {
-      // Continue to next URL candidate
-    }
+async function fetchFaviconResult(host) {
+  // Check if browser is known to be offline
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return { status: 'offline' };
   }
-  return null;
+
+  let reachedNetwork = false;
+
+  // 1. Try Google Favicon Service
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    reachedNetwork = true;
+
+    if (res.ok) {
+      const buffer = await res.arrayBuffer();
+      if (buffer && buffer.byteLength > 100) {
+        const contentType = res.headers.get('content-type') || 'image/png';
+        return { status: 'found', dataUrl: arrayBufferToDataUrl(contentType, buffer) };
+      }
+    }
+  } catch {
+    // Network or timeout
+  }
+
+  // 2. Try DuckDuckGo Favicon Service
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`https://icons.duckduckgo.com/ip3/${encodeURIComponent(host)}.ico`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    reachedNetwork = true;
+
+    if (res.ok) {
+      const buffer = await res.arrayBuffer();
+      if (buffer && buffer.byteLength > 100) {
+        const contentType = res.headers.get('content-type') || 'image/x-icon';
+        return { status: 'found', dataUrl: arrayBufferToDataUrl(contentType, buffer) };
+      }
+    }
+  } catch {
+    // Network or timeout
+  }
+
+  // 3. Try direct website /favicon.ico
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`https://${host}/favicon.ico`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    reachedNetwork = true;
+
+    if (res.ok) {
+      const buffer = await res.arrayBuffer();
+      if (buffer && buffer.byteLength > 100) {
+        const contentType = res.headers.get('content-type') || 'image/x-icon';
+        return { status: 'found', dataUrl: arrayBufferToDataUrl(contentType, buffer) };
+      }
+    }
+  } catch {
+    // Direct site error
+  }
+
+  // If we reached network endpoints and no icon exists
+  if (reachedNetwork) {
+    return { status: 'no_icon' };
+  }
+
+  // If network could not be reached at all
+  return { status: 'offline' };
 }
 
 // ------------------------------------------------------------------
