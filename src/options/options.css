@@ -254,7 +254,9 @@ body.is-locked .app-main {
     letter-spacing: 0.04em;
     padding: 2px 7px;
     border-radius: 6px;
+    background: var(--accent-soft);
     color: var(--accent);
+    border: 1px solid var(--accent-soft);
     line-height: 1.3;
 }
 
