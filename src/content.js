@@ -176,9 +176,9 @@
     .confirm-modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(50px);
-      -webkit-backdrop-filter: blur(50px);
+      background: #ffffff80;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
