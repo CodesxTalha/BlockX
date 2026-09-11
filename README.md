@@ -4,9 +4,7 @@
 
 # BlockX v2
 
-**A content blocker built for the moment you want to turn it off.**
-
-BlockX v2 introduces a completely modernized interface, scientifically grounded calming themes, dynamic theme-reactive favicons, and an instant-response content scanner.
+**A powerful, distraction-free content blocker built for discipline.**
 
 [![Version](https://img.shields.io/badge/version-2.0-1900FF?style=flat-square)](#)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-1900FF?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -16,49 +14,73 @@ BlockX v2 introduces a completely modernized interface, scientifically grounded 
 
 <br><br>
 
-<img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2 Dashboard in Light Mode">
+<img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2 Dashboard">
 
 </div>
-
----
-
-## Why BlockX
-
-Most blockers fail because disabling them takes one click at the exact moment you have the least willpower. BlockX is built around deliberate psychological friction:
-
-| The Escape Route | What BlockX Does Instead |
-|---|---|
-| Delete a site from the blocklist | Triggers an unskippable **12-minute cooldown timer** |
-| Search for explicit keywords | Intercepts the search query before results load |
-| Visit an unlisted explicit page | Scans page text instantly and locks it behind a heavy blur |
-| Attempt to bypass a blocked page | Requires typing an exact reflection phrase word-for-word |
-| Open a fresh profile or Incognito | Generates native browser policies that refuse access |
-| Inspect element or edit in DevTools | All blocking authority runs in the service worker, not the DOM |
 
 ---
 
 ## What Is New in v2
 
-- **Refined Dashboard (v 2.0)**: Clean, high-clarity interface with unified management of block enforcement modes, bypass verification, and whitelist rules.
-- **On-Page Warning Modal**: Immediate capture-phase keyword detection that stops explicit pages with a frosted blur barrier and a deliberate retype phrase challenge.
-- **Streamlined Toolbar Dropdown**: Fast, direct popup with one-click site blocking, an inline quick-add bar, and native Light Mode and Dark Mode support.
-- **Calming Color Themes**: Scientifically grounded accent palettes (Electric Blue, Boreal Pine, Nordic Slate, Monochrome Slate) designed to down-regulate visual arousal.
-- **Zero-Overhead Dynamic Favicons**: Browser tab favicons and extension icons dynamically update to match your selected color palette with zero performance overhead.
+BlockX v2 is a complete overhaul focused on clarity, flexibility, and robust enforcement:
+
+### 1. Modernized UI & Experience
+- Clean, polished interface across the dashboard, extension toolbar popup, and on-page modals.
+- Full support for both Light Mode and Dark Mode.
+- Minimalist toolbar dropdown for instant site blocking and quick-add actions without unnecessary clutter.
+
+### 2. Dual Bypass Modes
+Switch between two distinct verification modes depending on how much friction you need:
+- **Warning Message**: A two-step confirmation prompt displaying your custom reflection warning before granting access.
+- **Retype Phrase**: Demands typing your custom unlock phrase verbatim before any temporary pass is granted.
+
+### 3. Merged Blacklist & Pages Management
+- Combined the old domain blacklist and page rules into a single unified **Blocked Sites** view.
+- Easily add entire domains, specific sections with child pages (`/*`), or exact URLs from one simple interface.
+
+### 4. Granular Whitelist Control
+- Whitelist a single specific page while automatically keeping the rest of the site blocked.
+- For example, allow a specific educational page or profile while restricting the rest of the platform.
 
 <br>
 
 <div align="center">
-<img src="assets/screenshots/warning.png" width="700" alt="BlockX v2 on-page content warning modal">
+<img src="assets/screenshots/whitelist.png" width="820" alt="BlockX v2 Whitelist Granular Controls">
 </div>
 
----
+<br>
 
-## Key Features
+### 5. Scoped Keyword Management
+- Clean, dedicated interface for adding custom keywords.
+- Choose the exact scope for each keyword: check both URL and page content, or check page content only.
 
-- **Multi-Layer Enforcement**: Network-level Declarative Net Request rules, navigation checks, SPA route hooks, and in-page scanning.
-- **Real-Time Page Scanner**: Reads unlisted pages before you see them. Word-boundary filtering prevents false alarms so words like `button`, `cocktail`, or `analysis` never trip the scanner.
-- **Single-Visit Passes**: Type your chosen unlock phrase to earn a single visit in one tab. Refreshing or reopening re-locks the page.
-- **Cross-Profile Sync**: Rules synchronize automatically across Google accounts and all local browser profiles on the machine.
+### 6. Robust Content Scanning Core
+- Redesigned scanning engine that reads unlisted pages in real time with high accuracy and reduced false positives.
+- Immediate capture-phase interception on search inputs and form submissions.
+- Option to toggle content scanning on or off directly from the header.
+
+<br>
+
+<div align="center">
+<img src="assets/screenshots/warning.png" width="700" alt="BlockX v2 On-Page Warning Modal">
+</div>
+
+<br>
+
+### 7. Unified Help & Setup
+- Merged setup documentation and browser lockdown controls into one cohesive view.
+- Generate one-line Chromium policies for Incognito disabling, guest mode restriction, and extension page protection.
+
+### 8. Dedicated Settings & Theme Engine
+- Select scientifically grounded theme palettes: **Electric Blue**, **Boreal Pine**, **Nordic Slate**, and **Monochrome Slate**.
+- Zero-overhead dynamic tab favicons and extension icons that react to your chosen theme.
+- Built-in configuration backup, JSON export/import, and dashboard password protection.
+
+<br>
+
+<div align="center">
+<img src="assets/screenshots/themes.png" width="820" alt="BlockX v2 Settings and Theme Color Palettes">
+</div>
 
 ---
 
@@ -75,17 +97,17 @@ The dashboard opens automatically upon installation.
 
 ## Architecture
 
-BlockX runs directly in the browser with **zero dependencies and no build step**:
+BlockX runs directly in the browser with **zero external dependencies and no build step**:
 
 ```
 src/
-  background.js       Core service worker: network rules, block decisions, cooldown timers
+  background.js       Background service worker: network rules, blocking decisions, state
   content.js          Anti-flash barrier, real-time input scanner, on-page warning modal
   inject.js           SPA navigation hook for dynamic single-page applications
   config.js           Shared filter lists, search engine definitions, and defaults
-  icon-helper.js      Dynamic SVG icon generator and zero-overhead favicon updater
-  settings-sync.js    Reconciles local storage, Google sync, and local settings file
-  options/            Management dashboard and theme controls
+  icon-helper.js      Dynamic SVG icon generator and zero-overhead favicon switcher
+  settings-sync.js    Reconciliation engine for local storage, Google sync, and local file
+  options/            Full management dashboard (General, Blocked Sites, Whitelist, Keywords, Scanning, Settings)
   popup/              Clean toolbar dropdown with quick block and add actions
   help/               Setup guide and Chromium browser lockdown generator
 native/
