@@ -219,12 +219,14 @@ async function updateBlockingRules() {
     const rules = [];
     let ruleId = 10000;
 
+    const isDataUri = config.BLOCK_METHOD === 'data_uri';
+
     const action = (() => {
       switch (config.BLOCK_METHOD) {
         case 'infinite_hang':
           return { type: 'redirect', redirect: { url: 'http://1.1.1.1:81' } };
         case 'data_uri':
-          return { type: 'redirect', redirect: { url: 'data:text/plain,Blocked' } };
+          return { type: 'redirect', redirect: { regexSubstitution: 'data:\\0' } };
         case 'custom_url':
           let custom = config.CUSTOM_REDIRECT_URL;
           if (custom && custom.trim() !== '') {
@@ -257,22 +259,69 @@ async function updateBlockingRules() {
       if (isDomain) {
         const asciiDomain = toPunycode(clean);
         if (!isAscii(asciiDomain)) return false;
-        rules.push({
-          id: ruleId++,
-          priority,
-          action,
-          condition: { urlFilter: `||${asciiDomain}^`, resourceTypes: ['main_frame', 'sub_frame'] }
-        });
+        if (isDataUri) {
+          rules.push({
+            id: ruleId++,
+            priority,
+            action,
+            condition: {
+              regexFilter: `^https?://(?:[^/]+\\.)?${escapeRegExp(asciiDomain)}(?::\\d+)?(?:[/?#].*)?$`,
+              resourceTypes: ['main_frame', 'sub_frame']
+            }
+          });
+        } else {
+          rules.push({
+            id: ruleId++,
+            priority,
+            action,
+            condition: { urlFilter: `||${asciiDomain}^`, resourceTypes: ['main_frame', 'sub_frame'] }
+          });
+        }
         return true;
       }
 
       if (!isAscii(clean)) return false;
-      rules.push({
-        id: ruleId++,
-        priority,
-        action,
-        condition: { urlFilter: clean, resourceTypes: ['main_frame', 'sub_frame'] }
-      });
+      if (isDataUri) {
+        let c = clean.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+        let regexPattern = null;
+        if (c === 'instagram.com/reels' || c === 'instagram.com/reel') {
+          regexPattern = '^https?://(?:[^/]+\\.)?instagram\\.com(?::\\d+)?/reels?(?:[/?#].*)?$';
+        } else {
+          const slashIdx = c.indexOf('/');
+          if (slashIdx !== -1) {
+            const host = c.slice(0, slashIdx);
+            const path = c.slice(slashIdx).replace(/\/+$/, '');
+            if (!path.includes('?')) {
+              regexPattern = `^https?://(?:[^/]+\\.)?${escapeRegExp(host)}(?::\\d+)?${escapeRegExp(path)}(?:[/?#].*)?$`;
+            }
+          }
+          if (!regexPattern) {
+            regexPattern = `^https?://.*${escapeRegExp(clean)}.*$`;
+          }
+        }
+        rules.push({
+          id: ruleId++,
+          priority,
+          action,
+          condition: { regexFilter: regexPattern, resourceTypes: ['main_frame', 'sub_frame'] }
+        });
+      } else {
+        rules.push({
+          id: ruleId++,
+          priority,
+          action,
+          condition: { urlFilter: clean, resourceTypes: ['main_frame', 'sub_frame'] }
+        });
+        if ((clean === 'instagram.com/reels' || clean === 'instagram.com/reel') && rules.length < DYNAMIC_RULE_LIMIT) {
+          const alt = clean === 'instagram.com/reels' ? 'instagram.com/reel' : 'instagram.com/reels';
+          rules.push({
+            id: ruleId++,
+            priority,
+            action,
+            condition: { urlFilter: alt, resourceTypes: ['main_frame', 'sub_frame'] }
+          });
+        }
+      }
       return true;
     };
 
@@ -289,12 +338,16 @@ async function updateBlockingRules() {
       const parts = clean.split(/\s+/).map(escapeRegExp);
       const kwPattern = parts.join('(?:\\+|%20|[-_]|\\s)+');
 
+      const regexPattern = isDataUri
+        ? `^https?://.*(?:[^a-zA-Z0-9]|%20)${kwPattern}(?:[^a-zA-Z0-9]|%20|$).*$`
+        : `(?:^|[^a-zA-Z0-9]|%20)${kwPattern}(?:[^a-zA-Z0-9]|%20|$)`;
+
       rules.push({
         id: ruleId++,
         priority,
         action,
         condition: {
-          regexFilter: `(?:^|[^a-zA-Z0-9]|%20)${kwPattern}(?:[^a-zA-Z0-9]|%20|$)`,
+          regexFilter: regexPattern,
           resourceTypes: ['main_frame', 'sub_frame']
         }
       });
@@ -308,13 +361,14 @@ async function updateBlockingRules() {
       if (rules.length >= DYNAMIC_RULE_LIMIT) return false;
       let clean = filter.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/\/$/, '');
       if (!clean || !isAscii(clean)) return false;
+      const cleanWithoutWww = clean.replace(/^www\./i, '');
       
       rules.push({
         id: ruleId++,
         priority,
         action,
         condition: { 
-            regexFilter: `^https?://(www\\.)?${escapeRegExp(clean)}/?([\\?#].*)?$`,
+            regexFilter: `^https?://(?:www\\.)?${escapeRegExp(cleanWithoutWww)}/?([\\?#].*)?$`,
             resourceTypes: ['main_frame', 'sub_frame'] 
         }
       });
@@ -459,10 +513,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // If an iframe tries to trigger a block on a whitelisted site, we ignore it natively here.
     if (sender.frameId === 0) {
       loadConfig().then(async (config) => {
-        const url = new URL(sender.tab.url);
         await rememberBlocked(sender.tab.id, sender.tab.url,
           blockReason(sender.tab.url, config, sender.tab.id) || 'content');
-        const targetUrl = getBlockUrl(config.BLOCK_METHOD, url.hostname);
+        const targetUrl = getBlockUrl(config.BLOCK_METHOD, sender.tab.url);
         chrome.tabs.update(sender.tab.id, { url: targetUrl });
       });
     }
@@ -858,8 +911,13 @@ function blockReason(urlStr, config, tabId) {
 
   if (config.PAGE_URLS && config.PAGE_URLS.length > 0) {
     const pageMatch = config.PAGE_URLS.some(p => {
-      const clean = p.trim().toLowerCase().replace(/^https?:\/\//i, '');
-      return urlLower.includes(clean);
+      const clean = p.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      const target = urlLower.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      if (target.includes(clean)) return true;
+      if (clean === 'instagram.com/reels' || clean === 'instagram.com/reel') {
+        if (target.includes('instagram.com/reels') || target.includes('instagram.com/reel')) return true;
+      }
+      return false;
     });
     if (pageMatch) return 'page';
   }
@@ -898,6 +956,7 @@ function blockReason(urlStr, config, tabId) {
 // a second tab, a link back later) is blocked again even with time left.
 chrome.webNavigation.onCommitted.addListener(async (details) => {
   if (details.frameId !== 0) return;
+  if (!details.url || details.url.startsWith('data:')) return;
 
   const { TEMP_GRANTS = [] } = await chrome.storage.local.get({ TEMP_GRANTS: [] });
   if (TEMP_GRANTS.length === 0) return;
@@ -956,7 +1015,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   if (details.frameId !== 0) return;
   const url = details.url;
 
-  if (url.startsWith('chrome-extension://') || url.startsWith('chrome://') || url.startsWith('about:')) return;
+  if (url.startsWith('chrome-extension://') || url.startsWith('chrome://') || url.startsWith('about:') || url.startsWith('data:')) return;
 
   await Promise.all([ensureDomainListLoaded(), ensureBadwordsLoaded()]);
   const config = await loadConfig();
@@ -967,8 +1026,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     console.log(`[BlockX] Blocked via onBeforeNavigate (${reason}): ${url}`);
     await rememberBlocked(details.tabId, url, reason);
     try {
-      const hostname = new URL(url).hostname;
-      chrome.tabs.update(details.tabId, { url: getBlockUrl(config.BLOCK_METHOD, hostname) });
+      chrome.tabs.update(details.tabId, { url: getBlockUrl(config.BLOCK_METHOD, url) });
     } catch {
       chrome.tabs.update(details.tabId, { url: getBlockUrl(config.BLOCK_METHOD, '') });
     }

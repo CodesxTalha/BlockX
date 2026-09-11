@@ -1136,14 +1136,14 @@
     }
     cancelRescan();
 
-    let hostname = window.location.hostname;
+    let targetUrlToBlock = window.location.href;
     try {
-      if (url) hostname = new URL(url, window.location.href).hostname;
+      if (url) targetUrlToBlock = new URL(url, window.location.href).href;
     } catch { }
 
-    const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, hostname);
+    const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, targetUrlToBlock);
 
-    if (window.location.href.includes('chrome-extension://')) return;
+    if (window.location.href.startsWith('data:') || window.location.href.includes('chrome-extension://')) return;
 
     if (window.top === window.self) {
       if (CONFIG.BLOCK_METHOD === 'blocked_page') {
@@ -1463,8 +1463,13 @@
     if (!url || !CONFIG.PAGE_URLS) return false;
     const lowerUrl = url.toLowerCase();
     return CONFIG.PAGE_URLS.some(p => {
-      const cleanPattern = p.trim().toLowerCase();
-      return lowerUrl.includes(cleanPattern);
+      const cleanPattern = p.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      const target = lowerUrl.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      if (target.includes(cleanPattern)) return true;
+      if (cleanPattern === 'instagram.com/reels' || cleanPattern === 'instagram.com/reel') {
+        if (target.includes('instagram.com/reels') || target.includes('instagram.com/reel')) return true;
+      }
+      return false;
     });
   }
 

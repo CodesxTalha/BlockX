@@ -670,7 +670,7 @@ const SCAN_THROTTLE_MS = 60;
 // Maximum deferral cap so streaming / constantly mutating pages are still checked promptly
 const SCAN_MAX_DEFER_MS = 250;
 
-function getBlockUrl(method, hostname, extensionUrl) {
+function getBlockUrl(method, urlOrHost, extensionUrl) {
   if (method === 'blocked_page' && CONFIG.SHOW_GAME_INSTANTLY && CONFIG.GAMES.length > 0) {
     let gameIndex = CONFIG.ACTIVE_GAME_INDEX;
     if (gameIndex === -1) {
@@ -683,8 +683,13 @@ function getBlockUrl(method, hostname, extensionUrl) {
   switch (method) {
     case 'infinite_hang':
       return "http://1.1.1.1:81";
-    case 'data_uri':
-      return "data:" + (hostname || "Blocked");
+    case 'data_uri': {
+      const target = (urlOrHost || '').trim();
+      if (!target) return "data:Blocked";
+      if (target.startsWith('data:')) return target;
+      if (/^https?:\/\//i.test(target)) return "data:" + target;
+      return "data:https://" + target;
+    }
     case 'custom_url':
       let url = CONFIG.CUSTOM_REDIRECT_URL;
       if (url && url.trim() !== '') {

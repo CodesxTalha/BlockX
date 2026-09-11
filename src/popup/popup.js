@@ -322,7 +322,8 @@ function setupListeners() {
                 chrome.storage.local.set(items, () => {
                     try { chrome.runtime.sendMessage({ action: 'publishSettings', revision: items.SETTINGS_REVISION }); } catch (e) {}
                     if (type === 'domain' && currentTab) {
-                        const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, value);
+                        const fullUrl = currentTab.url || ('https://' + value);
+                        const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, fullUrl);
                         chrome.tabs.update(currentTab.id, { url: targetUrl });
                     } else if (currentTab) {
                         chrome.tabs.reload(currentTab.id);
