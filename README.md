@@ -11,8 +11,6 @@
 [![Chromium](https://img.shields.io/badge/Chrome%20·%20Brave%20·%20Edge%20·%20Vivaldi-supported-1900FF?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-1900FF?style=flat-square)](LICENSE)
 
-<br><br>
-
 <img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2 Dashboard">
 
 </div>
@@ -61,6 +59,16 @@ The dashboard opens automatically upon installation.
 
 ---
 
+## Privacy First
+
+BlockX does not collect, track, store, or transmit any data whatsoever.
+
+- The extension runs entirely on your local machine.
+- No analytics, no telemetry, and no tracking scripts.
+- No external server connections. Everything stays completely on your side.
+
+---
+
 ## Screenshots
 
 ### General Settings
@@ -91,7 +99,7 @@ Allow specific sections or single pages while keeping the rest of the domain blo
 <br>
 
 ### On-Page Content Warning
-Blocks explicit content in real time behind a frosted blur overlay and requires your intention phrase to proceed.
+Blocks explicit content in real time behind a overlay and requires your intention to proceed.
 
 <div align="center">
 <img src="assets/screenshots/warning.png" width="700" alt="BlockX v2 On-Page Content Warning Modal">
@@ -105,16 +113,6 @@ Switch between calming accent themes and manage cross-device synchronization.
 <div align="center">
 <img src="assets/screenshots/themes.png" width="820" alt="BlockX v2 Themes and Sync Settings">
 </div>
-
----
-
-## Privacy First
-
-BlockX does not collect, track, store, or transmit any data whatsoever.
-
-- The extension runs entirely on your local machine.
-- No analytics, no telemetry, and no tracking scripts.
-- No external server connections. Everything stays completely on your side.
 
 ---
 
