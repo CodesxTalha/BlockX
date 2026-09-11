@@ -817,7 +817,11 @@ function saveState() {
     });
 
     try {
-        chrome.runtime.sendMessage({ action: 'publishSettings', revision: latestRevision });
+        chrome.runtime.sendMessage({ action: 'publishSettings', revision: latestRevision }, () => {
+            if (chrome.runtime.lastError) {
+                // Ignore transient channel closes during background worker sleep or restarts
+            }
+        });
     } catch (e) {
         console.warn('[BlockX] Could not publish settings to background:', e);
     }

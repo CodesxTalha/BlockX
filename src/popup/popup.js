@@ -320,7 +320,7 @@ function setupListeners() {
 
                 items.SETTINGS_REVISION = Date.now();
                 chrome.storage.local.set(items, () => {
-                    try { chrome.runtime.sendMessage({ action: 'publishSettings', revision: items.SETTINGS_REVISION }); } catch (e) {}
+                    try { chrome.runtime.sendMessage({ action: 'publishSettings', revision: items.SETTINGS_REVISION }, () => { if (chrome.runtime.lastError) {} }); } catch (e) {}
                     if (type === 'domain' && currentTab) {
                         const fullUrl = currentTab.url || ('https://' + value);
                         const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, fullUrl);
@@ -391,7 +391,7 @@ function saveQuickAdd() {
             items[storageKey].push(rawVal);
             items.SETTINGS_REVISION = Date.now();
             chrome.storage.local.set(items, () => {
-                try { chrome.runtime.sendMessage({ action: 'publishSettings', revision: items.SETTINGS_REVISION }); } catch (e) {}
+                try { chrome.runtime.sendMessage({ action: 'publishSettings', revision: items.SETTINGS_REVISION }, () => { if (chrome.runtime.lastError) {} }); } catch (e) {}
                 input.value = '';
                 input.placeholder = "Added to blocklist!";
                 if (saveBtn) {

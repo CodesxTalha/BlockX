@@ -243,6 +243,9 @@ async function updateBlockingRules() {
       }
     })();
 
+    const REGEX_RULE_LIMIT = chrome.declarativeNetRequest.MAX_NUMBER_OF_REGEX_RULES || 1000;
+    let regexRuleCount = 0;
+
     const isAscii = (str) => /^[\x00-\x7F]*$/.test(str);
 
     const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -260,6 +263,8 @@ async function updateBlockingRules() {
         const asciiDomain = toPunycode(clean);
         if (!isAscii(asciiDomain)) return false;
         if (isDataUri) {
+          if (regexRuleCount >= REGEX_RULE_LIMIT) return false;
+          regexRuleCount++;
           rules.push({
             id: ruleId++,
             priority,
@@ -282,6 +287,7 @@ async function updateBlockingRules() {
 
       if (!isAscii(clean)) return false;
       if (isDataUri) {
+        if (regexRuleCount >= REGEX_RULE_LIMIT) return false;
         let c = clean.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
         let regexPattern = null;
         if (c === 'instagram.com/reels' || c === 'instagram.com/reel') {
@@ -299,6 +305,7 @@ async function updateBlockingRules() {
             regexPattern = `^https?://.*${escapeRegExp(clean)}.*$`;
           }
         }
+        regexRuleCount++;
         rules.push({
           id: ruleId++,
           priority,
@@ -326,9 +333,28 @@ async function updateBlockingRules() {
     };
 
     [...new Set(config.DOMAINS)].forEach(d => addRule(10, d, true));
-    
+
+    const masterAction = isDataUri
+      ? { type: 'redirect', redirect: { url: 'data:Blocked' } }
+      : action;
+
+    const addMasterDomainRule = (priority, domain) => {
+      if (rules.length >= DYNAMIC_RULE_LIMIT) return false;
+      const clean = domain.trim().toLowerCase();
+      if (!clean) return false;
+      const asciiDomain = toPunycode(clean);
+      if (!isAscii(asciiDomain)) return false;
+      rules.push({
+        id: ruleId++,
+        priority,
+        action: masterAction,
+        condition: { urlFilter: `||${asciiDomain}^`, resourceTypes: ['main_frame', 'sub_frame'] }
+      });
+      return true;
+    };
+
     await ensureDomainListLoaded();
-    [...masterDomainSet].forEach(d => addRule(10, d, true));
+    [...masterDomainSet].forEach(d => addMasterDomainRule(10, d));
 
     const addKeywordRule = (priority, keyword) => {
       if (rules.length >= DYNAMIC_RULE_LIMIT) return false;
@@ -341,6 +367,9 @@ async function updateBlockingRules() {
       const regexPattern = isDataUri
         ? `^https?://.*(?:[^a-zA-Z0-9]|%20)${kwPattern}(?:[^a-zA-Z0-9]|%20|$).*$`
         : `(?:^|[^a-zA-Z0-9]|%20)${kwPattern}(?:[^a-zA-Z0-9]|%20|$)`;
+
+      if (regexRuleCount >= REGEX_RULE_LIMIT) return false;
+      regexRuleCount++;
 
       rules.push({
         id: ruleId++,
@@ -362,7 +391,10 @@ async function updateBlockingRules() {
       let clean = filter.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/\/$/, '');
       if (!clean || !isAscii(clean)) return false;
       const cleanWithoutWww = clean.replace(/^www\./i, '');
-      
+
+      if (regexRuleCount >= REGEX_RULE_LIMIT) return false;
+      regexRuleCount++;
+
       rules.push({
         id: ruleId++,
         priority,
@@ -503,148 +535,166 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'getConfig') {
-    loadConfig().then((config) => sendResponse({ config: config }));
+    loadConfig()
+      .then((config) => sendResponse({ config: config }))
+      .catch(() => sendResponse({ config: null }));
     return true;
   }
 
   if (request.action === 'triggerBlock' && sender.tab) {
-    // THE NATIVE IFRAME FIX: 
-    // frameId 0 means the message came from the main parent window.
-    // If an iframe tries to trigger a block on a whitelisted site, we ignore it natively here.
     if (sender.frameId === 0) {
       loadConfig().then(async (config) => {
         await rememberBlocked(sender.tab.id, sender.tab.url,
           blockReason(sender.tab.url, config, sender.tab.id) || 'content');
         const targetUrl = getBlockUrl(config.BLOCK_METHOD, sender.tab.url);
         chrome.tabs.update(sender.tab.id, { url: targetUrl });
-      });
+        sendResponse({ ok: true });
+      }).catch(() => sendResponse({ ok: false }));
+      return true;
     }
-    return true;
+    sendResponse({ ok: false, reason: 'iframe' });
+    return false;
   }
 
   if (request.action === 'isMasterBlocked') {
     const domain = request.domain?.toLowerCase().replace(/^www\./, '');
-    ensureDomainListLoaded().then(() => {
-      sendResponse({ blocked: isMasterBlocked(domain) });
-    });
+    ensureDomainListLoaded()
+      .then(() => {
+        sendResponse({ blocked: isMasterBlocked(domain) });
+      })
+      .catch(() => sendResponse({ blocked: false }));
     return true;
   }
 
   if (request.action === 'closeTab' && sender.tab) {
-    chrome.tabs.remove(sender.tab.id).catch(() => {});
+    chrome.tabs.remove(sender.tab.id)
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: false }));
     return true;
   }
 
   if (request.action === 'getUnlockContext') {
     (async () => {
-      await Promise.all([ensureDomainListLoaded(), ensureBadwordsLoaded()]);
-      const config = await loadConfig();
-      const grants = activeGrants(config.TEMP_GRANTS);
-      const { BLOCKED_ORIGINS = {} } = await chrome.storage.session.get({ BLOCKED_ORIGINS: {} });
+      try {
+        await Promise.all([ensureDomainListLoaded(), ensureBadwordsLoaded()]);
+        const config = await loadConfig();
+        const grants = activeGrants(config.TEMP_GRANTS);
+        const { BLOCKED_ORIGINS = {} } = await chrome.storage.session.get({ BLOCKED_ORIGINS: {} });
 
-      // Whatever the tab is showing now (our block page, a game, a data: URI
-      // or a connection error), the thing to unlock is what it was sent away
-      // from. Falling back to the tab's own address covers a page the content
-      // script stopped after it had already loaded.
-      let target = null;
-      const url = request.url || '';
+        let target = null;
+        const url = request.url || '';
 
-      if (/^https?:/i.test(url)) {
-        try {
-          const parsed = new URL(url);
-          const reason = blockReason(url, config, request.tabId);
-          if (reason) target = { host: parsed.hostname, url, reason };
-        } catch { /* ignore */ }
+        if (/^https?:/i.test(url)) {
+          try {
+            const parsed = new URL(url);
+            const reason = blockReason(url, config, request.tabId);
+            if (reason) target = { host: parsed.hostname, url, reason };
+          } catch { /* ignore */ }
+        }
+        if (!target) {
+          const recorded = BLOCKED_ORIGINS[request.tabId];
+          if (recorded && Date.now() - recorded.at < 60 * 60 * 1000) target = recorded;
+        }
+
+        const active = target
+          ? grants.find(g => isGrantedTab(target.host, [g], request.tabId)) || null
+          : null;
+
+        const refused = !!target && target.reason === 'custom_domain';
+
+        sendResponse({
+          phrase: config.UNLOCK_PHRASE || '',
+          warningMessage: config.WEAKENING_MESSAGE || '',
+          bypassMode: config.BYPASS_MODE || 'warning',
+          durationMs: TEMP_GRANT_MS,
+          target: refused ? null : target,
+          refusedHost: refused ? target.host : null,
+          active
+        });
+      } catch (err) {
+        sendResponse({ error: err?.message });
       }
-      if (!target) {
-        const recorded = BLOCKED_ORIGINS[request.tabId];
-        if (recorded && Date.now() - recorded.at < 60 * 60 * 1000) target = recorded;
-      }
-
-      const active = target
-        ? grants.find(g => isGrantedTab(target.host, [g], request.tabId)) || null
-        : null;
-
-      // A domain on the user's own restricted list was a deliberate decision.
-      // No pass is offered for it at any price.
-      const refused = !!target && target.reason === 'custom_domain';
-
-      sendResponse({
-        phrase: config.UNLOCK_PHRASE || '',
-        warningMessage: config.WEAKENING_MESSAGE || '',
-        bypassMode: config.BYPASS_MODE || 'warning',
-        durationMs: TEMP_GRANT_MS,
-        target: refused ? null : target,
-        refusedHost: refused ? target.host : null,
-        active
-      });
     })();
     return true;
   }
 
   if (request.action === 'grantTempPass') {
     (async () => {
-      const config = await loadConfig();
-      const bypassMode = config.BYPASS_MODE || 'warning';
+      try {
+        const config = await loadConfig();
+        const bypassMode = config.BYPASS_MODE || 'warning';
 
-      if (bypassMode === 'retype') {
-        if (!unlockPhraseMatches(config.UNLOCK_PHRASE, request.typed)) {
-          sendResponse({ ok: false, reason: 'mismatch' });
+        if (bypassMode === 'retype') {
+          if (!unlockPhraseMatches(config.UNLOCK_PHRASE, request.typed)) {
+            sendResponse({ ok: false, reason: 'mismatch' });
+            return;
+          }
+        }
+
+        if (blockReason(`https://${request.host}/`, config, -1) === 'custom_domain') {
+          sendResponse({ ok: false, reason: 'restricted' });
           return;
         }
-      }
 
-      // Never issue a pass for the user's own restricted domains, even if the
-      // request is crafted rather than coming from the popup.
-      if (blockReason(`https://${request.host}/`, config, -1) === 'custom_domain') {
-        sendResponse({ ok: false, reason: 'restricted' });
-        return;
+        const record = await grantTempPass(request.host, request.tabId);
+        if (!record) {
+          sendResponse({ ok: false, reason: 'badhost' });
+          return;
+        }
+        await queueRuleUpdate();
+        sendResponse({ ok: true, record });
+      } catch (err) {
+        sendResponse({ ok: false, reason: err?.message || 'error' });
       }
-
-      const record = await grantTempPass(request.host, request.tabId);
-      if (!record) {
-        sendResponse({ ok: false, reason: 'badhost' });
-        return;
-      }
-      // Wait for the allow rule to be live. Answering sooner lets the popup
-      // navigate into the old ruleset, which redirects straight back.
-      await queueRuleUpdate();
-      sendResponse({ ok: true, record });
     })();
     return true;
   }
 
   if (request.action === 'isTabUnlocked') {
     (async () => {
-      const config = await loadConfig();
-      sendResponse({
-        unlocked: isGrantedTab(request.host, config.TEMP_GRANTS, sender.tab?.id)
-      });
+      try {
+        const config = await loadConfig();
+        sendResponse({
+          unlocked: isGrantedTab(request.host, config.TEMP_GRANTS, sender.tab?.id)
+        });
+      } catch {
+        sendResponse({ unlocked: false });
+      }
     })();
     return true;
   }
 
   if (request.action === 'revokeTempPass') {
     (async () => {
-      const grants = (await readGrants()).filter(g => g.host !== request.host);
-      await chrome.storage.local.set({ TEMP_GRANTS: grants });
-      sendResponse({ ok: true });
+      try {
+        const grants = (await readGrants()).filter(g => g.host !== request.host);
+        await chrome.storage.local.set({ TEMP_GRANTS: grants });
+        sendResponse({ ok: true });
+      } catch {
+        sendResponse({ ok: false });
+      }
     })();
     return true;
   }
 
   if (request.action === 'getSyncStatus') {
-    settingsSyncStatus().then((status) => sendResponse({ status }));
+    settingsSyncStatus()
+      .then((status) => sendResponse({ status }))
+      .catch((err) => sendResponse({ status: null, error: err?.message }));
     return true;
   }
 
   if (request.action === 'reconcileSettings') {
-    reconcileSettings('dashboard').then((result) => sendResponse({ result }));
+    reconcileSettings('dashboard')
+      .then((result) => sendResponse({ result }))
+      .catch((err) => sendResponse({ result: null, error: err?.message }));
     return true;
   }
 
   if (request.action === 'applyImportNow') {
-    applyImportNow(request.settings).then((ok) => sendResponse({ ok }));
+    applyImportNow(request.settings)
+      .then((ok) => sendResponse({ ok }))
+      .catch((err) => sendResponse({ ok: false, error: err?.message }));
     return true;
   }
 
@@ -652,16 +702,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const host = request.host?.toLowerCase().trim();
     if (!host) {
       sendResponse({ success: false, error: 'Missing host' });
-      return true;
+      return false;
     }
 
-    getOrFetchFavicon(host).then((res) => {
-      sendResponse(res || { success: false, reason: 'offline' });
-    });
+    getOrFetchFavicon(host)
+      .then((res) => {
+        sendResponse(res || { success: false, reason: 'offline' });
+      })
+      .catch(() => sendResponse({ success: false, reason: 'offline' }));
     return true;
   }
 
-  return true;
+  return false;
 });
 
 // ------------------------------------------------------------------
