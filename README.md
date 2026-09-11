@@ -8,7 +8,7 @@
 
 [![Version](https://img.shields.io/badge/version-2.0-1900FF?style=flat-square)](#)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-1900FF?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Chromium](https://img.shields.io/badge/Chrome%20·%20Brave%20·%20Edge%20·%20Vivaldi-supported-1900FF?style=flat-square)](#quick-install)
+[![Chromium](https://img.shields.io/badge/Chrome%20·%20Brave%20·%20Edge%20·%20Vivaldi-supported-1900FF?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-1900FF?style=flat-square)](LICENSE)
 
 <br><br>
@@ -34,7 +34,7 @@
   Whitelist a specific page (such as a single profile or video path) while automatically keeping the rest of the site blocked.
 
 - **Scoped Keyword Filtering**  
-  Add keywords with custom checking scopes (URL plus page content, or page content only).
+  Add keywords with custom checking scopes (URL plus page content, or page only).
 
 - **Robust Content Scanner**  
   Real-time on-page scanner with word-boundary matching to prevent false positives, plus a master toggle to turn scanning on or off.
@@ -50,7 +50,7 @@
 
 ---
 
-## Quick Install
+## Installation
 
 1. Download or clone this repository.
 2. Open `chrome://extensions` in any Chromium browser (Chrome, Brave, Edge).
@@ -68,6 +68,15 @@ Configure block enforcement behaviors, bypass verification modes, and your custo
 
 <div align="center">
 <img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2 General Settings">
+</div>
+
+<br>
+
+### Content Scanning
+Manage keyword dictionaries with custom scopes (URL and page content, or page only) and toggle real-time DOM scanning.
+
+<div align="center">
+<img src="assets/screenshots/scanning.png" width="820" alt="BlockX v2 Content Scanning Settings">
 </div>
 
 <br>
