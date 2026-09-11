@@ -59,7 +59,10 @@ let CONFIG = {
   GAMES: [
     { name: "Tower Blocks", path: "assets/blocked-pages/tower-blocks.html" },
     { name: "Rubiks Cube", path: "assets/blocked-pages/rubiks-cube.html" },
-  ]
+  ],
+
+  // Whether to fetch, cache, and display website favicons in destination lists
+  SHOW_FAVICONS: false
 };
 
 // ------------------------------------------------------------------
@@ -103,7 +106,8 @@ const IMPORTABLE_KEYS = [
   'THEME',
   'COLOR_THEME',
   'SCANNING_ENABLED',
-  'BYPASS_MODE'
+  'BYPASS_MODE',
+  'SHOW_FAVICONS'
 ];
 
 // ------------------------------------------------------------------
@@ -224,7 +228,8 @@ async function loadConfig() {
       COLOR_THEME: 'blue',
       ACTIVE_GAME_INDEX: -1,
       SCANNING_ENABLED: true,
-      BYPASS_MODE: 'warning'
+      BYPASS_MODE: 'warning',
+      SHOW_FAVICONS: false
     }, (items) => {
       CONFIG.BLOCK_METHOD = items.BLOCK_METHOD;
       CONFIG.CUSTOM_REDIRECT_URL = items.CUSTOM_REDIRECT_URL;
@@ -245,6 +250,7 @@ async function loadConfig() {
       CONFIG.ACTIVE_GAME_INDEX = items.ACTIVE_GAME_INDEX;
       CONFIG.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
       CONFIG.BYPASS_MODE = items.BYPASS_MODE || 'warning';
+      CONFIG.SHOW_FAVICONS = items.SHOW_FAVICONS === true;
       resolve(CONFIG);
     });
   });

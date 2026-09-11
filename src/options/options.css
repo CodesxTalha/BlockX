@@ -1050,6 +1050,47 @@ input:checked+.hub-item-box .icon {
 .tag-label {
     min-width: 0;
     overflow-wrap: anywhere;
+    margin-right: auto;
+}
+
+.tag-favicon {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    object-fit: contain;
+    flex-shrink: 0;
+    margin-right: 10px;
+    background: transparent;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+    vertical-align: middle;
+}
+
+.tag-favicon.is-loading {
+    opacity: 0.45;
+}
+
+.tag-favicon-svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-right: 10px;
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tag-favicon-svg svg {
+    width: 100%;
+    height: 100%;
+}
+
+.tag-sub-item .tag-favicon,
+.tag-sub-item .tag-favicon-svg {
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
 }
 
 .help-text code {

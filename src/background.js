@@ -571,8 +571,99 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === 'getFavicon') {
+    const host = request.host?.toLowerCase().trim();
+    if (!host) {
+      sendResponse({ success: false, error: 'Missing host' });
+      return true;
+    }
+
+    getOrFetchFavicon(host).then((dataUrl) => {
+      sendResponse({ success: !!dataUrl, dataUrl: dataUrl || null });
+    });
+    return true;
+  }
+
   return true;
 });
+
+// ------------------------------------------------------------------
+// WEBSITE FAVICON FETCHING AND LOCAL STORAGE CACHING
+// ------------------------------------------------------------------
+
+const pendingFaviconRequests = new Map();
+
+async function getOrFetchFavicon(host) {
+  // 1. Check local storage cache
+  const stored = await chrome.storage.local.get({ FAVICON_CACHE: {} });
+  const cache = stored.FAVICON_CACHE || {};
+  if (cache[host]) {
+    return cache[host];
+  }
+
+  // 2. Reuse in-flight request if already fetching
+  if (pendingFaviconRequests.has(host)) {
+    return pendingFaviconRequests.get(host);
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const dataUrl = await fetchFaviconAsDataUrl(host);
+      if (dataUrl) {
+        const freshStored = await chrome.storage.local.get({ FAVICON_CACHE: {} });
+        const freshCache = freshStored.FAVICON_CACHE || {};
+        freshCache[host] = dataUrl;
+        await chrome.storage.local.set({ FAVICON_CACHE: freshCache });
+        return dataUrl;
+      }
+    } catch {
+      // Ignore errors and return null
+    } finally {
+      pendingFaviconRequests.delete(host);
+    }
+    return null;
+  })();
+
+  pendingFaviconRequests.set(host, fetchPromise);
+  return fetchPromise;
+}
+
+async function fetchFaviconAsDataUrl(host) {
+  const urlsToTry = [
+    `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`,
+    `https://icons.duckduckgo.com/ip3/${encodeURIComponent(host)}.ico`,
+    `https://${host}/favicon.ico`
+  ];
+
+  for (const url of urlsToTry) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || 'image/png';
+        const buffer = await res.arrayBuffer();
+        if (buffer && buffer.byteLength > 0) {
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          const len = bytes.byteLength;
+          const chunkSize = 8192;
+          for (let i = 0; i < len; i += chunkSize) {
+            const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+            binary += String.fromCharCode.apply(null, chunk);
+          }
+          const base64 = btoa(binary);
+          return `data:${contentType};base64,${base64}`;
+        }
+      }
+    } catch {
+      // Continue to next URL candidate
+    }
+  }
+  return null;
+}
 
 // ------------------------------------------------------------------
 // SPA NAVIGATION INTERCEPTION (webNavigation.onCommitted)

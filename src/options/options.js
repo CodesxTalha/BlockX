@@ -20,6 +20,7 @@ const LIST_BINDINGS = [
 
 let stagedImport = null;
 let stagedWeakening = null;
+let faviconMemoryCache = {};
 
 let state = {
     BLOCK_METHOD: 'blocked_page',
@@ -40,7 +41,8 @@ let state = {
     PASSWORD: '',
     THEME: 'system', // 'light', 'dark', 'system'
     COLOR_THEME: 'blue', // 'blue', 'pine', 'slate', 'monochrome'
-    BYPASS_MODE: 'warning'
+    BYPASS_MODE: 'warning',
+    SHOW_FAVICONS: false
 };
 
 async function init() {
@@ -92,6 +94,7 @@ async function init() {
 
     // 4. Settings UI
     setupBypassModePicker();
+    setupFaviconToggle();
     setupScanSettings();
     setupWeakeningSettings();
     setupImportOath();
@@ -533,6 +536,18 @@ function watchExternalChanges() {
             updateBypassModeUI();
         }
 
+        if (changes.SHOW_FAVICONS) {
+            state.SHOW_FAVICONS = changes.SHOW_FAVICONS.newValue === true;
+            const faviconToggle = document.getElementById('show-favicons-toggle');
+            if (faviconToggle) faviconToggle.checked = state.SHOW_FAVICONS;
+            dirty = true;
+        }
+
+        if (changes.FAVICON_CACHE) {
+            faviconMemoryCache = Object.assign(faviconMemoryCache, changes.FAVICON_CACHE.newValue || {});
+            if (state.SHOW_FAVICONS) dirty = true;
+        }
+
         if (dirty) renderAllLists();
     });
 }
@@ -746,6 +761,19 @@ function setupColorThemeSelector() {
     });
 }
 
+function setupFaviconToggle() {
+    const toggle = document.getElementById('show-favicons-toggle');
+    if (!toggle) return;
+    toggle.checked = state.SHOW_FAVICONS === true;
+
+    toggle.addEventListener('change', () => {
+        state.SHOW_FAVICONS = toggle.checked;
+        saveState();
+        renderAllLists();
+        showToast(state.SHOW_FAVICONS ? 'Website favicons enabled.' : 'Website favicons disabled.');
+    });
+}
+
 function saveState() {
     const activeGameRadio = document.querySelector('input[name="activeGame"]:checked');
     state.ACTIVE_GAME_INDEX = activeGameRadio ? parseInt(activeGameRadio.value) : -1;
@@ -769,7 +797,8 @@ function saveState() {
         PASSWORD: state.PASSWORD,
         THEME: state.THEME,
         COLOR_THEME: state.COLOR_THEME || 'blue',
-        BYPASS_MODE: state.BYPASS_MODE || 'warning'
+        BYPASS_MODE: state.BYPASS_MODE || 'warning',
+        SHOW_FAVICONS: state.SHOW_FAVICONS === true
     }, () => {
         if (!chrome.runtime.lastError) {
             showToast('Settings auto-saved.');
@@ -1544,6 +1573,47 @@ function getItemHost(stateKey, item) {
     return null;
 }
 
+const GLOBE_SVG_DATA_URL = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+
+function createFaviconElement(host) {
+    if (!host) return null;
+    const cleanHost = String(host).toLowerCase().replace(/^www\./, '').trim();
+
+    const img = document.createElement('img');
+    img.className = 'tag-favicon';
+    img.alt = '';
+    img.loading = 'lazy';
+    img.width = 16;
+    img.height = 16;
+
+    if (faviconMemoryCache[cleanHost]) {
+        img.src = faviconMemoryCache[cleanHost];
+    } else {
+        img.classList.add('is-loading');
+        img.src = GLOBE_SVG_DATA_URL;
+
+        chrome.runtime.sendMessage({ action: 'getFavicon', host: cleanHost }, (response) => {
+            if (chrome.runtime.lastError) return;
+            if (response && response.success && response.dataUrl) {
+                faviconMemoryCache[cleanHost] = response.dataUrl;
+                if (img.isConnected) {
+                    img.src = response.dataUrl;
+                    img.classList.remove('is-loading');
+                }
+            } else {
+                img.classList.remove('is-loading');
+            }
+        });
+    }
+
+    img.onerror = () => {
+        img.src = GLOBE_SVG_DATA_URL;
+        img.classList.remove('is-loading');
+    };
+
+    return img;
+}
+
 function renderList(listId, stateKey) {
     const container = document.getElementById(listId);
     if (!container) return;
@@ -1628,6 +1698,11 @@ function buildGroup(listId, host, groupItems) {
     card.setAttribute('tabindex', '0');
     card.setAttribute('aria-expanded', expandedGroups.has(groupKey) ? 'true' : 'false');
 
+    if (state.SHOW_FAVICONS && host) {
+        const iconEl = createFaviconElement(host);
+        if (iconEl) card.appendChild(iconEl);
+    }
+
     const label = document.createElement('span');
     label.className = 'tag-label';
     label.textContent = host;
@@ -1680,6 +1755,14 @@ function buildGroup(listId, host, groupItems) {
 function buildRow(listId, stateKey, item) {
     const el = document.createElement('div');
     el.className = 'tag-item';
+
+    if (state.SHOW_FAVICONS) {
+        const host = getItemHost(stateKey, item);
+        if (host) {
+            const iconEl = createFaviconElement(host);
+            if (iconEl) el.appendChild(iconEl);
+        }
+    }
 
     const span = document.createElement('span');
     span.className = 'tag-label';
@@ -1842,14 +1925,21 @@ async function restore_options() {
             PASSWORD: '',
             THEME: 'system',
             COLOR_THEME: 'blue',
-            BYPASS_MODE: 'warning'
+            BYPASS_MODE: 'warning',
+            SHOW_FAVICONS: false,
+            FAVICON_CACHE: {}
         }, (items) => {
             state = items;
             state.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
             state.BYPASS_MODE = items.BYPASS_MODE || 'warning';
+            state.SHOW_FAVICONS = items.SHOW_FAVICONS === true;
+            faviconMemoryCache = items.FAVICON_CACHE || {};
             applyTheme(state.THEME); // Re-apply theme after load
             applyColorTheme(state.COLOR_THEME || 'blue');
             updateBypassModeUI();
+
+            const faviconToggle = document.getElementById('show-favicons-toggle');
+            if (faviconToggle) faviconToggle.checked = state.SHOW_FAVICONS;
 
             const scanToggle = document.getElementById('content-scanning-toggle');
             if (scanToggle) scanToggle.checked = state.SCANNING_ENABLED;
