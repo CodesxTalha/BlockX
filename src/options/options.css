@@ -267,12 +267,6 @@ body.is-locked .app-main {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.brand-version:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--accent-soft);
-}
-
 .app-nav {
     flex: 1;
     padding: 0 16px;
