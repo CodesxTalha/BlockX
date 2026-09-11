@@ -6,7 +6,7 @@
 
 **A powerful, distraction-free content blocker built for discipline.**
 
-[![Version](https://img.shields.io/badge/version-2.0-1900FF?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-2.1.0-1900FF?style=flat-square)](#)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-1900FF?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![Chromium](https://img.shields.io/badge/Chrome%20·%20Brave%20·%20Edge%20·%20Vivaldi-supported-1900FF?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-1900FF?style=flat-square)](LICENSE)
@@ -36,6 +36,9 @@
 
 - **Robust Content Scanner**  
   Real-time on-page scanner with word-boundary matching to prevent false positives, plus a master toggle to turn scanning on or off.
+
+- **Website Favicons & Offline Caching**  
+  Display cached website icons across blocked destinations, whitelist, and scanning exclusions with local storage persistence, enabled via Settings.
 
 - **Custom Calming Themes**  
   Four scientifically designed color palettes (Electric Blue, Boreal Pine, Nordic Slate, and Monochrome Slate) with matching dynamic favicons.
