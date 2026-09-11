@@ -592,6 +592,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // ------------------------------------------------------------------
 
 const pendingFaviconRequests = new Map();
+let bgFaviconCache = null;
+let cacheSavePromise = Promise.resolve();
+
+async function getFaviconCache() {
+  if (bgFaviconCache === null) {
+    const stored = await chrome.storage.local.get({ FAVICON_CACHE: {} });
+    bgFaviconCache = stored.FAVICON_CACHE || {};
+  }
+  return bgFaviconCache;
+}
+
+async function saveFaviconToCache(host, value) {
+  const cache = await getFaviconCache();
+  cache[host] = value;
+  cacheSavePromise = cacheSavePromise.then(async () => {
+    await chrome.storage.local.set({ FAVICON_CACHE: bgFaviconCache });
+  }).catch(() => {});
+  return cacheSavePromise;
+}
 
 function arrayBufferToDataUrl(contentType, buffer) {
   const bytes = new Uint8Array(buffer);
@@ -607,9 +626,8 @@ function arrayBufferToDataUrl(contentType, buffer) {
 }
 
 async function getOrFetchFavicon(host) {
-  // 1. Check local storage cache
-  const stored = await chrome.storage.local.get({ FAVICON_CACHE: {} });
-  const cache = stored.FAVICON_CACHE || {};
+  // 1. Check unified in-memory cache
+  const cache = await getFaviconCache();
   if (cache[host]) {
     return { success: true, dataUrl: cache[host] };
   }
@@ -623,19 +641,13 @@ async function getOrFetchFavicon(host) {
     try {
       const result = await fetchFaviconResult(host);
       if (result.status === 'found') {
-        const freshStored = await chrome.storage.local.get({ FAVICON_CACHE: {} });
-        const freshCache = freshStored.FAVICON_CACHE || {};
-        freshCache[host] = result.dataUrl;
-        await chrome.storage.local.set({ FAVICON_CACHE: freshCache });
+        await saveFaviconToCache(host, result.dataUrl);
         return { success: true, dataUrl: result.dataUrl };
       }
 
       if (result.status === 'no_icon') {
         // Website definitely has no icon: save 'none' so we skip it permanently
-        const freshStored = await chrome.storage.local.get({ FAVICON_CACHE: {} });
-        const freshCache = freshStored.FAVICON_CACHE || {};
-        freshCache[host] = 'none';
-        await chrome.storage.local.set({ FAVICON_CACHE: freshCache });
+        await saveFaviconToCache(host, 'none');
         return { success: true, dataUrl: 'none' };
       }
 

@@ -1595,31 +1595,33 @@ function createFaviconElement(host) {
 
     if (faviconMemoryCache[cleanHost]) {
         img.src = faviconMemoryCache[cleanHost];
-    } else {
-        img.classList.add('is-loading');
-        img.src = GLOBE_SVG_DATA_URL;
-
-        chrome.runtime.sendMessage({ action: 'getFavicon', host: cleanHost }, (response) => {
-            if (chrome.runtime.lastError) return;
-            if (response && response.success) {
-                if (response.dataUrl === 'none') {
-                    faviconMemoryCache[cleanHost] = 'none';
-                    if (img.isConnected) img.remove();
-                } else if (response.dataUrl) {
-                    faviconMemoryCache[cleanHost] = response.dataUrl;
-                    if (img.isConnected) {
-                        img.src = response.dataUrl;
-                        img.classList.remove('is-loading');
-                    }
-                }
-            } else if (response && response.reason === 'offline') {
-                img.classList.remove('is-loading');
-            }
-        });
+        return img;
     }
 
+    img.classList.add('is-loading');
+    img.src = GLOBE_SVG_DATA_URL;
+
+    chrome.runtime.sendMessage({ action: 'getFavicon', host: cleanHost }, (response) => {
+        if (chrome.runtime.lastError) return;
+        if (response && response.success) {
+            if (response.dataUrl === 'none') {
+                faviconMemoryCache[cleanHost] = 'none';
+                if (img.isConnected) img.remove();
+            } else if (response.dataUrl) {
+                faviconMemoryCache[cleanHost] = response.dataUrl;
+                if (img.isConnected) {
+                    img.src = response.dataUrl;
+                    img.classList.remove('is-loading');
+                }
+            }
+        } else if (response && response.reason === 'offline') {
+            img.classList.remove('is-loading');
+        }
+    });
+
     img.onerror = () => {
-        if (img.isConnected) img.remove();
+        img.src = GLOBE_SVG_DATA_URL;
+        img.classList.remove('is-loading');
     };
 
     return img;
