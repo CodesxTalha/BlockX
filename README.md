@@ -11,7 +11,7 @@
 [![Chromium](https://img.shields.io/badge/Chrome%20·%20Brave%20·%20Edge%20·%20Vivaldi-supported-1900FF?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-1900FF?style=flat-square)](LICENSE)
 
-<img src="assets/screenshots/dashboard.png" width="820" style="border-radius: 20px;" alt="BlockX v2 Dashboard">
+<img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2 Dashboard">
 
 </div>
 
