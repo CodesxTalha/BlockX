@@ -99,10 +99,7 @@
   let scanUrl = window.location.href;
   let observer = null;
   let realtimeInputInterval = null;
-  let activeTamperObserver = null;
-  let activeTamperInterval = null;
   const mutedMedia = [];
-  const tamperNotes = new Set();
 
   function raiseBarrier(css) {
     securityBarrier.textContent = css;
@@ -166,296 +163,9 @@
   }
 
   // ------------------------------------------------------------------
-  // 3. PROMPT STYLES & OVERLAY RENDERING (AVAILABLE SYNCHRONOUSLY)
+  // 3. OVERLAY RENDERING & MEDIA MANAGEMENT
+  // Styles are encapsulated and loaded from src/prompt.css
   // ------------------------------------------------------------------
-  const PROMPT_STYLES = `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-    :host { all: initial; }
-
-    .confirm-modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: #ffffff80;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2147483647;
-      padding: 16px;
-      box-sizing: border-box;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      animation: confirm-modal-fade 0.15s ease-out;
-    }
-
-    @keyframes confirm-modal-fade {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    .confirm-modal-card {
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
-      border-radius: 16px;
-      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
-      padding: 24px;
-      max-width: 480px;
-      width: 100%;
-      box-sizing: border-box;
-      text-align: left;
-      animation: confirm-modal-rise 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes confirm-modal-rise {
-      from {
-        opacity: 0;
-        transform: scale(0.97) translateY(6px);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
-
-    .confirm-warning-text {
-      margin: 0 0 22px 0;
-      font-size: 18px;
-      font-weight: 600;
-      line-height: 1.7;
-      color: #111827;
-      white-space: pre-wrap;
-      word-break: break-word;
-      unicode-bidi: plaintext;
-      text-align: start;
-    }
-
-    .confirm-modal-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .confirm-modal-actions .btn {
-      width: 100%;
-      box-sizing: border-box;
-      justify-content: center;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 11px 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      line-height: 1.4;
-      font-family: inherit;
-      border: none;
-      outline: none;
-    }
-
-    .confirm-modal-actions .btn-primary {
-      background: #1900FF;
-      border: 1px solid #1900FF;
-      color: #ffffff;
-      transition: opacity 0.2s ease, background-color 0.15s ease;
-    }
-
-    .confirm-modal-actions .btn-primary:hover {
-      background: #1100cc;
-      border-color: #1100cc;
-    }
-
-    .confirm-modal-actions .btn-primary:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      pointer-events: none;
-      box-shadow: none;
-      transform: none;
-    }
-
-    .confirm-modal-actions .btn-secondary {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      color: #111827;
-    }
-
-    .confirm-modal-actions .btn-secondary:hover {
-      background: #f3f4f6;
-      border-color: #e5e7eb;
-    }
-
-    .weakening-retype-wrap {
-      text-align: left;
-    }
-
-    .weakening-retype-instruction {
-      font-size: 14px;
-      font-weight: 600;
-      color: #4b5563;
-      margin: 0 0 8px 0;
-      text-align: start;
-    }
-
-    .weakening-retype-phrase {
-      font-size: 17px;
-      font-weight: 600;
-      line-height: 1.5;
-      color: #1900FF;
-      margin: 0 0 16px 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-      user-select: none;
-      text-align: start;
-    }
-
-    .weakening-retype-input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1.5px solid #e5e7eb;
-      background: #ffffff;
-      color: #111827;
-      font-family: inherit;
-      font-size: 14px;
-      outline: none;
-      margin-bottom: 22px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      display: block;
-    }
-
-    .weakening-retype-input::placeholder {
-      color: #9ca3af;
-    }
-
-    .weakening-retype-input:focus {
-      border-color: #1900FF;
-      box-shadow: 0 0 0 3px rgba(25, 0, 255, 0.05);
-    }
-
-    /* Dark Theme Overrides */
-    :host([data-theme="dark"]) .confirm-modal-card {
-      background: #1c1c1c;
-      border-color: #3f3f46;
-      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
-    }
-
-    :host([data-theme="dark"]) .confirm-warning-text {
-      color: #f9fafb;
-    }
-
-    :host([data-theme="dark"]) .weakening-retype-instruction {
-      color: #a1a1aa;
-    }
-
-    :host([data-theme="dark"]) .weakening-retype-phrase {
-      color: #1900FF;
-    }
-
-    :host([data-theme="dark"]) .weakening-retype-input {
-      background: #1c1c1c;
-      border-color: #3f3f46;
-      color: #f9fafb;
-    }
-
-    :host([data-theme="dark"]) .weakening-retype-input::placeholder {
-      color: #71717a;
-    }
-
-    :host([data-theme="dark"]) .weakening-retype-input:focus {
-      border-color: #1900FF;
-      box-shadow: 0 0 0 3px rgba(25, 0, 255, 0.15);
-    }
-
-    :host([data-theme="dark"]) .confirm-modal-actions .btn-secondary {
-      background: #0f0f0f;
-      border-color: #3f3f46;
-      color: #f9fafb;
-    }
-
-    :host([data-theme="dark"]) .confirm-modal-actions .btn-secondary:hover {
-      background: #27272a;
-      border-color: #3f3f46;
-    }
-
-    /* Color Theme Overrides */
-    :host([data-color-theme="pine"]) .confirm-modal-actions .btn-primary {
-      background: #059669;
-      border-color: #059669;
-    }
-    :host([data-color-theme="pine"]) .confirm-modal-actions .btn-primary:hover {
-      background: #047857;
-      border-color: #047857;
-    }
-    :host([data-color-theme="pine"]) .weakening-retype-phrase {
-      color: #059669;
-    }
-    :host([data-color-theme="pine"]) .weakening-retype-input:focus {
-      border-color: #059669;
-      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
-    }
-    :host([data-theme="dark"][data-color-theme="pine"]) .confirm-modal-actions .btn-primary {
-      background: #10b981;
-      border-color: #10b981;
-    }
-    :host([data-theme="dark"][data-color-theme="pine"]) .weakening-retype-phrase {
-      color: #34d399;
-    }
-
-    :host([data-color-theme="slate"]) .confirm-modal-actions .btn-primary {
-      background: #0284c7;
-      border-color: #0284c7;
-    }
-    :host([data-color-theme="slate"]) .confirm-modal-actions .btn-primary:hover {
-      background: #0369a1;
-      border-color: #0369a1;
-    }
-    :host([data-color-theme="slate"]) .weakening-retype-phrase {
-      color: #0284c7;
-    }
-    :host([data-color-theme="slate"]) .weakening-retype-input:focus {
-      border-color: #0284c7;
-      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
-    }
-    :host([data-theme="dark"][data-color-theme="slate"]) .confirm-modal-actions .btn-primary {
-      background: #38bdf8;
-      border-color: #38bdf8;
-    }
-    :host([data-theme="dark"][data-color-theme="slate"]) .weakening-retype-phrase {
-      color: #38bdf8;
-    }
-
-    :host([data-color-theme="monochrome"]) .confirm-modal-actions .btn-primary {
-      background: #334155;
-      border-color: #334155;
-    }
-    :host([data-color-theme="monochrome"]) .confirm-modal-actions .btn-primary:hover {
-      background: #1e293b;
-      border-color: #1e293b;
-    }
-    :host([data-color-theme="monochrome"]) .weakening-retype-phrase {
-      color: #475569;
-    }
-    :host([data-color-theme="monochrome"]) .weakening-retype-input:focus {
-      border-color: #475569;
-      box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.15);
-    }
-    :host([data-theme="dark"][data-color-theme="monochrome"]) .confirm-modal-actions .btn-primary {
-      background: #64748b;
-      border-color: #64748b;
-    }
-    :host([data-theme="dark"][data-color-theme="monochrome"]) .weakening-retype-phrase {
-      color: #94a3b8;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .confirm-modal-overlay, .confirm-modal-card { animation: none; }
-    }
-  `;
-
   function freezeMedia() {
     for (const el of document.querySelectorAll('video, audio')) {
       mutedMedia.push([el, el.muted]);
@@ -475,12 +185,6 @@
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
       ? 'light'
       : 'dark';
-  }
-
-  function noteTamper(key, msg) {
-    if (tamperNotes.has(key)) return;
-    tamperNotes.add(key);
-    console.warn(msg);
   }
 
   function showScanPrompt(triggerKeywords) {
@@ -504,14 +208,6 @@
 
     const existingHost = document.getElementById('blockx-scan-prompt');
     if (existingHost) existingHost.remove();
-    if (activeTamperObserver) {
-      activeTamperObserver.disconnect();
-      activeTamperObserver = null;
-    }
-    if (activeTamperInterval) {
-      clearInterval(activeTamperInterval);
-      activeTamperInterval = null;
-    }
 
     const host = document.createElement('div');
     host.id = 'blockx-scan-prompt';
@@ -526,8 +222,9 @@
 
     const root = host.attachShadow({ mode: 'closed' });
 
-    const style = document.createElement('style');
-    style.textContent = PROMPT_STYLES;
+    const styleLink = document.createElement('link');
+    styleLink.rel = 'stylesheet';
+    styleLink.href = chrome.runtime.getURL('src/prompt.css');
 
     const overlay = document.createElement('div');
     overlay.className = 'confirm-modal-overlay';
@@ -540,9 +237,6 @@
     };
     const KEY_EVENTS = ['keydown', 'keypress', 'keyup'];
     KEY_EVENTS.forEach(type => window.addEventListener(type, keepKeys, true));
-
-    let tamperObserver = null;
-    let tamperInterval = null;
 
     const reveal = () => {
       scanAcknowledged = true;
@@ -558,11 +252,6 @@
         }
       }
       pendingPromptKeywords.clear();
-      tamperNotes.clear();
-      if (tamperObserver) { tamperObserver.disconnect(); tamperObserver = null; }
-      if (tamperInterval) { clearInterval(tamperInterval); tamperInterval = null; }
-      activeTamperObserver = null;
-      activeTamperInterval = null;
       KEY_EVENTS.forEach(type => window.removeEventListener(type, keepKeys, true));
       if (host.parentNode) host.parentNode.removeChild(host);
       thawMedia();
@@ -714,7 +403,7 @@
       card.appendChild(step2);
 
       overlay.appendChild(card);
-      root.appendChild(style);
+      root.appendChild(styleLink);
       root.appendChild(overlay);
 
       document.documentElement.appendChild(host);
@@ -722,79 +411,12 @@
       freezeMedia();
       leaveBtn1.focus();
     }
-
-    function enforceOverlayIntegrity() {
-      if (!scanPrompted || scanAcknowledged) return;
-
-      if (!host.parentNode || !document.documentElement.contains(host)) {
-        noteTamper('host', '[BlockX] Warning overlay removed: re-attaching.');
-        document.documentElement.appendChild(host);
-      }
-
-      const style = window.getComputedStyle(host);
-      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' || style.pointerEvents === 'none') {
-        noteTamper('host-style', '[BlockX] Warning overlay hidden: restoring visibility.');
-        host.style.setProperty('all', 'initial', 'important');
-        host.style.setProperty('position', 'fixed', 'important');
-        host.style.setProperty('inset', '0', 'important');
-        host.style.setProperty('z-index', '2147483647', 'important');
-        host.style.setProperty('visibility', 'visible', 'important');
-        host.style.setProperty('display', 'block', 'important');
-        host.style.setProperty('opacity', '1', 'important');
-        host.style.setProperty('pointer-events', 'auto', 'important');
-      }
-
-      const hasBarrier = document.contains(securityBarrier);
-      const bodyStyle = document.body ? window.getComputedStyle(document.body) : null;
-      const blurred = document.body ? !!(bodyStyle && (bodyStyle.filter || bodyStyle.webkitFilter || '').includes('blur')) : true;
-      if (!hasBarrier || !blurred) {
-        noteTamper('barrier', '[BlockX] Security barrier removed or weakened: re-attaching.');
-        raiseBarrier(BARRIER_FROZEN);
-      }
-
-      const HEAD_LEVEL = { STYLE: 1, LINK: 1, META: 1, SCRIPT: 1, TITLE: 1 };
-      for (const node of [...document.documentElement.children]) {
-        if (node === document.head || node === document.body) continue;
-        if (node === securityBarrier || node === host) continue;
-        if (HEAD_LEVEL[node.nodeName]) continue;
-        noteTamper('stray', '[BlockX] Content moved outside <body>: moving back.');
-        if (document.body) document.body.appendChild(node);
-      }
-    }
-
-    setTimeout(() => {
-      if (!scanPrompted || scanAcknowledged) return;
-
-      tamperObserver = new MutationObserver(() => {
-        enforceOverlayIntegrity();
-      });
-
-      tamperObserver.observe(document.documentElement, {
-        childList: true,
-        attributes: true,
-        subtree: true,
-        attributeFilter: ['style', 'class', 'hidden', 'id']
-      });
-
-      tamperInterval = setInterval(enforceOverlayIntegrity, 300);
-      activeTamperObserver = tamperObserver;
-      activeTamperInterval = tamperInterval;
-    }, 100);
   }
 
   function dismissScanPrompt() {
     scanPrompted = false;
     scanAcknowledged = false;
     pendingPromptKeywords.clear();
-    tamperNotes.clear();
-    if (activeTamperObserver) {
-      activeTamperObserver.disconnect();
-      activeTamperObserver = null;
-    }
-    if (activeTamperInterval) {
-      clearInterval(activeTamperInterval);
-      activeTamperInterval = null;
-    }
     cancelRescan();
     const promptHost = document.getElementById('blockx-scan-prompt');
     if (promptHost) promptHost.remove();
@@ -1125,14 +747,6 @@
     if (observer) {
       observer.disconnect();
       observer = null;
-    }
-    if (activeTamperObserver) {
-      activeTamperObserver.disconnect();
-      activeTamperObserver = null;
-    }
-    if (activeTamperInterval) {
-      clearInterval(activeTamperInterval);
-      activeTamperInterval = null;
     }
     cancelRescan();
 
@@ -1465,11 +1079,7 @@
     return CONFIG.PAGE_URLS.some(p => {
       const cleanPattern = p.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
       const target = lowerUrl.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
-      if (target.includes(cleanPattern)) return true;
-      if (cleanPattern === 'instagram.com/reels' || cleanPattern === 'instagram.com/reel') {
-        if (target.includes('instagram.com/reels') || target.includes('instagram.com/reel')) return true;
-      }
-      return false;
+      return target.includes(cleanPattern);
     });
   }
 

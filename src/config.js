@@ -670,40 +670,85 @@ const SCAN_THROTTLE_MS = 60;
 // Maximum deferral cap so streaming / constantly mutating pages are still checked promptly
 const SCAN_MAX_DEFER_MS = 250;
 
-function getBlockUrl(method, urlOrHost, extensionUrl) {
-  if (method === 'blocked_page' && CONFIG.SHOW_GAME_INSTANTLY && CONFIG.GAMES.length > 0) {
-    let gameIndex = CONFIG.ACTIVE_GAME_INDEX;
-    if (gameIndex === -1) {
-      gameIndex = Math.floor(Math.random() * CONFIG.GAMES.length);
+function getGameOrBlockPath(cfg = CONFIG) {
+  const c = cfg || (typeof CONFIG !== 'undefined' ? CONFIG : null);
+  if (c && c.SHOW_GAME_INSTANTLY && Array.isArray(c.GAMES) && c.GAMES.length > 0) {
+    let index = c.ACTIVE_GAME_INDEX;
+    if (index === -1 || index === undefined || !c.GAMES[index]) {
+      index = Math.floor(Math.random() * c.GAMES.length);
     }
-    const game = CONFIG.GAMES[gameIndex];
-    return chrome.runtime.getURL(game.path);
+    return c.GAMES[index].path;
   }
+  return 'assets/blocked-pages/blocked.html';
+}
 
-  switch (method) {
-    case 'infinite_hang':
-      return "http://1.1.1.1:81";
-    case 'data_uri': {
+function getGameOrBlockUrl(cfg = CONFIG) {
+  return chrome.runtime.getURL(getGameOrBlockPath(cfg));
+}
+
+const BLOCK_STRATEGIES = {
+  infinite_hang: {
+    requiresRegex: false,
+    getRedirectUrl: () => 'http://1.1.1.1:81',
+    getDNRAction: () => ({ type: 'redirect', redirect: { url: 'http://1.1.1.1:81' } })
+  },
+  data_uri: {
+    requiresRegex: true,
+    getRedirectUrl: (urlOrHost) => {
       const target = (urlOrHost || '').trim();
-      if (!target) return "data:Blocked";
+      if (!target) return 'data:Blocked';
       if (target.startsWith('data:')) return target;
-      if (/^https?:\/\//i.test(target)) return "data:" + target;
-      return "data:https://" + target;
+      if (/^https?:\/\//i.test(target)) return 'data:' + target;
+      return 'data:https://' + target;
+    },
+    getDNRAction: () => ({ type: 'redirect', redirect: { regexSubstitution: 'data:\\0' } })
+  },
+  custom_url: {
+    requiresRegex: false,
+    getRedirectUrl: (urlOrHost, cfg = CONFIG) => {
+      const c = cfg || (typeof CONFIG !== 'undefined' ? CONFIG : null);
+      let custom = c ? c.CUSTOM_REDIRECT_URL : '';
+      if (custom && custom.trim() !== '') {
+        if (!/^https?:\/\//i.test(custom)) custom = 'http://' + custom;
+        return custom;
+      }
+      return getGameOrBlockUrl(c);
+    },
+    getDNRAction: (cfg = CONFIG) => {
+      const c = cfg || (typeof CONFIG !== 'undefined' ? CONFIG : null);
+      let custom = c ? c.CUSTOM_REDIRECT_URL : '';
+      if (custom && custom.trim() !== '') {
+        if (!/^https?:\/\//i.test(custom)) custom = 'http://' + custom;
+        return { type: 'redirect', redirect: { url: custom } };
+      }
+      return { type: 'redirect', redirect: { extensionPath: '/' + getGameOrBlockPath(c) } };
     }
-    case 'custom_url':
-      let url = CONFIG.CUSTOM_REDIRECT_URL;
-      if (url && url.trim() !== '') {
-        if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
-        return url;
-      }
-      // Fallback to interactive hub if URL is empty
-      if (CONFIG.SHOW_GAME_INSTANTLY && CONFIG.GAMES.length > 0) {
-        let gameIndex = CONFIG.ACTIVE_GAME_INDEX;
-        if (gameIndex === -1) gameIndex = Math.floor(Math.random() * CONFIG.GAMES.length);
-        return chrome.runtime.getURL(CONFIG.GAMES[gameIndex].path);
-      }
-    case 'blocked_page':
-    default:
-      return extensionUrl || chrome.runtime.getURL("assets/blocked-pages/blocked.html");
+  },
+  blocked_page: {
+    requiresRegex: false,
+    getRedirectUrl: (urlOrHost, cfg = CONFIG) => getGameOrBlockUrl(cfg),
+    getDNRAction: (cfg = CONFIG) => ({ type: 'redirect', redirect: { extensionPath: '/' + getGameOrBlockPath(cfg) } })
   }
+};
+
+function getBlockUrl(method, urlOrHost, extensionUrl) {
+  const strategy = BLOCK_STRATEGIES[method] || BLOCK_STRATEGIES.blocked_page;
+  return strategy.getRedirectUrl(urlOrHost, CONFIG) || extensionUrl || getGameOrBlockUrl(CONFIG);
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.BLOCK_STRATEGIES = BLOCK_STRATEGIES;
+  globalThis.getGameOrBlockPath = getGameOrBlockPath;
+  globalThis.getGameOrBlockUrl = getGameOrBlockUrl;
+  globalThis.getBlockUrl = getBlockUrl;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    CONFIG,
+    BLOCK_STRATEGIES,
+    getGameOrBlockPath,
+    getGameOrBlockUrl,
+    getBlockUrl
+  };
 }

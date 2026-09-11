@@ -219,29 +219,11 @@ async function updateBlockingRules() {
     const rules = [];
     let ruleId = 10000;
 
-    const isDataUri = config.BLOCK_METHOD === 'data_uri';
-
-    const action = (() => {
-      switch (config.BLOCK_METHOD) {
-        case 'infinite_hang':
-          return { type: 'redirect', redirect: { url: 'http://1.1.1.1:81' } };
-        case 'data_uri':
-          return { type: 'redirect', redirect: { regexSubstitution: 'data:\\0' } };
-        case 'custom_url':
-          let custom = config.CUSTOM_REDIRECT_URL;
-          if (custom && custom.trim() !== '') {
-            if (!/^https?:\/\//i.test(custom)) custom = 'http://' + custom;
-            return { type: 'redirect', redirect: { url: custom } };
-          }
-        default:
-          if (config.SHOW_GAME_INSTANTLY && config.GAMES.length > 0) {
-            let index = config.ACTIVE_GAME_INDEX;
-            if (index === -1) index = Math.floor(Math.random() * config.GAMES.length);
-            return { type: 'redirect', redirect: { extensionPath: '/' + config.GAMES[index].path } };
-          }
-          return { type: 'redirect', redirect: { extensionPath: '/assets/blocked-pages/blocked.html' } };
-      }
-    })();
+    const strategy = (typeof BLOCK_STRATEGIES !== 'undefined' && BLOCK_STRATEGIES[config.BLOCK_METHOD])
+      ? BLOCK_STRATEGIES[config.BLOCK_METHOD]
+      : (typeof BLOCK_STRATEGIES !== 'undefined' ? BLOCK_STRATEGIES.blocked_page : null);
+    const action = strategy ? strategy.getDNRAction(config) : { type: 'redirect', redirect: { extensionPath: '/assets/blocked-pages/blocked.html' } };
+    const isDataUri = strategy ? strategy.requiresRegex : (config.BLOCK_METHOD === 'data_uri');
 
     const REGEX_RULE_LIMIT = chrome.declarativeNetRequest.MAX_NUMBER_OF_REGEX_RULES || 1000;
     let regexRuleCount = 0;
@@ -290,20 +272,16 @@ async function updateBlockingRules() {
         if (regexRuleCount >= REGEX_RULE_LIMIT) return false;
         let c = clean.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
         let regexPattern = null;
-        if (c === 'instagram.com/reels' || c === 'instagram.com/reel') {
-          regexPattern = '^https?://(?:[^/]+\\.)?instagram\\.com(?::\\d+)?/reels?(?:[/?#].*)?$';
-        } else {
-          const slashIdx = c.indexOf('/');
-          if (slashIdx !== -1) {
-            const host = c.slice(0, slashIdx);
-            const path = c.slice(slashIdx).replace(/\/+$/, '');
-            if (!path.includes('?')) {
-              regexPattern = `^https?://(?:[^/]+\\.)?${escapeRegExp(host)}(?::\\d+)?${escapeRegExp(path)}(?:[/?#].*)?$`;
-            }
+        const slashIdx = c.indexOf('/');
+        if (slashIdx !== -1) {
+          const host = c.slice(0, slashIdx);
+          const path = c.slice(slashIdx).replace(/\/+$/, '');
+          if (!path.includes('?')) {
+            regexPattern = `^https?://(?:[^/]+\\.)?${escapeRegExp(host)}(?::\\d+)?${escapeRegExp(path)}(?:[/?#].*)?$`;
           }
-          if (!regexPattern) {
-            regexPattern = `^https?://.*${escapeRegExp(clean)}.*$`;
-          }
+        }
+        if (!regexPattern) {
+          regexPattern = `^https?://.*${escapeRegExp(c)}.*$`;
         }
         regexRuleCount++;
         rules.push({
@@ -319,15 +297,6 @@ async function updateBlockingRules() {
           action,
           condition: { urlFilter: clean, resourceTypes: ['main_frame', 'sub_frame'] }
         });
-        if ((clean === 'instagram.com/reels' || clean === 'instagram.com/reel') && rules.length < DYNAMIC_RULE_LIMIT) {
-          const alt = clean === 'instagram.com/reels' ? 'instagram.com/reel' : 'instagram.com/reels';
-          rules.push({
-            id: ruleId++,
-            priority,
-            action,
-            condition: { urlFilter: alt, resourceTypes: ['main_frame', 'sub_frame'] }
-          });
-        }
       }
       return true;
     };
@@ -440,6 +409,11 @@ async function updateBlockingRules() {
         };
       } else {
         return false;
+      }
+
+      if (condition.regexFilter) {
+        if (regexRuleCount >= REGEX_RULE_LIMIT) return false;
+        regexRuleCount++;
       }
 
       rules.push({ id: ruleId++, priority, action: { type: 'allow' }, condition });
@@ -965,11 +939,7 @@ function blockReason(urlStr, config, tabId) {
     const pageMatch = config.PAGE_URLS.some(p => {
       const clean = p.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
       const target = urlLower.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
-      if (target.includes(clean)) return true;
-      if (clean === 'instagram.com/reels' || clean === 'instagram.com/reel') {
-        if (target.includes('instagram.com/reels') || target.includes('instagram.com/reel')) return true;
-      }
-      return false;
+      return target.includes(clean);
     });
     if (pageMatch) return 'page';
   }

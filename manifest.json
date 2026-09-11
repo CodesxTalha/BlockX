@@ -7,7 +7,7 @@
     }
   },
   "name": "BlockX",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Network configuration and site management tool.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApvwgkN4ytEcPJdKiQLgWlGMvc9huNn4lmMA+NfyoPaHAl3+1ZEEmrkGvDpMTYl7JgEjZWxW6exWvZCUhMKLz7CUkmpnx4q2uqXhxaYmauRFnx/FbRi4rtVtJfaE4VWEXOSR4YzQRK2hKgRByIOCLzwJLJ/pTI9dAhVIubF81FEWy40p07/4HJ03+SbjctmCyCSxQXfR9rMyN0JB9KpVWM0GcrttDdGT97hRFq5nI20eATPu/QEfRKc60+IRaxW+XbHHMi1TG0iom036tj5Jhb17lH7c25++M/uBR8t5NjBUU24ACerx+NZT9fVvVxcGTSPcukrPPWvafSK26C9mBoQIDAQAB",
   "permissions": [
@@ -76,6 +76,7 @@
     {
       "resources": [
         "src/config.js",
+        "src/prompt.css",
         "assets/blocked-pages/blocked.html",
         "assets/blocked-pages/*",
         "assets/data/*"

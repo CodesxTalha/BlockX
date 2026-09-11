@@ -1723,19 +1723,14 @@ function renderList(listId, stateKey) {
     });
 }
 
-function createChevronSvg() {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '2.5');
-    svg.setAttribute('stroke-linecap', 'round');
-    svg.setAttribute('stroke-linejoin', 'round');
+function cloneTemplate(id) {
+    const tmpl = document.getElementById(id);
+    if (!tmpl || !tmpl.content || !tmpl.content.firstElementChild) return null;
+    return tmpl.content.firstElementChild.cloneNode(true);
+}
 
-    const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    polyline.setAttribute('points', '6 9 12 15 18 9');
-    svg.appendChild(polyline);
-    return svg;
+function createChevronSvg() {
+    return cloneTemplate('template-chevron-icon');
 }
 
 function buildGroup(listId, host, groupItems) {
@@ -1867,25 +1862,8 @@ function buildDeleteButton(listId, stateKey, item) {
     deleteBtn.className = 'tag-delete';
     deleteBtn.title = 'Remove';
 
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '2.5');
-    svg.setAttribute('stroke-linecap', 'round');
-    svg.setAttribute('stroke-linejoin', 'round');
-
-    const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line1.setAttribute('x1', '18'); line1.setAttribute('y1', '6');
-    line1.setAttribute('x2', '6'); line1.setAttribute('y2', '18');
-
-    const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line2.setAttribute('x1', '6'); line2.setAttribute('y1', '6');
-    line2.setAttribute('x2', '18'); line2.setAttribute('y2', '18');
-
-    svg.appendChild(line1);
-    svg.appendChild(line2);
-    deleteBtn.appendChild(svg);
+    const icon = cloneTemplate('template-delete-icon');
+    if (icon) deleteBtn.appendChild(icon);
 
     deleteBtn.addEventListener('click', () => {
         // Removing from a blocklist weakens protection: warning message and
@@ -1928,28 +1906,11 @@ function populateGames() {
         const box = document.createElement('div');
         box.className = 'hub-item-box';
         
-        // Create SVG icon
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.classList.add('icon');   // <-- FIXED: was svg.className.setNamedItem(…)
-        svg.setAttribute('viewBox', '0 0 24 24');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('stroke', 'currentColor');
-        svg.setAttribute('stroke-width', '2');
-        svg.setAttribute('stroke-linecap', 'round');
-        svg.setAttribute('stroke-linejoin', 'round');
-        
-        const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path1.setAttribute('d', 'm10 7 5 5-5 5');
-        const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path2.setAttribute('d', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10');
-        
-        svg.appendChild(path1);
-        svg.appendChild(path2);
-        
+        const svg = cloneTemplate('template-game-icon');
         const nameSpan = document.createElement('span');
         nameSpan.textContent = game.name;
         
-        box.appendChild(svg);
+        if (svg) box.appendChild(svg);
         box.appendChild(nameSpan);
         
         label.appendChild(input);
@@ -2325,21 +2286,10 @@ function setupHelpBrowserDropdown() {
         content.appendChild(title);
         content.appendChild(desc);
 
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('class', 'dropdown-item-check');
-        svg.setAttribute('viewBox', '0 0 24 24');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('stroke', 'currentColor');
-        svg.setAttribute('stroke-width', '2.5');
-        svg.setAttribute('stroke-linecap', 'round');
-        svg.setAttribute('stroke-linejoin', 'round');
-
-        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        polyline.setAttribute('points', '20 6 9 17 4 12');
-        svg.appendChild(polyline);
+        const svg = cloneTemplate('template-check-icon');
 
         item.appendChild(content);
-        item.appendChild(svg);
+        if (svg) item.appendChild(svg);
 
         item.addEventListener('click', (e) => {
             e.stopPropagation();
