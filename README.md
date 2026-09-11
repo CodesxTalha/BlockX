@@ -1,13 +1,14 @@
 <div align="center">
 
-<img src="assets/icons/icon.svg" width="72" height="72" alt="BlockX Logo">
+<img src="assets/icons/icon.svg" width="76" height="76" alt="BlockX Logo">
 
-# BlockX
+# BlockX v2
 
 **A content blocker built for the moment you want to turn it off.**
 
-Anything can block a website. What makes BlockX different is that the ways out are slow, deliberate, and follow you across every profile on your machine.
+BlockX v2 introduces a completely modernized interface, scientifically grounded calming themes, dynamic theme-reactive favicons, and an instant-response content scanner.
 
+[![Version](https://img.shields.io/badge/version-2.0-1900FF?style=flat-square)](#)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-1900FF?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![Chromium](https://img.shields.io/badge/Chrome%20·%20Brave%20·%20Edge%20·%20Vivaldi-supported-1900FF?style=flat-square)](#quick-install)
 [![No dependencies](https://img.shields.io/badge/dependencies-none-1900FF?style=flat-square)](#architecture)
@@ -15,7 +16,7 @@ Anything can block a website. What makes BlockX different is that the ways out a
 
 <br><br>
 
-<img src="assets/screenshots/dashboard.png" width="820" alt="BlockX Dashboard in Light Mode">
+<img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2 Dashboard in Light Mode">
 
 </div>
 
@@ -36,20 +37,28 @@ Most blockers fail because disabling them takes one click at the exact moment yo
 
 ---
 
-## Key Features
+## What Is New in v2
 
-- **Multi-Layer Enforcement**: Network-level Declarative Net Request rules, navigation checks, SPA route hooks, and in-page scanning.
-- **Real-Time Page Scanner**: Reads unlisted pages before you see them. Word-boundary filtering prevents false alarms so words like `button`, `cocktail`, or `analysis` never trip the scanner.
-- **On-Page Content Warning**: Blocks explicit pages with a frosted background blur and presents your custom reflection prompt.
-- **Single-Visit Passes**: Type your chosen unlock phrase to earn a single visit in one tab. Refreshing or reopening re-locks the page.
-- **Calming Color Themes**: Scientifically selected color palettes (Electric Blue, Boreal Pine, Nordic Slate, Monochrome Slate) with dynamic theme-matched favicons and icons.
-- **Cross-Profile Sync**: Rules synchronize automatically across Google accounts and all local browser profiles on the machine.
+- **Refined Dashboard (v 2.0)**: Clean, high-clarity interface with unified management of block enforcement modes, bypass verification, and whitelist rules.
+- **On-Page Warning Modal**: Immediate capture-phase keyword detection that stops explicit pages with a frosted blur barrier and a deliberate retype phrase challenge.
+- **Streamlined Toolbar Dropdown**: Fast, direct popup with one-click site blocking, an inline quick-add bar, and native Light Mode and Dark Mode support.
+- **Calming Color Themes**: Scientifically grounded accent palettes (Electric Blue, Boreal Pine, Nordic Slate, Monochrome Slate) designed to down-regulate visual arousal.
+- **Zero-Overhead Dynamic Favicons**: Browser tab favicons and extension icons dynamically update to match your selected color palette with zero performance overhead.
 
 <br>
 
 <div align="center">
-<img src="assets/screenshots/warning.png" width="700" alt="BlockX on-page warning modal in Light Mode">
+<img src="assets/screenshots/warning.png" width="700" alt="BlockX v2 on-page content warning modal">
 </div>
+
+---
+
+## Key Features
+
+- **Multi-Layer Enforcement**: Network-level Declarative Net Request rules, navigation checks, SPA route hooks, and in-page scanning.
+- **Real-Time Page Scanner**: Reads unlisted pages before you see them. Word-boundary filtering prevents false alarms so words like `button`, `cocktail`, or `analysis` never trip the scanner.
+- **Single-Visit Passes**: Type your chosen unlock phrase to earn a single visit in one tab. Refreshing or reopening re-locks the page.
+- **Cross-Profile Sync**: Rules synchronize automatically across Google accounts and all local browser profiles on the machine.
 
 ---
 
