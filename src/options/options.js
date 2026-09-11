@@ -21,6 +21,7 @@ const LIST_BINDINGS = [
 let stagedImport = null;
 let stagedWeakening = null;
 let faviconMemoryCache = {};
+let latestRevision = 0;
 
 let state = {
     BLOCK_METHOD: 'blocked_page',
@@ -399,6 +400,8 @@ function applyWeakeningChange(staged) {
     if (op === 'add') {
         if (state[stateKey].includes(value)) return;
         state[stateKey].push(value);
+        const host = getItemHost(stateKey, value);
+        if (host) expandedGroups.add(`${listId}-${host}`);
     } else {
         const index = state[stateKey].indexOf(value);
         if (index === -1) return;
@@ -547,6 +550,10 @@ function watchExternalChanges() {
             const newCache = changes.FAVICON_CACHE.newValue || {};
             faviconMemoryCache = Object.assign(faviconMemoryCache, newCache);
             updateFaviconsInPlace(newCache);
+        }
+
+        if (changes.SETTINGS_REVISION && typeof changes.SETTINGS_REVISION.newValue === 'number') {
+            latestRevision = Math.max(latestRevision, changes.SETTINGS_REVISION.newValue);
         }
 
         if (dirty) renderAllLists();
@@ -779,6 +786,8 @@ function saveState() {
     const activeGameRadio = document.querySelector('input[name="activeGame"]:checked');
     state.ACTIVE_GAME_INDEX = activeGameRadio ? parseInt(activeGameRadio.value) : -1;
 
+    latestRevision = Math.max(Date.now(), (typeof latestRevision === 'number' ? latestRevision : 0) + 1);
+
     chrome.storage.local.set({
         BLOCK_METHOD: state.BLOCK_METHOD,
         CUSTOM_REDIRECT_URL: state.CUSTOM_REDIRECT_URL,
@@ -799,12 +808,19 @@ function saveState() {
         THEME: state.THEME,
         COLOR_THEME: state.COLOR_THEME || 'blue',
         BYPASS_MODE: state.BYPASS_MODE || 'warning',
-        SHOW_FAVICONS: state.SHOW_FAVICONS === true
+        SHOW_FAVICONS: state.SHOW_FAVICONS === true,
+        SETTINGS_REVISION: latestRevision
     }, () => {
         if (!chrome.runtime.lastError) {
             showToast('Settings auto-saved.');
         }
     });
+
+    try {
+        chrome.runtime.sendMessage({ action: 'publishSettings', revision: latestRevision });
+    } catch (e) {
+        console.warn('[BlockX] Could not publish settings to background:', e);
+    }
 }
 
 function setupNavigation() {
@@ -1012,6 +1028,7 @@ function setupBlockedManager() {
             }
 
             state.CUSTOM_DOMAINS.push(cleanVal);
+            expandedGroups.add(`${listId}-${cleanVal}`);
             input.value = '';
             renderList(listId, 'CUSTOM_DOMAINS');
             saveState();
@@ -1030,6 +1047,7 @@ function setupBlockedManager() {
                     return;
                 }
                 state.CUSTOM_DOMAINS.push(cleanVal);
+                expandedGroups.add(`${listId}-${cleanVal}`);
                 input.value = '';
                 renderList(listId, 'CUSTOM_DOMAINS');
                 saveState();
@@ -1043,6 +1061,8 @@ function setupBlockedManager() {
             }
 
             state.CUSTOM_PAGES.push(cleanVal);
+            const host = getItemHost('CUSTOM_PAGES', cleanVal);
+            if (host) expandedGroups.add(`${listId}-${host}`);
             input.value = '';
             renderList(listId, 'CUSTOM_PAGES');
             saveState();
@@ -1063,6 +1083,8 @@ function setupBlockedManager() {
             }
 
             state.CUSTOM_EXACT_PAGES.push(cleanVal);
+            const host = getItemHost('CUSTOM_EXACT_PAGES', cleanVal);
+            if (host) expandedGroups.add(`${listId}-${host}`);
             input.value = '';
             renderList(listId, 'CUSTOM_EXACT_PAGES');
             saveState();
@@ -1492,6 +1514,8 @@ function setupListManager(inputId, btnId, listId, stateKey) {
             }
 
             state[stateKey].push(finalVal);
+            const host = getItemHost(stateKey, finalVal);
+            if (host) expandedGroups.add(`${listId}-${host}`);
             renderList(listId, stateKey);
             input.value = '';
             saveState();
@@ -1955,9 +1979,13 @@ async function restore_options() {
             COLOR_THEME: 'blue',
             BYPASS_MODE: 'warning',
             SHOW_FAVICONS: false,
-            FAVICON_CACHE: {}
+            FAVICON_CACHE: {},
+            SETTINGS_REVISION: 0
         }, (items) => {
             state = items;
+            if (typeof items.SETTINGS_REVISION === 'number') {
+                latestRevision = items.SETTINGS_REVISION;
+            }
             state.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
             state.BYPASS_MODE = items.BYPASS_MODE || 'warning';
             state.SHOW_FAVICONS = items.SHOW_FAVICONS === true;

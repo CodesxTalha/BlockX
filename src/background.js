@@ -180,6 +180,7 @@ async function applyImportNow(settings) {
   if (!clean) return false;
 
   await chrome.storage.local.set(clean);
+  await publishSettings();
   return true;
 }
 
@@ -242,6 +243,8 @@ async function updateBlockingRules() {
 
     const isAscii = (str) => /^[\x00-\x7F]*$/.test(str);
 
+    const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     function toPunycode(domain) {
       try { return new URL('http://' + domain).hostname; } catch { return domain; }
     }
@@ -283,7 +286,6 @@ async function updateBlockingRules() {
       const clean = keyword.trim().toLowerCase();
       if (!clean || !isAscii(clean)) return false;
 
-      const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const parts = clean.split(/\s+/).map(escapeRegExp);
       const kwPattern = parts.join('(?:\\+|%20|[-_]|\\s)+');
 
@@ -307,8 +309,6 @@ async function updateBlockingRules() {
       let clean = filter.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/\/$/, '');
       if (!clean || !isAscii(clean)) return false;
       
-      const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
       rules.push({
         id: ruleId++,
         priority,
@@ -325,21 +325,36 @@ async function updateBlockingRules() {
       if (rules.length >= DYNAMIC_RULE_LIMIT) return false;
 
       const rule = (filter && typeof filter === 'object') ? filter : parseScanExclusion(filter);
-      if (!rule || rule.kind !== 'site') return false;
+      if (!rule) return false;
 
       const asciiHost = toPunycode(rule.host);
       if (!isAscii(asciiHost)) return false;
 
-      // The || anchor only understands plain domain names, so a port or an
-      // address literal needs an explicit pattern instead.
-      const condition = (rule.port || classifyHost(rule.host) === 'ipv6')
-        ? {
-            regexFilter: `^https?://${escapeRegExp(asciiHost)}`
-              + (rule.port ? `:${rule.port}` : '(?::\\d+)?')
-              + '(?:[/?#]|$)',
-            resourceTypes: ['main_frame', 'sub_frame']
-          }
-        : { urlFilter: `||${asciiHost}^`, resourceTypes: ['main_frame', 'sub_frame'] };
+      let condition;
+      if (rule.kind === 'site') {
+        condition = (rule.port || classifyHost(rule.host) === 'ipv6')
+          ? {
+              regexFilter: `^https?://${escapeRegExp(asciiHost)}`
+                + (rule.port ? `:${rule.port}` : '(?::\\d+)?')
+                + '(?:[/?#]|$)',
+              resourceTypes: ['main_frame', 'sub_frame']
+            }
+          : { urlFilter: `||${asciiHost}^`, resourceTypes: ['main_frame', 'sub_frame'] };
+      } else if (rule.kind === 'section') {
+        const cleanPath = (rule.path || '/').replace(/\/+$/, '');
+        condition = {
+          regexFilter: `^https?://(?:www\\.)?${escapeRegExp(asciiHost)}(?::\\d+)?${escapeRegExp(cleanPath)}(?:/.*|[?#].*)?$`,
+          resourceTypes: ['main_frame', 'sub_frame']
+        };
+      } else if (rule.kind === 'page') {
+        const cleanPath = (rule.path || '/').replace(/\/+$/, '');
+        condition = {
+          regexFilter: `^https?://(?:www\\.)?${escapeRegExp(asciiHost)}(?::\\d+)?${escapeRegExp(cleanPath)}/?(?:[?#].*)?$`,
+          resourceTypes: ['main_frame', 'sub_frame']
+        };
+      } else {
+        return false;
+      }
 
       rules.push({ id: ruleId++, priority, action: { type: 'allow' }, condition });
       return true;
@@ -389,13 +404,8 @@ chrome.runtime.onStartup.addListener(() => { bootstrap('startup'); });
 
 // Settings the extension itself changed still need fanning out to the other
 // stores, but the revision stamp must not itself retrigger a publish.
-let publishTimer = null;
-function schedulePublish() {
-  if (publishTimer) clearTimeout(publishTimer);
-  publishTimer = setTimeout(() => {
-    publishTimer = null;
-    publishSettings();
-  }, 400);
+function schedulePublish(targetRevision) {
+  return publishSettings(targetRevision);
 }
 
 chrome.storage.onChanged.addListener(async (changes, area) => {
@@ -413,17 +423,31 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     updateDynamicActionIcon(changes.COLOR_THEME.newValue || 'blue');
   }
 
-  if (SETTINGS_KEYS.some(key => changes[key] !== undefined)) schedulePublish();
+  // Only trigger publish if revision wasn't already updated by this write,
+  // preventing re-publishing when reconcile or publish writes local storage.
+  if (changes.SETTINGS_REVISION === undefined && SETTINGS_KEYS.some(key => changes[key] !== undefined)) {
+    schedulePublish();
+  }
 });
 
 // Another profile on the same account changed something.
-chrome.storage.sync.onChanged.addListener(() => { reconcileSettings('sync-change'); });
+chrome.storage.sync.onChanged.addListener(() => {
+  if (typeof isPublishingSettings === 'function' && isPublishingSettings()) return;
+  reconcileSettings('sync-change');
+});
 
 // The settings file can be changed by a profile that is not running right now,
 // so it is re-read periodically rather than only at startup.
 chrome.alarms.create('blockx-settings-poll', { periodInMinutes: 5 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'publishSettings') {
+    publishSettings(request.revision)
+      .then((rev) => sendResponse({ ok: true, revision: rev }))
+      .catch((err) => sendResponse({ ok: false, error: err?.message }));
+    return true;
+  }
+
   if (request.action === 'getConfig') {
     loadConfig().then((config) => sendResponse({ config: config }));
     return true;

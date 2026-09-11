@@ -90,6 +90,7 @@ const WEAKENING_ADDITION_LISTS = [
 // Settings keys an imported backup is allowed to write.
 const IMPORTABLE_KEYS = [
   'BLOCK_METHOD',
+  'CUSTOM_REDIRECT_URL',
   'CUSTOM_DOMAINS',
   'CUSTOM_KEYWORDS',
   'CUSTOM_PAGE_KEYWORDS',
@@ -382,7 +383,7 @@ function matchesAnyHostEntry(hostname, port, entries) {
 
 const SCAN_EXCLUSION_LABELS = {
   site: 'Whole site',
-  section: 'Section',
+  section: 'With children',
   page: 'Single page'
 };
 

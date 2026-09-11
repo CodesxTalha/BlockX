@@ -318,7 +318,9 @@ function setupListeners() {
                     }
                 }
 
+                items.SETTINGS_REVISION = Date.now();
                 chrome.storage.local.set(items, () => {
+                    try { chrome.runtime.sendMessage({ action: 'publishSettings', revision: items.SETTINGS_REVISION }); } catch (e) {}
                     if (type === 'domain' && currentTab) {
                         const targetUrl = getBlockUrl(CONFIG.BLOCK_METHOD, value);
                         chrome.tabs.update(currentTab.id, { url: targetUrl });
@@ -386,7 +388,9 @@ function saveQuickAdd() {
     }, (items) => {
         if (!items[storageKey].includes(rawVal)) {
             items[storageKey].push(rawVal);
+            items.SETTINGS_REVISION = Date.now();
             chrome.storage.local.set(items, () => {
+                try { chrome.runtime.sendMessage({ action: 'publishSettings', revision: items.SETTINGS_REVISION }); } catch (e) {}
                 input.value = '';
                 input.placeholder = "Added to blocklist!";
                 if (saveBtn) {

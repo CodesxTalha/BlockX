@@ -14,6 +14,10 @@
 
 let nativeState = { checked: false, available: false, path: null, error: null };
 let syncInFlight = null;
+let isPublishing = false;
+let publishInFlight = null;
+
+globalThis.isPublishingSettings = () => isPublishing;
 
 // ------------------------------------------------------------------
 // CHECKSUM
@@ -200,6 +204,7 @@ function admissibleSettings(local, candidate) {
  * the others. Safe to call repeatedly; it is serialised.
  */
 async function reconcileSettings(reason = 'startup') {
+  if (isPublishing) return null;
   if (syncInFlight) return syncInFlight;
 
   syncInFlight = (async () => {
@@ -255,16 +260,31 @@ async function reconcileSettings(reason = 'startup') {
  * Called after the extension itself changes settings: stamps a fresh revision
  * and fans it out. This is the write path that makes the file trusted.
  */
-async function publishSettings() {
-  const local = await readLocalSnapshot();
-  const revision = nextRevision(local.revision);
+async function publishSettings(targetRevision) {
+  if (publishInFlight) return publishInFlight;
 
-  await chrome.storage.local.set({ SETTINGS_REVISION: revision });
-  await Promise.all([
-    writeSyncSnapshot(local.settings, revision),
-    writeFileSnapshot(local.settings, revision)
-  ]);
-  return revision;
+  publishInFlight = (async () => {
+    isPublishing = true;
+    try {
+      const local = await readLocalSnapshot();
+      const revision = nextRevision(local.revision, targetRevision);
+
+      await chrome.storage.local.set({ SETTINGS_REVISION: revision });
+      await Promise.all([
+        writeSyncSnapshot(local.settings, revision),
+        writeFileSnapshot(local.settings, revision)
+      ]);
+      return revision;
+    } catch (e) {
+      console.warn('[BlockX] publishSettings failed:', e);
+      return null;
+    } finally {
+      publishInFlight = null;
+      setTimeout(() => { isPublishing = false; }, 1200);
+    }
+  })();
+
+  return publishInFlight;
 }
 
 async function settingsSyncStatus() {
