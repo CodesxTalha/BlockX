@@ -75,14 +75,28 @@ already hold `home` filesystem permission, so nothing extra is needed.
 It is created the first time the extension has something to save. If it already
 exists when a new profile starts up, that profile adopts it.
 
-### Uninstall
+### Turning Off Local Sharing (Limit to Browser Only)
 
-```bash
-python3 install.py --uninstall
+To turn off local machine sharing and limit BlockX extension settings strictly to browser-only storage (`chrome.storage.local` / `chrome.storage.sync`):
+
+**On Windows:**
+Double-click `disable_local_sharing.bat`, or run from Command Prompt:
+```cmd
+py disable_local_sharing.py
 ```
 
-This removes the registration only. Your settings file is left alone; delete it
-yourself if you want it gone.
+**On macOS / Linux:**
+```bash
+python3 disable_local_sharing.py
+```
+
+This script:
+1. Unregisters the native host across all Chromium-family browsers (Chrome, Edge, Brave, Chromium, Vivaldi, including Flatpaks).
+2. Cleans up native manifest JSON files and helper wrappers.
+3. Automatically archives the shared machine settings file (`settings.json` -> `settings.json.bak`) so no stale file remains active. (Pass `--keep-file` if you wish to keep it, or `--delete-file` to permanently delete it).
+4. Limits the BlockX extension to internal browser storage only.
+
+After running the script, **restart your browser completely** so the browser unloads the native host registration.
 
 ---
 

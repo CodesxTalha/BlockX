@@ -106,12 +106,24 @@ def ensure_launchable():
 def install_windows(manifest, uninstall):
     import winreg
 
-    key_path = r"Software\Google\Chrome\NativeMessagingHosts\%s" % HOST_NAME
+    browser_keys = [
+        r"Software\Google\Chrome\NativeMessagingHosts\%s" % HOST_NAME,
+        r"Software\Microsoft\Edge\NativeMessagingHosts\%s" % HOST_NAME,
+        r"Software\Chromium\NativeMessagingHosts\%s" % HOST_NAME,
+        r"Software\BraveSoftware\Brave-Browser\NativeMessagingHosts\%s" % HOST_NAME,
+        r"Software\Vivaldi\NativeMessagingHosts\%s" % HOST_NAME,
+    ]
+
     if uninstall:
-        try:
-            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key_path)
-            print("  removed registry key HKCU\\%s" % key_path)
-        except FileNotFoundError:
+        removed = 0
+        for key_path in browser_keys:
+            try:
+                winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key_path)
+                print("  removed registry key HKCU\\%s" % key_path)
+                removed += 1
+            except FileNotFoundError:
+                pass
+        if not removed:
             print("  registry key was not present")
         return
 
