@@ -2,7 +2,7 @@
 
 <img src="assets/icons/icon.svg" width="76" height="76" alt="BlockX Logo">
 
-# BlockX v2
+# BlockX v2.2
 
 **A powerful, distraction-free content blocker built for discipline.**
 
@@ -11,7 +11,7 @@
 [![Chromium](https://img.shields.io/badge/Chrome%20·%20Brave%20·%20Edge%20·%20Vivaldi-supported-1900FF?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-1900FF?style=flat-square)](LICENSE)
 
-<img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2 Dashboard">
+<img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2.2 Dashboard">
 
 </div>
 
@@ -21,6 +21,9 @@
 
 - **Modern Interface**  
   Clean, polished dashboard and toolbar popup with full Light Mode and Dark Mode support.
+
+- **Quick Dashboard Shortcut**  
+  Instant access to your dashboard from anywhere using the `Alt+S` keyboard shortcut with a quick toggle in Settings.
 
 - **Dual Bypass Modes**  
   Choose between a two-step confirmation Warning Message or a word-for-word Retype Phrase challenge.
@@ -78,7 +81,7 @@ BlockX does not collect, track, store, or transmit any data whatsoever.
 Configure block enforcement behaviors, bypass verification modes, and your custom reflection prompts.
 
 <div align="center">
-<img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2 General Settings">
+<img src="assets/screenshots/dashboard.png" width="820" alt="BlockX v2.2 General Settings">
 </div>
 
 <br>
@@ -87,7 +90,7 @@ Configure block enforcement behaviors, bypass verification modes, and your custo
 Manage keyword dictionaries with custom scopes (URL and page content, or page only) and toggle real-time DOM scanning.
 
 <div align="center">
-<img src="assets/screenshots/scanning.png" width="820" alt="BlockX v2 Content Scanning Settings">
+<img src="assets/screenshots/scanning.png" width="820" alt="BlockX v2.2 Content Scanning Settings">
 </div>
 
 <br>
@@ -96,7 +99,7 @@ Manage keyword dictionaries with custom scopes (URL and page content, or page on
 Allow specific sections or single pages while keeping the rest of the domain blocked.
 
 <div align="center">
-<img src="assets/screenshots/whitelist.png" width="820" alt="BlockX v2 Whitelist Management">
+<img src="assets/screenshots/whitelist.png" width="820" alt="BlockX v2.2 Whitelist Management">
 </div>
 
 <br>
@@ -105,7 +108,7 @@ Allow specific sections or single pages while keeping the rest of the domain blo
 Blocks explicit content in real time behind a overlay and requires your intention to proceed.
 
 <div align="center">
-<img src="assets/screenshots/warning.png" width="700" alt="BlockX v2 On-Page Content Warning Modal">
+<img src="assets/screenshots/warning.png" width="700" alt="BlockX v2.2 On-Page Content Warning Modal">
 </div>
 
 <br>
@@ -114,7 +117,7 @@ Blocks explicit content in real time behind a overlay and requires your intentio
 Switch between calming accent themes and manage cross-device synchronization.
 
 <div align="center">
-<img src="assets/screenshots/themes.png" width="820" alt="BlockX v2 Themes and Sync Settings">
+<img src="assets/screenshots/themes.png" width="820" alt="BlockX v2.2 Themes and Sync Settings">
 </div>
 
 ---
