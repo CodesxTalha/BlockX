@@ -40,6 +40,17 @@
       "128": "assets/icons/icon128.png"
     }
   },
+  "commands": {
+    "open_settings": {
+      "suggested_key": {
+        "default": "Alt+S",
+        "windows": "Alt+S",
+        "mac": "Alt+S",
+        "linux": "Alt+S"
+      },
+      "description": "Open BlockX Settings in new tab"
+    }
+  },
   "declarative_net_request": {
     "rule_resources": [
       {

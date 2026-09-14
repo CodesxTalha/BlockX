@@ -500,7 +500,30 @@ chrome.storage.sync.onChanged.addListener(() => {
 // so it is re-read periodically rather than only at startup.
 chrome.alarms.create('blockx-settings-poll', { periodInMinutes: 5 });
 
+// Global browser shortcut listener (works on all pages, including browser home page)
+if (chrome.commands && chrome.commands.onCommand) {
+  chrome.commands.onCommand.addListener((command) => {
+    if (command === 'open_settings') {
+      chrome.storage.local.get({ DASHBOARD_SHORTCUT_ENABLED: true }, (res) => {
+        if (res.DASHBOARD_SHORTCUT_ENABLED !== false) {
+          chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html') });
+        }
+      });
+    }
+  });
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'openSettings') {
+    chrome.storage.local.get({ DASHBOARD_SHORTCUT_ENABLED: true }, (res) => {
+      if (res.DASHBOARD_SHORTCUT_ENABLED !== false) {
+        chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html') });
+      }
+    });
+    sendResponse({ ok: true });
+    return true;
+  }
+
   if (request.action === 'publishSettings') {
     publishSettings(request.revision)
       .then((rev) => sendResponse({ ok: true, revision: rev }))

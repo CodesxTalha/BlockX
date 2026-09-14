@@ -36,6 +36,34 @@
   }
 
   // ------------------------------------------------------------------
+  // QUICK ACCESS SHORTCUT TO SETTINGS (Alt+S)
+  // ------------------------------------------------------------------
+  let shortcutEnabled = true;
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get({ DASHBOARD_SHORTCUT_ENABLED: true }, (res) => {
+      if (res && typeof res.DASHBOARD_SHORTCUT_ENABLED !== 'undefined') {
+        shortcutEnabled = res.DASHBOARD_SHORTCUT_ENABLED;
+      }
+    });
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.DASHBOARD_SHORTCUT_ENABLED) {
+        shortcutEnabled = changes.DASHBOARD_SHORTCUT_ENABLED.newValue !== false;
+      }
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (!shortcutEnabled) return;
+    if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.code === 'KeyS' || e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        chrome.runtime.sendMessage({ action: 'openSettings' });
+      } catch (err) {}
+    }
+  }, true);
+
+  // ------------------------------------------------------------------
   // 2. CORE FLAGGED KEYWORDS & TOP-LEVEL STATE VARIABLES
   // Declared first to completely eliminate any TDZ (Temporal Dead Zone) risks
   // ------------------------------------------------------------------

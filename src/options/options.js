@@ -96,6 +96,7 @@ async function init() {
     // 4. Settings UI
     setupBypassModePicker();
     setupFaviconToggle();
+    setupShortcutSetting();
     setupScanSettings();
     setupWeakeningSettings();
     setupImportOath();
@@ -779,6 +780,29 @@ function setupFaviconToggle() {
         saveState();
         renderAllLists();
         showToast(state.SHOW_FAVICONS ? 'Website favicons enabled.' : 'Website favicons disabled.');
+    });
+}
+
+function setupShortcutSetting() {
+    const toggle = document.getElementById('dashboard-shortcut-toggle');
+    if (!toggle) return;
+
+    chrome.storage.local.get({ DASHBOARD_SHORTCUT_ENABLED: true }, (res) => {
+        toggle.checked = res.DASHBOARD_SHORTCUT_ENABLED !== false;
+    });
+
+    toggle.addEventListener('change', () => {
+        const enabled = toggle.checked;
+        chrome.storage.local.set({ DASHBOARD_SHORTCUT_ENABLED: enabled }, () => {
+            showToast(enabled ? 'Dashboard shortcut (Alt+S) enabled' : 'Dashboard shortcut disabled');
+        });
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (toggle.checked && e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.code === 'KeyS' || e.key === 's' || e.key === 'S')) {
+            e.preventDefault();
+            window.open(location.href, '_blank');
+        }
     });
 }
 
