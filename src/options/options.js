@@ -6,7 +6,7 @@ const sections = {
     whitelist: { title: "Whitelist", subtitle: "Destinations that bypass every rule." },
     keywords: { title: "Blocked Keywords", subtitle: "Block URLs, search queries, and keystrokes matching specific terms." },
     scanning: { title: "Content Scanning", subtitle: "Catch explicit pages on unlisted sites using on-page text inspection." },
-    reels: { title: "Reels & Shorts Blocker", subtitle: "Block short-form video feeds and all their child pages across social platforms." },
+    reels: { title: "Reels Blocker", subtitle: "Block short-form video feeds and all their child pages across social platforms." },
     settings: { title: "Settings", subtitle: "Manage cross-device sync, configuration backups, and dashboard security." },
     help: { title: "Help & Setup", subtitle: "Setting up shared settings, and locking the browser down so this cannot be walked around." }
 };
@@ -229,7 +229,7 @@ function setupReelsManager() {
             state.REELS_BLOCKER_ENABLED = headerToggle.checked;
             updateReelsUI();
             saveState();
-            showToast(headerToggle.checked ? 'Reels & Shorts Blocker enabled.' : 'Reels & Shorts Blocker paused.');
+            showToast(headerToggle.checked ? 'Reels Blocker enabled.' : 'Reels Blocker paused.');
         });
     }
 
