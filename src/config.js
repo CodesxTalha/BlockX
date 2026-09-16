@@ -4,7 +4,7 @@ let CONFIG = {
 
   // If true, shows the game specified in ACTIVE_GAME_INDEX instead of blocked.html
   SHOW_GAME_INSTANTLY: true,
-  ACTIVE_GAME_INDEX: 0, 
+  ACTIVE_GAME_INDEX: 0,
 
   // Custom Redirect URL
   CUSTOM_REDIRECT_URL: '',
@@ -75,7 +75,7 @@ let CONFIG = {
 };
 
 const REELS_PATTERNS = {
-  instagram: ['instagram.com/reels', 'instagram.com/reel'],
+  instagram: ['instagram.com/reels'],
   youtube: ['youtube.com/shorts'],
   facebook: ['facebook.com/reel', 'facebook.com/reels', 'facebook.com/watch/reels'],
   tiktok: ['tiktok.com']
@@ -211,7 +211,7 @@ function weakensProtection(current, incoming) {
   }
 
   if (typeof incoming.SCAN_SENSITIVITY === 'number'
-      && incoming.SCAN_SENSITIVITY > (current.SCAN_SENSITIVITY ?? 2)) return true;
+    && incoming.SCAN_SENSITIVITY > (current.SCAN_SENSITIVITY ?? 2)) return true;
 
   if (current.SECURITY_ENABLED && incoming.SECURITY_ENABLED === false) return true;
   if ((current.SCANNING_ENABLED ?? true) && incoming.SCANNING_ENABLED === false) return true;
@@ -325,9 +325,9 @@ function createOptimizedFilter(keywords) {
       .map(kw => String(kw || '').trim().toLowerCase())
       .filter(kw => kw.length > 0)
   )].sort((a, b) => b.length - a.length);
-  
+
   if (validKeywords.length === 0) return null;
-  
+
   const patterns = validKeywords.map(kw => {
     const parts = kw.split(/\s+/).map(escapeRegExp);
     return parts.join('\\s+');
@@ -502,18 +502,18 @@ function scanExclusionMatches(hostname, port, pathname, search, entry) {
 
   const rawPath = (String(pathname || '/')).replace(/\/+$/, '') || '/';
   let decodedPath = rawPath;
-  try { decodedPath = decodeURIComponent(rawPath); } catch {}
+  try { decodedPath = decodeURIComponent(rawPath); } catch { }
   let rulePath = rule.path;
   let decodedRulePath = rule.path;
-  try { decodedRulePath = decodeURIComponent(rule.path); } catch {}
+  try { decodedRulePath = decodeURIComponent(rule.path); } catch { }
 
   if (rule.kind === 'section') {
     const rawPrefix = rulePath.replace(/\/$/, '') + '/';
     const decodedPrefix = decodedRulePath.replace(/\/$/, '') + '/';
     return rawPath === rulePath ||
-           decodedPath === decodedRulePath ||
-           rawPath.startsWith(rawPrefix) ||
-           decodedPath.startsWith(decodedPrefix);
+      decodedPath === decodedRulePath ||
+      rawPath.startsWith(rawPrefix) ||
+      decodedPath.startsWith(decodedPrefix);
   }
 
   if (rawPath !== rulePath && decodedPath !== decodedRulePath) return false;
@@ -696,7 +696,7 @@ function matchesUrlKeyword(urlStr, keyword) {
   try {
     const decoded = decodeURIComponent(lowerUrl);
     if (regex.test(decoded)) return true;
-  } catch {}
+  } catch { }
 
   return false;
 }
