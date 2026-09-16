@@ -90,7 +90,9 @@
         "src/prompt.css",
         "assets/blocked-pages/blocked.html",
         "assets/blocked-pages/*",
-        "assets/data/*"
+        "assets/data/*",
+        "assets/icons/*",
+        "assets/icons/platforms/*"
       ],
       "matches": [
         "<all_urls>"

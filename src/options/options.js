@@ -6,6 +6,7 @@ const sections = {
     whitelist: { title: "Whitelist", subtitle: "Destinations that bypass every rule." },
     keywords: { title: "Blocked Keywords", subtitle: "Block URLs, search queries, and keystrokes matching specific terms." },
     scanning: { title: "Content Scanning", subtitle: "Catch explicit pages on unlisted sites using on-page text inspection." },
+    reels: { title: "Reels & Shorts Blocker", subtitle: "Block short-form video feeds and all their child pages across social platforms." },
     settings: { title: "Settings", subtitle: "Manage cross-device sync, configuration backups, and dashboard security." },
     help: { title: "Help & Setup", subtitle: "Setting up shared settings, and locking the browser down so this cannot be walked around." }
 };
@@ -43,7 +44,20 @@ let state = {
     THEME: 'system', // 'light', 'dark', 'system'
     COLOR_THEME: 'blue', // 'blue', 'pine', 'slate', 'monochrome'
     BYPASS_MODE: 'warning',
-    SHOW_FAVICONS: false
+    SHOW_FAVICONS: false,
+    REELS_BLOCKER_ENABLED: true,
+    REELS_PLATFORMS: {
+        instagram: true,
+        youtube: true,
+        facebook: true,
+        tiktok: true,
+        snapchat: true,
+        x: true,
+        linkedin: true,
+        reddit: true,
+        pinterest: true,
+        twitch: true
+    }
 };
 
 async function init() {
@@ -98,6 +112,7 @@ async function init() {
     setupFaviconToggle();
     setupShortcutSetting();
     setupScanSettings();
+    setupReelsManager();
     setupWeakeningSettings();
     setupImportOath();
     setupSyncStatus();
@@ -186,6 +201,58 @@ function updateScanningSectionDimming(enabled) {
     if (sec) {
         sec.classList.toggle('is-dimmed', !enabled);
     }
+}
+
+// ------------------------------------------------------------------
+// REELS & SHORTS BLOCKER MANAGER
+// ------------------------------------------------------------------
+
+function updateReelsUI() {
+    const headerToggle = document.getElementById('reels-header-toggle');
+    const reelsSection = document.getElementById('section-reels');
+    const platformToggles = document.querySelectorAll('.platform-toggle');
+
+    const isMasterEnabled = state.REELS_BLOCKER_ENABLED !== false;
+    if (headerToggle) headerToggle.checked = isMasterEnabled;
+    if (reelsSection) reelsSection.classList.toggle('is-dimmed', !isMasterEnabled);
+
+    const platforms = state.REELS_PLATFORMS || {};
+    platformToggles.forEach(toggle => {
+        const platform = toggle.getAttribute('data-platform');
+        const isPlatformEnabled = platforms[platform] !== false;
+        toggle.checked = isPlatformEnabled;
+    });
+}
+
+function setupReelsManager() {
+    const headerToggle = document.getElementById('reels-header-toggle');
+    const platformToggles = document.querySelectorAll('.platform-toggle');
+
+    updateReelsUI();
+
+    if (headerToggle) {
+        headerToggle.addEventListener('change', () => {
+            state.REELS_BLOCKER_ENABLED = headerToggle.checked;
+            updateReelsUI();
+            saveState();
+            showToast(headerToggle.checked ? 'Reels & Shorts Blocker enabled.' : 'Reels & Shorts Blocker paused.');
+        });
+    }
+
+    platformToggles.forEach(toggle => {
+        toggle.addEventListener('change', () => {
+            const platform = toggle.getAttribute('data-platform');
+            if (!state.REELS_PLATFORMS) state.REELS_PLATFORMS = {};
+            state.REELS_PLATFORMS[platform] = toggle.checked;
+
+            saveState();
+            const meta = (typeof REELS_PLATFORMS_META !== 'undefined' && REELS_PLATFORMS_META[platform])
+                ? REELS_PLATFORMS_META[platform]
+                : null;
+            const name = meta ? meta.name : platform;
+            showToast(`${name} blocking ${toggle.checked ? 'enabled' : 'disabled'}.`);
+        });
+    });
 }
 
 // ------------------------------------------------------------------
@@ -812,33 +879,37 @@ function saveState() {
 
     latestRevision = Math.max(Date.now(), (typeof latestRevision === 'number' ? latestRevision : 0) + 1);
 
-    chrome.storage.local.set({
-        BLOCK_METHOD: state.BLOCK_METHOD,
-        CUSTOM_REDIRECT_URL: state.CUSTOM_REDIRECT_URL,
-        CUSTOM_DOMAINS: state.CUSTOM_DOMAINS,
-        CUSTOM_KEYWORDS: state.CUSTOM_KEYWORDS,
-        CUSTOM_PAGE_KEYWORDS: state.CUSTOM_PAGE_KEYWORDS,
-        CUSTOM_PAGES: state.CUSTOM_PAGES,
-        CUSTOM_EXACT_PAGES: state.CUSTOM_EXACT_PAGES,
-        CUSTOM_ALLOWED_DOMAINS: state.CUSTOM_ALLOWED_DOMAINS,
-        CUSTOM_SCAN_EXCLUDED: state.CUSTOM_SCAN_EXCLUDED,
-        SCAN_SENSITIVITY: state.SCAN_SENSITIVITY,
-        SCANNING_ENABLED: state.SCANNING_ENABLED,
-        UNLOCK_PHRASE: state.UNLOCK_PHRASE,
-        WEAKENING_MESSAGE: state.WEAKENING_MESSAGE,
-        ACTIVE_GAME_INDEX: state.ACTIVE_GAME_INDEX,
-        SECURITY_ENABLED: state.SECURITY_ENABLED,
-        PASSWORD: state.PASSWORD,
-        THEME: state.THEME,
-        COLOR_THEME: state.COLOR_THEME || 'blue',
-        BYPASS_MODE: state.BYPASS_MODE || 'warning',
-        SHOW_FAVICONS: state.SHOW_FAVICONS === true,
-        SETTINGS_REVISION: latestRevision
-    }, () => {
-        if (!chrome.runtime.lastError) {
-            showToast('Settings auto-saved.');
-        }
-    });
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({
+            BLOCK_METHOD: state.BLOCK_METHOD,
+            CUSTOM_REDIRECT_URL: state.CUSTOM_REDIRECT_URL,
+            CUSTOM_DOMAINS: state.CUSTOM_DOMAINS,
+            CUSTOM_KEYWORDS: state.CUSTOM_KEYWORDS,
+            CUSTOM_PAGE_KEYWORDS: state.CUSTOM_PAGE_KEYWORDS,
+            CUSTOM_PAGES: state.CUSTOM_PAGES,
+            CUSTOM_EXACT_PAGES: state.CUSTOM_EXACT_PAGES,
+            CUSTOM_ALLOWED_DOMAINS: state.CUSTOM_ALLOWED_DOMAINS,
+            CUSTOM_SCAN_EXCLUDED: state.CUSTOM_SCAN_EXCLUDED,
+            SCAN_SENSITIVITY: state.SCAN_SENSITIVITY,
+            SCANNING_ENABLED: state.SCANNING_ENABLED,
+            UNLOCK_PHRASE: state.UNLOCK_PHRASE,
+            WEAKENING_MESSAGE: state.WEAKENING_MESSAGE,
+            ACTIVE_GAME_INDEX: state.ACTIVE_GAME_INDEX,
+            SECURITY_ENABLED: state.SECURITY_ENABLED,
+            PASSWORD: state.PASSWORD,
+            THEME: state.THEME,
+            COLOR_THEME: state.COLOR_THEME || 'blue',
+            BYPASS_MODE: state.BYPASS_MODE || 'warning',
+            SHOW_FAVICONS: state.SHOW_FAVICONS === true,
+            REELS_BLOCKER_ENABLED: state.REELS_BLOCKER_ENABLED !== false,
+            REELS_PLATFORMS: state.REELS_PLATFORMS,
+            SETTINGS_REVISION: latestRevision
+        }, () => {
+            if (!chrome.runtime.lastError) {
+                showToast('Settings auto-saved.');
+            }
+        });
+    }
 
     try {
         chrome.runtime.sendMessage({ action: 'publishSettings', revision: latestRevision }, () => {
@@ -875,6 +946,11 @@ function setupNavigation() {
             if (scanToggleContainer) {
                 scanToggleContainer.style.display = (sectionId === 'scanning') ? 'flex' : 'none';
             }
+
+            const reelsToggleContainer = document.getElementById('reels-header-toggle-container');
+            if (reelsToggleContainer) {
+                reelsToggleContainer.style.display = (sectionId === 'reels') ? 'flex' : 'none';
+            }
         });
     });
 
@@ -888,6 +964,10 @@ function setupNavigation() {
     const scanToggleContainer = document.getElementById('scanning-header-toggle-container');
     if (scanToggleContainer && initialSection) {
         scanToggleContainer.style.display = (initialSection.id === 'section-scanning') ? 'flex' : 'none';
+    }
+    const reelsToggleContainer = document.getElementById('reels-header-toggle-container');
+    if (reelsToggleContainer && initialSection) {
+        reelsToggleContainer.style.display = (initialSection.id === 'section-reels') ? 'flex' : 'none';
     }
 }
 
@@ -1947,6 +2027,10 @@ function populateGames() {
 
 async function restore_options() {
     return new Promise((resolve) => {
+        if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+            resolve();
+            return;
+        }
         chrome.storage.local.get({
             BLOCK_METHOD: 'blocked_page',
             CUSTOM_REDIRECT_URL: '',
@@ -1968,6 +2052,19 @@ async function restore_options() {
             COLOR_THEME: 'blue',
             BYPASS_MODE: 'warning',
             SHOW_FAVICONS: false,
+            REELS_BLOCKER_ENABLED: true,
+            REELS_PLATFORMS: {
+                instagram: true,
+                youtube: true,
+                facebook: true,
+                tiktok: true,
+                snapchat: true,
+                x: true,
+                linkedin: true,
+                reddit: true,
+                pinterest: true,
+                twitch: true
+            },
             FAVICON_CACHE: {},
             SETTINGS_REVISION: 0
         }, (items) => {
@@ -1978,6 +2075,19 @@ async function restore_options() {
             state.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
             state.BYPASS_MODE = items.BYPASS_MODE || 'warning';
             state.SHOW_FAVICONS = items.SHOW_FAVICONS === true;
+            state.REELS_BLOCKER_ENABLED = items.REELS_BLOCKER_ENABLED !== false;
+            state.REELS_PLATFORMS = items.REELS_PLATFORMS || {
+                instagram: true,
+                youtube: true,
+                facebook: true,
+                tiktok: true,
+                snapchat: true,
+                x: true,
+                linkedin: true,
+                reddit: true,
+                pinterest: true,
+                twitch: true
+            };
             faviconMemoryCache = items.FAVICON_CACHE || {};
             applyTheme(state.THEME); // Re-apply theme after load
             applyColorTheme(state.COLOR_THEME || 'blue');
@@ -1989,6 +2099,10 @@ async function restore_options() {
             const scanToggle = document.getElementById('content-scanning-toggle');
             if (scanToggle) scanToggle.checked = state.SCANNING_ENABLED;
             updateScanningSectionDimming(state.SCANNING_ENABLED);
+
+            if (typeof updateReelsUI === 'function') {
+                updateReelsUI();
+            }
 
             const customUrlInput = document.getElementById('custom-redirect-input');
             if (customUrlInput) customUrlInput.value = state.CUSTOM_REDIRECT_URL || '';

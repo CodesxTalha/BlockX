@@ -355,6 +355,12 @@ async function updateBlockingRules() {
     [...new Set(config.KEYWORDS)].forEach(k => addKeywordRule(9, k));
     config.PAGE_URLS.forEach(p => addRule(8, p));
 
+    const activeReels = typeof getActiveReelsPatterns === 'function' ? getActiveReelsPatterns(config) : [];
+    activeReels.forEach(p => {
+      const isDomain = !p.includes('/');
+      addRule(8, p, isDomain);
+    });
+
     const addExactPageRule = (priority, filter) => {
       if (rules.length >= DYNAMIC_RULE_LIMIT) return false;
       let clean = filter.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/\/$/, '');
@@ -474,7 +480,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
   const shouldUpdate = [
     'CUSTOM_DOMAINS', 'CUSTOM_KEYWORDS', 'CUSTOM_PAGES',
     'CUSTOM_EXACT_PAGES', 'CUSTOM_ALLOWED_DOMAINS', 'BLOCK_METHOD', 'ACTIVE_GAME_INDEX',
-    'TEMP_GRANTS'
+    'TEMP_GRANTS', 'REELS_BLOCKER_ENABLED', 'REELS_PLATFORMS'
   ].some(key => changes[key] !== undefined);
 
   if (shouldUpdate) await queueRuleUpdate();
@@ -965,6 +971,16 @@ function blockReason(urlStr, config, tabId) {
       return target.includes(clean);
     });
     if (pageMatch) return 'page';
+  }
+
+  const activeReels = typeof getActiveReelsPatterns === 'function' ? getActiveReelsPatterns(config) : [];
+  if (activeReels && activeReels.length > 0) {
+    const reelMatch = activeReels.some(p => {
+      const clean = p.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      const target = urlLower.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      return target.includes(clean);
+    });
+    if (reelMatch) return 'reels';
   }
 
   if (config.EXACT_PAGE_URLS && config.EXACT_PAGE_URLS.length > 0) {

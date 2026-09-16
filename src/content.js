@@ -708,26 +708,68 @@
     }, 80);
   }
 
-  // --- 5. YOUTUBE SHORTS CSS INJECTION ---
-  if (window.location.hostname.includes('youtube.com')) {
-    const shortsStyle = document.createElement('style');
-    shortsStyle.textContent = `
-      ytd-guide-entry-renderer:has(a[href="/shorts"]),
-      ytd-mini-guide-entry-renderer[aria-label="Shorts"],
-      ytd-mini-guide-entry-renderer[title="Shorts"],
-      a[path="shorts"],
-      ytd-rich-shelf-renderer[is-shorts],
-      ytd-reel-shelf-renderer,
-      ytd-item-section-renderer:has(ytd-reel-shelf-renderer),
-      ytd-shelf-renderer:has(a[href*="/shorts/"]),
-      ytd-rich-item-renderer:has(a[href*="/shorts/"]),
-      ytd-video-renderer:has(a[href*="/shorts/"]),
-      [title="Shorts"],
-      [aria-label="Shorts"] {
-        display: none !important;
-      }
-    `;
-    (document.head || document.documentElement).appendChild(shortsStyle);
+  // --- 5. REELS & SHORTS DISTRACTION SUPPRESSION ---
+  function applyReelsDistractionHiding() {
+    if (!CONFIG || CONFIG.REELS_BLOCKER_ENABLED === false) return;
+    const host = window.location.hostname.toLowerCase();
+    const platforms = CONFIG.REELS_PLATFORMS || {};
+
+    let css = '';
+    if (host.includes('youtube.com') && platforms.youtube !== false) {
+      css += `
+        ytd-guide-entry-renderer:has(a[href="/shorts"]),
+        ytd-mini-guide-entry-renderer[aria-label="Shorts"],
+        ytd-mini-guide-entry-renderer[title="Shorts"],
+        a[path="shorts"],
+        ytd-rich-shelf-renderer[is-shorts],
+        ytd-reel-shelf-renderer,
+        ytd-item-section-renderer:has(ytd-reel-shelf-renderer),
+        ytd-shelf-renderer:has(a[href*="/shorts/"]),
+        ytd-rich-item-renderer:has(a[href*="/shorts/"]),
+        ytd-video-renderer:has(a[href*="/shorts/"]),
+        [title="Shorts"],
+        [aria-label="Shorts"] {
+          display: none !important;
+        }
+      `;
+    }
+    if (host.includes('instagram.com') && platforms.instagram !== false) {
+      css += `
+        a[href*="/reels/"],
+        a[href="/reels"],
+        a[href^="/reels/"],
+        svg[aria-label="Reels"],
+        a[role="link"][href*="/reel/"] {
+          display: none !important;
+        }
+      `;
+    }
+    if (host.includes('facebook.com') && platforms.facebook !== false) {
+      css += `
+        a[href*="/reel/"],
+        a[href*="/reels/"],
+        div[aria-label*="Reels"],
+        div[data-pagelet*="Reels"] {
+          display: none !important;
+        }
+      `;
+    }
+    if (host.includes('reddit.com') && platforms.reddit !== false) {
+      css += `
+        a[href^="/watch"] {
+          display: none !important;
+        }
+      `;
+    }
+
+    if (css.trim()) {
+      const existing = document.getElementById('blockx-reels-distraction-hiding');
+      if (existing) existing.remove();
+      const styleEl = document.createElement('style');
+      styleEl.id = 'blockx-reels-distraction-hiding';
+      styleEl.textContent = css;
+      (document.head || document.documentElement).appendChild(styleEl);
+    }
   }
 
   // ------------------------------------------------------------------
@@ -736,6 +778,7 @@
   await loadConfig();
   buildFilters([]);
   prepareFilter();
+  applyReelsDistractionHiding();
   if (CONFIG && CONFIG.SCANNING_ENABLED === false) {
     dropBarrier();
   }
@@ -1111,6 +1154,17 @@
     });
   }
 
+  function isBlockedReelsPage(url) {
+    if (!url) return false;
+    const patterns = typeof getActiveReelsPatterns === 'function' ? getActiveReelsPatterns(CONFIG) : [];
+    if (!patterns || patterns.length === 0) return false;
+    const lower = url.toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+    return patterns.some(p => {
+      const clean = p.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      return lower.includes(clean);
+    });
+  }
+
   function isExactBlockedPage(url) {
     if (!url || !CONFIG.EXACT_PAGE_URLS) return false;
     try {
@@ -1146,6 +1200,7 @@
           isBlockedDomain(currentHost) ||
           isBlockedPage(currentUrl) ||
           isExactBlockedPage(currentUrl) ||
+          isBlockedReelsPage(currentUrl) ||
           matchesAnyUrlKeyword(currentUrl, CONFIG.KEYWORDS)
         )
       ) {
@@ -1163,7 +1218,8 @@
         !isWhitelisted() && (
           isBlockedDomain(currentHost) ||
           isBlockedPage(currentUrl) ||
-          isExactBlockedPage(currentUrl)
+          isExactBlockedPage(currentUrl) ||
+          isBlockedReelsPage(currentUrl)
         )
       ) {
         if (observer) observer.disconnect();
@@ -1179,6 +1235,7 @@
           isBlockedDomain(currentHost) ||
           isBlockedPage(currentUrl) ||
           isExactBlockedPage(currentUrl) ||
+          isBlockedReelsPage(currentUrl) ||
           matchesAnyUrlKeyword(currentUrl, CONFIG.KEYWORDS)
         )
       ) {
@@ -1216,6 +1273,7 @@
         isBlockedDomain(currentHost) ||
         isBlockedPage(currentUrl) ||
         isExactBlockedPage(currentUrl) ||
+        isBlockedReelsPage(currentUrl) ||
         (!isSearchPage() && matchesAnyUrlKeyword(currentUrl, CONFIG.KEYWORDS))
       )
     ) {

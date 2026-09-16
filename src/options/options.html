@@ -76,6 +76,14 @@
                     </svg>
                     <span>Scanning</span>
                 </a>
+                <a href="#" class="nav-link" data-section="reels">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                    </svg>
+                    <span>Reels &amp; Shorts</span>
+                </a>
             </nav>
 
             <div class="sidebar-help">
@@ -143,6 +151,12 @@
                 <div class="header-actions" id="scanning-header-toggle-container" style="display: none;">
                     <label class="scan-toggle-switch" title="Toggle Content Scanning">
                         <input type="checkbox" id="content-scanning-toggle" checked>
+                        <span class="scan-toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="header-actions" id="reels-header-toggle-container" style="display: none;">
+                    <label class="scan-toggle-switch" title="Toggle Reels &amp; Shorts Blocker">
+                        <input type="checkbox" id="reels-header-toggle" checked>
                         <span class="scan-toggle-slider"></span>
                     </label>
                 </div>
@@ -823,6 +837,181 @@
                             <div id="scan-excluded-list" class="tag-cloud">
                                 <!-- Populated by JS -->
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reels & Shorts Blocker Section -->
+                <div id="section-reels" class="settings-section">
+                    <div class="reels-list">
+                        <!-- Instagram Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/instagram.svg" alt="Instagram" class="reels-platform-img" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">Instagram Reels</span>
+                                    <span class="reels-platform-desc">Blocks instagram.com/reels and all /reel/* child pages</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle Instagram Reels">
+                                <input type="checkbox" class="platform-toggle" data-platform="instagram" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- YouTube Shorts Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/youtube.svg" alt="YouTube" class="reels-platform-img" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">YouTube Shorts</span>
+                                    <span class="reels-platform-desc">Blocks youtube.com/shorts and all /shorts/* child pages</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle YouTube Shorts">
+                                <input type="checkbox" class="platform-toggle" data-platform="youtube" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Facebook Reels Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/facebook.svg" alt="Facebook" class="reels-platform-img" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">Facebook Reels</span>
+                                    <span class="reels-platform-desc">Blocks facebook.com/reel/*, /reels/*, and /watch/reels/*</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle Facebook Reels">
+                                <input type="checkbox" class="platform-toggle" data-platform="facebook" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- TikTok Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/tiktok.svg" alt="TikTok" class="reels-platform-img" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">TikTok</span>
+                                    <span class="reels-platform-desc">Blocks tiktok.com and all creator video streams</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle TikTok">
+                                <input type="checkbox" class="platform-toggle" data-platform="tiktok" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Snapchat Spotlight Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/snapchat.svg" alt="Snapchat" class="reels-platform-img" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">Snapchat Spotlight</span>
+                                    <span class="reels-platform-desc">Blocks snapchat.com/spotlight and all Spotlight video pages</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle Snapchat Spotlight">
+                                <input type="checkbox" class="platform-toggle" data-platform="snapchat" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- X / Twitter Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/x.svg" alt="X" class="reels-platform-img reels-icon-x" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">X / Twitter Videos</span>
+                                    <span class="reels-platform-desc">Blocks x.com/i/videos/* and immersive vertical video streams</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle X / Twitter Videos">
+                                <input type="checkbox" class="platform-toggle" data-platform="x" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- LinkedIn Video Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/linkedin.svg" alt="LinkedIn" class="reels-platform-img" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">LinkedIn Video Feed</span>
+                                    <span class="reels-platform-desc">Blocks linkedin.com/feed/videos and short-form video reels</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle LinkedIn Videos">
+                                <input type="checkbox" class="platform-toggle" data-platform="linkedin" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Reddit Watch Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/reddit.svg" alt="Reddit" class="reels-platform-img" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">Reddit Watch</span>
+                                    <span class="reels-platform-desc">Blocks reddit.com/watch and full-screen video reel feeds</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle Reddit Watch">
+                                <input type="checkbox" class="platform-toggle" data-platform="reddit" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Pinterest Watch Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/pinterest.svg" alt="Pinterest" class="reels-platform-img" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">Pinterest Watch</span>
+                                    <span class="reels-platform-desc">Blocks pinterest.com/watch and video stream Idea pins</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle Pinterest Watch">
+                                <input type="checkbox" class="platform-toggle" data-platform="pinterest" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Twitch Clips Row -->
+                        <div class="reels-row">
+                            <div class="reels-row-left">
+                                <div class="reels-platform-icon">
+                                    <img src="../../assets/icons/platforms/twitch.svg" alt="Twitch" class="reels-platform-img" />
+                                </div>
+                                <div class="reels-row-info">
+                                    <span class="reels-platform-name">Twitch Clips</span>
+                                    <span class="reels-platform-desc">Blocks clips.twitch.tv and twitch.tv/clips feeds</span>
+                                </div>
+                            </div>
+                            <label class="scan-toggle-switch" title="Toggle Twitch Clips">
+                                <input type="checkbox" class="platform-toggle" data-platform="twitch" checked>
+                                <span class="scan-toggle-slider"></span>
+                            </label>
                         </div>
                     </div>
                 </div>

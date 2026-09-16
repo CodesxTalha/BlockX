@@ -62,8 +62,109 @@ let CONFIG = {
   ],
 
   // Whether to fetch, cache, and display website favicons in destination lists
-  SHOW_FAVICONS: false
+  SHOW_FAVICONS: false,
+
+  // Reels & Shorts Blocker settings
+  REELS_BLOCKER_ENABLED: true,
+  REELS_PLATFORMS: {
+    instagram: true,
+    youtube: true,
+    facebook: true,
+    tiktok: true,
+    snapchat: true,
+    x: true,
+    linkedin: true,
+    reddit: true,
+    pinterest: true,
+    twitch: true
+  }
 };
+
+const REELS_PLATFORMS_META = {
+  instagram: {
+    id: 'instagram',
+    name: 'Instagram Reels',
+    description: 'Blocks instagram.com/reels, individual /reel/* child pages, and hides Reels navigation.',
+    patterns: ['instagram.com/reels', 'instagram.com/reel'],
+    badge: 'instagram.com/reels/*'
+  },
+  youtube: {
+    id: 'youtube',
+    name: 'YouTube Shorts',
+    description: 'Blocks youtube.com/shorts and all child pages, removing Shorts from feeds and shelves.',
+    patterns: ['youtube.com/shorts'],
+    badge: 'youtube.com/shorts/*'
+  },
+  facebook: {
+    id: 'facebook',
+    name: 'Facebook Reels',
+    description: 'Blocks facebook.com/reel/*, /reels/*, /watch/reels/*, and hides Reels trays.',
+    patterns: ['facebook.com/reel', 'facebook.com/reels', 'facebook.com/watch/reels'],
+    badge: 'facebook.com/reel/*'
+  },
+  tiktok: {
+    id: 'tiktok',
+    name: 'TikTok',
+    description: 'Blocks the tiktok.com platform, creator feeds, and short video player.',
+    patterns: ['tiktok.com'],
+    badge: 'tiktok.com/*'
+  },
+  snapchat: {
+    id: 'snapchat',
+    name: 'Snapchat Spotlight',
+    description: 'Blocks snapchat.com/spotlight and all Spotlight video streams.',
+    patterns: ['snapchat.com/spotlight'],
+    badge: 'snapchat.com/spotlight/*'
+  },
+  x: {
+    id: 'x',
+    name: 'X / Twitter Video Feed',
+    description: 'Blocks vertical immersive video feeds and watch streams on X / Twitter.',
+    patterns: ['x.com/i/videos', 'twitter.com/i/videos', 'x.com/explore/tabs/video', 'twitter.com/explore/tabs/video'],
+    badge: 'x.com/i/videos/*'
+  },
+  linkedin: {
+    id: 'linkedin',
+    name: 'LinkedIn Video Feed',
+    description: 'Blocks short-form vertical video feeds on linkedin.com/feed/videos.',
+    patterns: ['linkedin.com/feed/videos', 'linkedin.com/video'],
+    badge: 'linkedin.com/feed/videos/*'
+  },
+  reddit: {
+    id: 'reddit',
+    name: 'Reddit Watch',
+    description: 'Blocks reddit.com/watch and full-screen video reel feeds.',
+    patterns: ['reddit.com/watch'],
+    badge: 'reddit.com/watch/*'
+  },
+  pinterest: {
+    id: 'pinterest',
+    name: 'Pinterest Watch',
+    description: 'Blocks pinterest.com/watch and Idea video streams.',
+    patterns: ['pinterest.com/watch'],
+    badge: 'pinterest.com/watch/*'
+  },
+  twitch: {
+    id: 'twitch',
+    name: 'Twitch Clips',
+    description: 'Blocks short clips feeds on clips.twitch.tv and twitch.tv/clips.',
+    patterns: ['clips.twitch.tv', 'twitch.tv/clips', 'twitch.tv/directory/following/clips'],
+    badge: 'clips.twitch.tv/*'
+  }
+};
+
+function getActiveReelsPatterns(cfg = CONFIG) {
+  const c = cfg || (typeof CONFIG !== 'undefined' ? CONFIG : null);
+  if (!c || c.REELS_BLOCKER_ENABLED === false) return [];
+  const platformsState = c.REELS_PLATFORMS || {};
+  const patterns = [];
+  for (const [id, meta] of Object.entries(REELS_PLATFORMS_META)) {
+    if (platformsState[id] !== false) {
+      patterns.push(...meta.patterns);
+    }
+  }
+  return patterns;
+}
 
 // ------------------------------------------------------------------
 // WEAKENING CHANGES
@@ -108,7 +209,9 @@ const IMPORTABLE_KEYS = [
   'COLOR_THEME',
   'SCANNING_ENABLED',
   'BYPASS_MODE',
-  'SHOW_FAVICONS'
+  'SHOW_FAVICONS',
+  'REELS_BLOCKER_ENABLED',
+  'REELS_PLATFORMS'
 ];
 
 // ------------------------------------------------------------------
@@ -204,6 +307,10 @@ function formatCountdown(ms) {
  */
 async function loadConfig() {
   return new Promise((resolve) => {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+      resolve(CONFIG);
+      return;
+    }
     chrome.storage.local.get({
       BLOCK_METHOD: 'blocked_page',
       CUSTOM_REDIRECT_URL: '',
@@ -230,7 +337,20 @@ async function loadConfig() {
       ACTIVE_GAME_INDEX: -1,
       SCANNING_ENABLED: true,
       BYPASS_MODE: 'warning',
-      SHOW_FAVICONS: false
+      SHOW_FAVICONS: false,
+      REELS_BLOCKER_ENABLED: true,
+      REELS_PLATFORMS: {
+        instagram: true,
+        youtube: true,
+        facebook: true,
+        tiktok: true,
+        snapchat: true,
+        x: true,
+        linkedin: true,
+        reddit: true,
+        pinterest: true,
+        twitch: true
+      }
     }, (items) => {
       CONFIG.BLOCK_METHOD = items.BLOCK_METHOD;
       CONFIG.CUSTOM_REDIRECT_URL = items.CUSTOM_REDIRECT_URL;
@@ -252,6 +372,19 @@ async function loadConfig() {
       CONFIG.SCANNING_ENABLED = items.SCANNING_ENABLED !== false;
       CONFIG.BYPASS_MODE = items.BYPASS_MODE || 'warning';
       CONFIG.SHOW_FAVICONS = items.SHOW_FAVICONS === true;
+      CONFIG.REELS_BLOCKER_ENABLED = items.REELS_BLOCKER_ENABLED !== false;
+      CONFIG.REELS_PLATFORMS = items.REELS_PLATFORMS || {
+        instagram: true,
+        youtube: true,
+        facebook: true,
+        tiktok: true,
+        snapchat: true,
+        x: true,
+        linkedin: true,
+        reddit: true,
+        pinterest: true,
+        twitch: true
+      };
       resolve(CONFIG);
     });
   });
@@ -741,6 +874,8 @@ if (typeof globalThis !== 'undefined') {
   globalThis.getGameOrBlockPath = getGameOrBlockPath;
   globalThis.getGameOrBlockUrl = getGameOrBlockUrl;
   globalThis.getBlockUrl = getBlockUrl;
+  globalThis.REELS_PLATFORMS_META = REELS_PLATFORMS_META;
+  globalThis.getActiveReelsPatterns = getActiveReelsPatterns;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -749,6 +884,8 @@ if (typeof module !== 'undefined' && module.exports) {
     BLOCK_STRATEGIES,
     getGameOrBlockPath,
     getGameOrBlockUrl,
-    getBlockUrl
+    getBlockUrl,
+    REELS_PLATFORMS_META,
+    getActiveReelsPatterns
   };
 }
