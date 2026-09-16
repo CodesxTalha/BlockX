@@ -246,11 +246,8 @@ function setupReelsManager() {
             state.REELS_PLATFORMS[platform] = toggle.checked;
 
             saveState();
-            const meta = (typeof REELS_PLATFORMS_META !== 'undefined' && REELS_PLATFORMS_META[platform])
-                ? REELS_PLATFORMS_META[platform]
-                : null;
-            const name = meta ? meta.name : platform;
-            showToast(`${name} blocking ${toggle.checked ? 'enabled' : 'disabled'}.`);
+            const name = toggle.closest('.reels-row')?.querySelector('.reels-platform-name')?.textContent || platform;
+            showToast(`${name} ${toggle.checked ? 'enabled' : 'disabled'}.`);
         });
     });
 }

@@ -80,87 +80,27 @@ let CONFIG = {
   }
 };
 
-const REELS_PLATFORMS_META = {
-  instagram: {
-    id: 'instagram',
-    name: 'Instagram Reels',
-    description: 'Blocks instagram.com/reels, individual /reel/* child pages, and hides Reels navigation.',
-    patterns: ['instagram.com/reels', 'instagram.com/reel'],
-    badge: 'instagram.com/reels/*'
-  },
-  youtube: {
-    id: 'youtube',
-    name: 'YouTube Shorts',
-    description: 'Blocks youtube.com/shorts and all child pages, removing Shorts from feeds and shelves.',
-    patterns: ['youtube.com/shorts'],
-    badge: 'youtube.com/shorts/*'
-  },
-  facebook: {
-    id: 'facebook',
-    name: 'Facebook Reels',
-    description: 'Blocks facebook.com/reel/*, /reels/*, /watch/reels/*, and hides Reels trays.',
-    patterns: ['facebook.com/reel', 'facebook.com/reels', 'facebook.com/watch/reels'],
-    badge: 'facebook.com/reel/*'
-  },
-  tiktok: {
-    id: 'tiktok',
-    name: 'TikTok',
-    description: 'Blocks the tiktok.com platform, creator feeds, and short video player.',
-    patterns: ['tiktok.com'],
-    badge: 'tiktok.com/*'
-  },
-  snapchat: {
-    id: 'snapchat',
-    name: 'Snapchat Spotlight',
-    description: 'Blocks snapchat.com/spotlight and all Spotlight video streams.',
-    patterns: ['snapchat.com/spotlight'],
-    badge: 'snapchat.com/spotlight/*'
-  },
-  x: {
-    id: 'x',
-    name: 'X / Twitter Video Feed',
-    description: 'Blocks vertical immersive video feeds and watch streams on X / Twitter.',
-    patterns: ['x.com/i/videos', 'twitter.com/i/videos', 'x.com/explore/tabs/video', 'twitter.com/explore/tabs/video'],
-    badge: 'x.com/i/videos/*'
-  },
-  linkedin: {
-    id: 'linkedin',
-    name: 'LinkedIn Video Feed',
-    description: 'Blocks short-form vertical video feeds on linkedin.com/feed/videos.',
-    patterns: ['linkedin.com/feed/videos', 'linkedin.com/video'],
-    badge: 'linkedin.com/feed/videos/*'
-  },
-  reddit: {
-    id: 'reddit',
-    name: 'Reddit Watch',
-    description: 'Blocks reddit.com/watch and full-screen video reel feeds.',
-    patterns: ['reddit.com/watch'],
-    badge: 'reddit.com/watch/*'
-  },
-  pinterest: {
-    id: 'pinterest',
-    name: 'Pinterest Watch',
-    description: 'Blocks pinterest.com/watch and Idea video streams.',
-    patterns: ['pinterest.com/watch'],
-    badge: 'pinterest.com/watch/*'
-  },
-  twitch: {
-    id: 'twitch',
-    name: 'Twitch Clips',
-    description: 'Blocks short clips feeds on clips.twitch.tv and twitch.tv/clips.',
-    patterns: ['clips.twitch.tv', 'twitch.tv/clips', 'twitch.tv/directory/following/clips'],
-    badge: 'clips.twitch.tv/*'
-  }
+const REELS_PATTERNS = {
+  instagram: ['instagram.com/reels', 'instagram.com/reel'],
+  youtube: ['youtube.com/shorts'],
+  facebook: ['facebook.com/reel', 'facebook.com/reels', 'facebook.com/watch/reels'],
+  tiktok: ['tiktok.com'],
+  snapchat: ['snapchat.com/spotlight'],
+  x: ['x.com/i/videos', 'twitter.com/i/videos', 'x.com/explore/tabs/video', 'twitter.com/explore/tabs/video'],
+  linkedin: ['linkedin.com/feed/videos', 'linkedin.com/video'],
+  reddit: ['reddit.com/watch'],
+  pinterest: ['pinterest.com/watch'],
+  twitch: ['clips.twitch.tv', 'twitch.tv/clips', 'twitch.tv/directory/following/clips']
 };
 
 function getActiveReelsPatterns(cfg = CONFIG) {
   const c = cfg || (typeof CONFIG !== 'undefined' ? CONFIG : null);
   if (!c || c.REELS_BLOCKER_ENABLED === false) return [];
-  const platformsState = c.REELS_PLATFORMS || {};
+  const state = c.REELS_PLATFORMS || {};
   const patterns = [];
-  for (const [id, meta] of Object.entries(REELS_PLATFORMS_META)) {
-    if (platformsState[id] !== false) {
-      patterns.push(...meta.patterns);
+  for (const [id, pats] of Object.entries(REELS_PATTERNS)) {
+    if (state[id] !== false) {
+      patterns.push(...pats);
     }
   }
   return patterns;
@@ -874,7 +814,7 @@ if (typeof globalThis !== 'undefined') {
   globalThis.getGameOrBlockPath = getGameOrBlockPath;
   globalThis.getGameOrBlockUrl = getGameOrBlockUrl;
   globalThis.getBlockUrl = getBlockUrl;
-  globalThis.REELS_PLATFORMS_META = REELS_PLATFORMS_META;
+  globalThis.REELS_PATTERNS = REELS_PATTERNS;
   globalThis.getActiveReelsPatterns = getActiveReelsPatterns;
 }
 
@@ -885,7 +825,7 @@ if (typeof module !== 'undefined' && module.exports) {
     getGameOrBlockPath,
     getGameOrBlockUrl,
     getBlockUrl,
-    REELS_PLATFORMS_META,
+    REELS_PATTERNS,
     getActiveReelsPatterns
   };
 }
