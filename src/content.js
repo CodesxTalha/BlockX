@@ -831,9 +831,7 @@
     if (window.location.href.startsWith('data:') || window.location.href.includes('chrome-extension://')) return;
 
     if (window.top === window.self) {
-      if (CONFIG.BLOCK_METHOD === 'blocked_page') {
-        chrome.runtime.sendMessage({ action: 'triggerBlock' });
-      }
+      chrome.runtime.sendMessage({ action: 'triggerBlock', url: targetUrlToBlock });
     }
 
     try {
@@ -897,7 +895,10 @@
   // --- 7. SPA MAIN WORLD NOTIFICATIONS & POPSTATE ---
   window.addEventListener('message', (event) => {
     if (event.data && (event.data.type === 'SHORTS_BLOCKED' || event.data.type === 'URL_CHANGED')) {
-      const targetUrl = event.data.url || window.location.href;
+      let targetUrl = window.location.href;
+      try {
+        if (event.data.url) targetUrl = new URL(event.data.url, window.location.href).href;
+      } catch { }
       if (CONFIG && CONFIG.SCANNING_ENABLED === false) {
         verifyPageSafety(targetUrl);
       } else if (isScanExcluded(targetUrl)) {
@@ -1158,10 +1159,19 @@
     if (!url) return false;
     const patterns = typeof getActiveReelsPatterns === 'function' ? getActiveReelsPatterns(CONFIG) : [];
     if (!patterns || patterns.length === 0) return false;
-    const lower = url.toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+    let u;
+    try {
+      u = new URL(url, window.location.href);
+    } catch {
+      return false;
+    }
+    const host = u.hostname.toLowerCase().replace(/^www\./, '');
+    const path = u.pathname.toLowerCase();
+    const full = host + path;
+
     return patterns.some(p => {
       const clean = p.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
-      return lower.includes(clean);
+      return full.includes(clean) || (clean.startsWith(host) && path.startsWith(clean.slice(host.length)));
     });
   }
 
@@ -1188,10 +1198,18 @@
       if (customUrl) currentHost = new URL(customUrl, window.location.href).hostname;
     } catch { }
 
+    if (isBlocked) return true;
+
+    // Immediate Reels & Shorts check (takes precedence so reels feeds are blocked even if parent site is whitelisted)
+    if (isBlockedReelsPage(currentUrl)) {
+      if (observer) observer.disconnect();
+      handleBlock(currentUrl);
+      return true;
+    }
+
     if (isWhitelisted(false, currentUrl)) {
       dropBarrier();
     }
-    if (isBlocked) return true;
 
     if (CONFIG && CONFIG.SCANNING_ENABLED === false) {
       cancelRescan();

@@ -358,7 +358,8 @@ async function updateBlockingRules() {
     const activeReels = typeof getActiveReelsPatterns === 'function' ? getActiveReelsPatterns(config) : [];
     activeReels.forEach(p => {
       const isDomain = !p.includes('/');
-      addRule(8, p, isDomain);
+      // Priority 110 ensures Reels & Shorts blocking takes precedence over domain whitelist (100)
+      addRule(110, p, isDomain);
     });
 
     const addExactPageRule = (priority, filter) => {
@@ -547,9 +548,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'triggerBlock' && sender.tab) {
     if (sender.frameId === 0) {
       loadConfig().then(async (config) => {
-        await rememberBlocked(sender.tab.id, sender.tab.url,
-          blockReason(sender.tab.url, config, sender.tab.id) || 'content');
-        const targetUrl = getBlockUrl(config.BLOCK_METHOD, sender.tab.url);
+        const blockUrl = request.url || sender.tab.url;
+        await rememberBlocked(sender.tab.id, blockUrl,
+          blockReason(blockUrl, config, sender.tab.id) || 'reels');
+        const targetUrl = getBlockUrl(config.BLOCK_METHOD, blockUrl);
         chrome.tabs.update(sender.tab.id, { url: targetUrl });
         sendResponse({ ok: true });
       }).catch(() => sendResponse({ ok: false }));
