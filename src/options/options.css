@@ -2604,15 +2604,7 @@ input:checked+.theme-card-inner .selection-check {
     border-radius: 6px;
 }
 
-body[data-user-theme="dark"] .reels-icon-x {
-    filter: invert(1);
-}
 
-@media (prefers-color-scheme: dark) {
-    body:not([data-user-theme="light"]) .reels-icon-x {
-        filter: invert(1);
-    }
-}
 
 .reels-row-info {
     display: flex;

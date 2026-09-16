@@ -735,11 +735,10 @@
     }
     if (host.includes('instagram.com') && platforms.instagram !== false) {
       css += `
-        a[href*="/reels/"],
-        a[href="/reels"],
-        a[href^="/reels/"],
-        svg[aria-label="Reels"],
-        a[role="link"][href*="/reel/"] {
+        div[role="navigation"] a[href^="/reels"],
+        nav a[href^="/reels"],
+        a[href="/reels/"],
+        a[href="/reels"] {
           display: none !important;
         }
       `;
@@ -750,13 +749,6 @@
         a[href*="/reels/"],
         div[aria-label*="Reels"],
         div[data-pagelet*="Reels"] {
-          display: none !important;
-        }
-      `;
-    }
-    if (host.includes('reddit.com') && platforms.reddit !== false) {
-      css += `
-        a[href^="/watch"] {
           display: none !important;
         }
       `;

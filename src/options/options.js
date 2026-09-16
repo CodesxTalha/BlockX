@@ -50,13 +50,7 @@ let state = {
         instagram: true,
         youtube: true,
         facebook: true,
-        tiktok: true,
-        snapchat: true,
-        x: true,
-        linkedin: true,
-        reddit: true,
-        pinterest: true,
-        twitch: true
+        tiktok: true
     }
 };
 
@@ -2054,13 +2048,7 @@ async function restore_options() {
                 instagram: true,
                 youtube: true,
                 facebook: true,
-                tiktok: true,
-                snapchat: true,
-                x: true,
-                linkedin: true,
-                reddit: true,
-                pinterest: true,
-                twitch: true
+                tiktok: true
             },
             FAVICON_CACHE: {},
             SETTINGS_REVISION: 0
@@ -2077,13 +2065,7 @@ async function restore_options() {
                 instagram: true,
                 youtube: true,
                 facebook: true,
-                tiktok: true,
-                snapchat: true,
-                x: true,
-                linkedin: true,
-                reddit: true,
-                pinterest: true,
-                twitch: true
+                tiktok: true
             };
             faviconMemoryCache = items.FAVICON_CACHE || {};
             applyTheme(state.THEME); // Re-apply theme after load

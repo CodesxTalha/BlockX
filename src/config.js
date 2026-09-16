@@ -70,13 +70,7 @@ let CONFIG = {
     instagram: true,
     youtube: true,
     facebook: true,
-    tiktok: true,
-    snapchat: true,
-    x: true,
-    linkedin: true,
-    reddit: true,
-    pinterest: true,
-    twitch: true
+    tiktok: true
   }
 };
 
@@ -84,13 +78,7 @@ const REELS_PATTERNS = {
   instagram: ['instagram.com/reels', 'instagram.com/reel'],
   youtube: ['youtube.com/shorts'],
   facebook: ['facebook.com/reel', 'facebook.com/reels', 'facebook.com/watch/reels'],
-  tiktok: ['tiktok.com'],
-  snapchat: ['snapchat.com/spotlight'],
-  x: ['x.com/i/videos', 'twitter.com/i/videos', 'x.com/explore/tabs/video', 'twitter.com/explore/tabs/video'],
-  linkedin: ['linkedin.com/feed/videos', 'linkedin.com/video'],
-  reddit: ['reddit.com/watch'],
-  pinterest: ['pinterest.com/watch'],
-  twitch: ['clips.twitch.tv', 'twitch.tv/clips', 'twitch.tv/directory/following/clips']
+  tiktok: ['tiktok.com']
 };
 
 function getActiveReelsPatterns(cfg = CONFIG) {
@@ -283,13 +271,7 @@ async function loadConfig() {
         instagram: true,
         youtube: true,
         facebook: true,
-        tiktok: true,
-        snapchat: true,
-        x: true,
-        linkedin: true,
-        reddit: true,
-        pinterest: true,
-        twitch: true
+        tiktok: true
       }
     }, (items) => {
       CONFIG.BLOCK_METHOD = items.BLOCK_METHOD;
@@ -317,13 +299,7 @@ async function loadConfig() {
         instagram: true,
         youtube: true,
         facebook: true,
-        tiktok: true,
-        snapchat: true,
-        x: true,
-        linkedin: true,
-        reddit: true,
-        pinterest: true,
-        twitch: true
+        tiktok: true
       };
       resolve(CONFIG);
     });
