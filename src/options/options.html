@@ -849,7 +849,20 @@
 
                 <!-- Reels & Shorts Blocker Section -->
                 <div id="section-reels" class="settings-section">
+                    <div class="reels-toolbar">
+                        <span class="reels-toolbar-title">Active Platforms</span>
+                        <button type="button" id="open-add-reels-modal-btn" class="btn btn-secondary btn-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 6px;">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span>Add Platform</span>
+                        </button>
+                    </div>
                     <div class="reels-list">
+                        <!-- Custom Platforms Container -->
+                        <div id="custom-reels-list" class="custom-reels-list"></div>
+
                         <!-- Instagram Row -->
                         <div class="reels-row">
                             <div class="reels-row-left">
@@ -1486,6 +1499,76 @@ python3 install.py</pre>
             <div class="confirm-modal-actions">
                 <button id="weakening-proceed-btn" class="btn btn-primary" type="button">Yes, apply change</button>
                 <button id="weakening-goback-btn" class="btn btn-secondary" type="button">No, cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Custom Reels Platform Modal -->
+    <div id="custom-reels-modal" class="confirm-modal-overlay hidden">
+        <div class="confirm-modal-card custom-reels-modal-card">
+            <div class="custom-reels-modal-header">
+                <h3 class="confirm-warning-text" style="margin: 0; font-size: 17px;">Add Platform Blocker</h3>
+                <button type="button" class="modal-close-btn" id="custom-reels-close-x" aria-label="Close">&times;</button>
+            </div>
+            <p class="modal-subtitle" style="margin: 4px 0 16px 0; font-size: 13px; color: var(--text-secondary);">Block a custom short-form video feed or platform.</p>
+
+            <div class="modal-field" style="margin-bottom: 14px;">
+                <label class="modal-label" for="custom-reels-name" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">Platform Name</label>
+                <input type="text" id="custom-reels-name" class="modal-input" placeholder="e.g. Snapchat Spotlight, Threads, X Videos" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-base); background: var(--bg-input); color: var(--text-primary); font-size: 14px;">
+            </div>
+
+            <div class="modal-field" style="margin-bottom: 16px;">
+                <label class="modal-label" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">URLs or Sections to Block</label>
+                <div class="input-row custom-reels-input-row" style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="custom-reels-url-input" placeholder="e.g. snapchat.com/spotlight" autocomplete="off" style="flex: 1; min-width: 0; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-base); background: var(--bg-input); color: var(--text-primary); font-size: 13px;">
+                    <div class="custom-dropdown" id="custom-reels-scope-dropdown">
+                        <button type="button" class="dropdown-trigger" id="custom-reels-scope-trigger" aria-haspopup="listbox" aria-expanded="false">
+                            <span id="custom-reels-scope-label">With all child pages</span>
+                            <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <input type="hidden" id="custom-reels-scope-value" value="children">
+                        <div class="dropdown-menu" id="custom-reels-scope-menu" role="listbox">
+                            <button type="button" class="dropdown-item active" data-value="children" role="option" aria-selected="true">
+                                <div class="dropdown-item-content">
+                                    <span class="dropdown-item-title">With all child pages</span>
+                                    <span class="dropdown-item-desc">Section and sub-paths (/*)</span>
+                                </div>
+                                <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </button>
+                            <button type="button" class="dropdown-item" data-value="domain" role="option" aria-selected="false">
+                                <div class="dropdown-item-content">
+                                    <span class="dropdown-item-title">The domain</span>
+                                    <span class="dropdown-item-desc">Entire site and all subdomains</span>
+                                </div>
+                                <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </button>
+                            <button type="button" class="dropdown-item" data-value="exact" role="option" aria-selected="false">
+                                <div class="dropdown-item-content">
+                                    <span class="dropdown-item-title">Exact page</span>
+                                    <span class="dropdown-item-desc">This specific URL only</span>
+                                </div>
+                                <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="custom-reels-add-url-btn" class="btn btn-secondary" style="padding: 9px 14px; white-space: nowrap; font-size: 13px;">Add URL</button>
+                </div>
+                <div id="custom-reels-url-tags" class="tag-cloud" style="margin-top: 10px; min-height: 28px;">
+                    <!-- Tags populated dynamically -->
+                </div>
+            </div>
+
+            <div class="confirm-modal-actions" style="flex-direction: row; justify-content: flex-end; gap: 8px; margin-top: 18px;">
+                <button id="custom-reels-cancel-btn" class="btn btn-secondary" type="button" style="width: auto; padding: 9px 18px;">Cancel</button>
+                <button id="custom-reels-save-btn" class="btn btn-primary" type="button" style="width: auto; padding: 9px 20px;">Save Platform</button>
             </div>
         </div>
     </div>

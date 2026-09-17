@@ -51,7 +51,8 @@ let state = {
         youtube: true,
         facebook: true,
         tiktok: true
-    }
+    },
+    CUSTOM_REELS_PLATFORMS: []
 };
 
 async function init() {
@@ -244,6 +245,268 @@ function setupReelsManager() {
             showToast(`${name} ${toggle.checked ? 'enabled' : 'disabled'}.`);
         });
     });
+
+    renderCustomReelsPlatforms();
+    setupCustomReelsModal();
+}
+
+function renderCustomReelsPlatforms() {
+    const container = document.getElementById('custom-reels-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const platforms = Array.isArray(state.CUSTOM_REELS_PLATFORMS) ? state.CUSTOM_REELS_PLATFORMS : [];
+    platforms.forEach((platform, index) => {
+        const row = document.createElement('div');
+        row.className = 'reels-row custom-reels-row';
+        row.setAttribute('data-platform-id', platform.id);
+
+        const rowLeft = document.createElement('div');
+        rowLeft.className = 'reels-row-left';
+
+        const iconBox = document.createElement('div');
+        iconBox.className = 'reels-platform-icon';
+        const badge = document.createElement('div');
+        badge.className = 'custom-platform-badge';
+        badge.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+        `;
+        iconBox.appendChild(badge);
+
+        const info = document.createElement('div');
+        info.className = 'reels-row-info';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'reels-platform-name';
+        nameEl.textContent = platform.name;
+
+        const descEl = document.createElement('span');
+        descEl.className = 'reels-platform-desc';
+        const patternsList = (platform.patterns || []).join(', ');
+        descEl.textContent = patternsList ? `Blocks ${patternsList}` : 'No URLs configured';
+
+        info.appendChild(nameEl);
+        info.appendChild(descEl);
+
+        rowLeft.appendChild(iconBox);
+        rowLeft.appendChild(info);
+
+        const actions = document.createElement('div');
+        actions.className = 'reels-row-actions';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'reels-delete-btn';
+        deleteBtn.title = 'Delete this blocker';
+        deleteBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 17px; height: 17px;">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+        `;
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            state.CUSTOM_REELS_PLATFORMS.splice(index, 1);
+            saveState();
+            renderCustomReelsPlatforms();
+            showToast(`Deleted ${platform.name}.`);
+        });
+
+        const toggleLabel = document.createElement('label');
+        toggleLabel.className = 'scan-toggle-switch';
+        toggleLabel.title = `Toggle ${platform.name}`;
+
+        const toggleInput = document.createElement('input');
+        toggleInput.type = 'checkbox';
+        toggleInput.className = 'custom-platform-toggle';
+        toggleInput.checked = platform.enabled !== false;
+        toggleInput.addEventListener('change', () => {
+            platform.enabled = toggleInput.checked;
+            saveState();
+            showToast(`${platform.name} ${toggleInput.checked ? 'enabled' : 'disabled'}.`);
+        });
+
+        const slider = document.createElement('span');
+        slider.className = 'scan-toggle-slider';
+
+        toggleLabel.appendChild(toggleInput);
+        toggleLabel.appendChild(slider);
+
+        actions.appendChild(deleteBtn);
+        actions.appendChild(toggleLabel);
+
+        row.appendChild(rowLeft);
+        row.appendChild(actions);
+
+        container.appendChild(row);
+    });
+}
+
+function setupCustomReelsModal() {
+    const openModalBtn = document.getElementById('open-add-reels-modal-btn');
+    const modal = document.getElementById('custom-reels-modal');
+    const closeXBtn = document.getElementById('custom-reels-close-x');
+    const cancelBtn = document.getElementById('custom-reels-cancel-btn');
+    const saveBtn = document.getElementById('custom-reels-save-btn');
+    const nameInput = document.getElementById('custom-reels-name');
+    const urlInput = document.getElementById('custom-reels-url-input');
+    const addUrlBtn = document.getElementById('custom-reels-add-url-btn');
+    const tagsContainer = document.getElementById('custom-reels-url-tags');
+
+    const scopeDropdown = document.getElementById('custom-reels-scope-dropdown');
+    const scopeTrigger = document.getElementById('custom-reels-scope-trigger');
+    const scopeLabel = document.getElementById('custom-reels-scope-label');
+    const scopeMenu = document.getElementById('custom-reels-scope-menu');
+    const scopeVal = document.getElementById('custom-reels-scope-value');
+
+    let currentPatterns = [];
+
+    const updateTagsUI = () => {
+        if (!tagsContainer) return;
+        tagsContainer.innerHTML = '';
+        currentPatterns.forEach((pat, pIdx) => {
+            const tag = document.createElement('div');
+            tag.className = 'tag';
+            tag.textContent = pat;
+            const del = document.createElement('div');
+            del.className = 'tag-delete';
+            del.title = 'Remove';
+            del.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            `;
+            del.addEventListener('click', () => {
+                currentPatterns.splice(pIdx, 1);
+                updateTagsUI();
+            });
+            tag.appendChild(del);
+            tagsContainer.appendChild(tag);
+        });
+    };
+
+    const addPatternFromInput = () => {
+        if (!urlInput) return;
+        let raw = urlInput.value.trim();
+        if (!raw) return;
+
+        let scope = scopeVal ? scopeVal.value : 'children';
+        let clean = raw.replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '');
+        let finalPattern = clean;
+
+        if (scope === 'domain') {
+            finalPattern = clean.split('/')[0].split('?')[0].split('#')[0];
+        } else if (scope === 'children') {
+            finalPattern = clean.replace(/\/?\*+$/, '').replace(/\/+$/, '');
+        } else if (scope === 'exact') {
+            finalPattern = clean.replace(/\/?\*+$/, '');
+        }
+
+        if (finalPattern && !currentPatterns.includes(finalPattern)) {
+            currentPatterns.push(finalPattern);
+            updateTagsUI();
+            urlInput.value = '';
+        }
+    };
+
+    if (addUrlBtn) {
+        addUrlBtn.addEventListener('click', addPatternFromInput);
+    }
+    if (urlInput) {
+        urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addPatternFromInput();
+            }
+        });
+    }
+
+    if (scopeTrigger && scopeDropdown && scopeMenu) {
+        scopeTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            scopeDropdown.classList.toggle('is-open');
+        });
+        scopeMenu.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const val = item.getAttribute('data-value');
+                if (scopeVal) scopeVal.value = val;
+                scopeMenu.querySelectorAll('.dropdown-item').forEach(i => {
+                    const active = i === item;
+                    i.classList.toggle('active', active);
+                    i.setAttribute('aria-selected', active ? 'true' : 'false');
+                });
+                const title = item.querySelector('.dropdown-item-title');
+                if (scopeLabel && title) scopeLabel.textContent = title.textContent;
+                scopeDropdown.classList.remove('is-open');
+            });
+        });
+        document.addEventListener('click', () => {
+            scopeDropdown.classList.remove('is-open');
+        });
+    }
+
+    const openModal = () => {
+        currentPatterns = [];
+        if (nameInput) nameInput.value = '';
+        if (urlInput) urlInput.value = '';
+        updateTagsUI();
+        if (modal) modal.classList.remove('hidden');
+        if (nameInput) nameInput.focus();
+    };
+
+    const closeModal = () => {
+        if (modal) modal.classList.add('hidden');
+        currentPatterns = [];
+    };
+
+    if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+    if (closeXBtn) closeXBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            const name = (nameInput ? nameInput.value : '').trim();
+            if (!name) {
+                showToast('Please enter a platform name.');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+            if (currentPatterns.length === 0) {
+                if (urlInput && urlInput.value.trim()) {
+                    addPatternFromInput();
+                }
+            }
+            if (currentPatterns.length === 0) {
+                showToast('Please add at least one URL or pattern to block.');
+                if (urlInput) urlInput.focus();
+                return;
+            }
+
+            if (!Array.isArray(state.CUSTOM_REELS_PLATFORMS)) {
+                state.CUSTOM_REELS_PLATFORMS = [];
+            }
+
+            const newPlatform = {
+                id: 'custom_' + Date.now(),
+                name: name,
+                patterns: [...currentPatterns],
+                enabled: true
+            };
+
+            state.CUSTOM_REELS_PLATFORMS.push(newPlatform);
+            saveState();
+            renderCustomReelsPlatforms();
+            closeModal();
+            showToast(`Added ${name} blocker.`);
+        });
+    }
 }
 
 // ------------------------------------------------------------------
@@ -894,6 +1157,7 @@ function saveState() {
             SHOW_FAVICONS: state.SHOW_FAVICONS === true,
             REELS_BLOCKER_ENABLED: state.REELS_BLOCKER_ENABLED !== false,
             REELS_PLATFORMS: state.REELS_PLATFORMS,
+            CUSTOM_REELS_PLATFORMS: state.CUSTOM_REELS_PLATFORMS || [],
             SETTINGS_REVISION: latestRevision
         }, () => {
             if (!chrome.runtime.lastError) {
@@ -2050,6 +2314,7 @@ async function restore_options() {
                 facebook: true,
                 tiktok: true
             },
+            CUSTOM_REELS_PLATFORMS: [],
             FAVICON_CACHE: {},
             SETTINGS_REVISION: 0
         }, (items) => {
@@ -2067,6 +2332,7 @@ async function restore_options() {
                 facebook: true,
                 tiktok: true
             };
+            state.CUSTOM_REELS_PLATFORMS = Array.isArray(items.CUSTOM_REELS_PLATFORMS) ? items.CUSTOM_REELS_PLATFORMS : [];
             faviconMemoryCache = items.FAVICON_CACHE || {};
             applyTheme(state.THEME); // Re-apply theme after load
             applyColorTheme(state.COLOR_THEME || 'blue');

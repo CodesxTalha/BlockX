@@ -481,7 +481,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
   const shouldUpdate = [
     'CUSTOM_DOMAINS', 'CUSTOM_KEYWORDS', 'CUSTOM_PAGES',
     'CUSTOM_EXACT_PAGES', 'CUSTOM_ALLOWED_DOMAINS', 'BLOCK_METHOD', 'ACTIVE_GAME_INDEX',
-    'TEMP_GRANTS', 'REELS_BLOCKER_ENABLED', 'REELS_PLATFORMS'
+    'TEMP_GRANTS', 'REELS_BLOCKER_ENABLED', 'REELS_PLATFORMS', 'CUSTOM_REELS_PLATFORMS'
   ].some(key => changes[key] !== undefined);
 
   if (shouldUpdate) await queueRuleUpdate();

@@ -71,7 +71,8 @@ let CONFIG = {
     youtube: true,
     facebook: true,
     tiktok: true
-  }
+  },
+  CUSTOM_REELS_PLATFORMS: []
 };
 
 const REELS_PATTERNS = {
@@ -89,6 +90,13 @@ function getActiveReelsPatterns(cfg = CONFIG) {
   for (const [id, pats] of Object.entries(REELS_PATTERNS)) {
     if (state[id] !== false) {
       patterns.push(...pats);
+    }
+  }
+  if (Array.isArray(c.CUSTOM_REELS_PLATFORMS)) {
+    for (const cp of c.CUSTOM_REELS_PLATFORMS) {
+      if (cp && cp.enabled !== false && Array.isArray(cp.patterns)) {
+        patterns.push(...cp.patterns);
+      }
     }
   }
   return patterns;
@@ -272,7 +280,8 @@ async function loadConfig() {
         youtube: true,
         facebook: true,
         tiktok: true
-      }
+      },
+      CUSTOM_REELS_PLATFORMS: []
     }, (items) => {
       CONFIG.BLOCK_METHOD = items.BLOCK_METHOD;
       CONFIG.CUSTOM_REDIRECT_URL = items.CUSTOM_REDIRECT_URL;
@@ -301,6 +310,7 @@ async function loadConfig() {
         facebook: true,
         tiktok: true
       };
+      CONFIG.CUSTOM_REELS_PLATFORMS = Array.isArray(items.CUSTOM_REELS_PLATFORMS) ? items.CUSTOM_REELS_PLATFORMS : [];
       resolve(CONFIG);
     });
   });
