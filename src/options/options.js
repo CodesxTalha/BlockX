@@ -266,15 +266,11 @@ function renderCustomReelsPlatforms() {
 
         const iconBox = document.createElement('div');
         iconBox.className = 'reels-platform-icon';
-        const badge = document.createElement('div');
-        badge.className = 'custom-platform-badge';
-        badge.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-            </svg>
-        `;
-        iconBox.appendChild(badge);
+        const img = document.createElement('img');
+        img.src = '../../assets/icons/platforms/custom.svg';
+        img.alt = platform.name;
+        img.className = 'reels-platform-img';
+        iconBox.appendChild(img);
 
         const info = document.createElement('div');
         info.className = 'reels-row-info';

@@ -1507,21 +1507,25 @@ python3 install.py</pre>
     <div id="custom-reels-modal" class="confirm-modal-overlay hidden">
         <div class="confirm-modal-card custom-reels-modal-card">
             <div class="custom-reels-modal-header">
-                <h3 class="confirm-warning-text" style="margin: 0; font-size: 17px;">Add Platform Blocker</h3>
+                <h3 class="custom-reels-modal-title">Add Platform Blocker</h3>
                 <button type="button" class="modal-close-btn" id="custom-reels-close-x" aria-label="Close">&times;</button>
             </div>
-            <p class="modal-subtitle" style="margin: 4px 0 16px 0; font-size: 13px; color: var(--text-secondary);">Block a custom short-form video feed or platform.</p>
+            <p class="modal-subtitle">Block a custom short-form video feed or platform.</p>
 
-            <div class="modal-field" style="margin-bottom: 14px;">
-                <label class="modal-label" for="custom-reels-name" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">Platform Name</label>
-                <input type="text" id="custom-reels-name" class="modal-input" placeholder="e.g. Snapchat Spotlight, Threads, X Videos" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-base); background: var(--bg-input); color: var(--text-primary); font-size: 14px;">
+            <div class="modal-field">
+                <label class="modal-label" for="custom-reels-name">Platform Name</label>
+                <input type="text" id="custom-reels-name" class="reels-modal-input" placeholder="e.g. Snapchat Spotlight, Threads, X Videos" autocomplete="off">
             </div>
 
-            <div class="modal-field" style="margin-bottom: 16px;">
-                <label class="modal-label" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">URLs or Sections to Block</label>
-                <div class="input-row custom-reels-input-row" style="display: flex; gap: 8px; align-items: center;">
-                    <input type="text" id="custom-reels-url-input" placeholder="e.g. snapchat.com/spotlight" autocomplete="off" style="flex: 1; min-width: 0; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-base); background: var(--bg-input); color: var(--text-primary); font-size: 13px;">
-                    <div class="custom-dropdown" id="custom-reels-scope-dropdown">
+            <div class="modal-field">
+                <label class="modal-label" for="custom-reels-url-input">URL or Section to Block</label>
+                <input type="text" id="custom-reels-url-input" class="reels-modal-input" placeholder="e.g. snapchat.com/spotlight or threads.net" autocomplete="off">
+            </div>
+
+            <div class="modal-field">
+                <label class="modal-label">Blocking Scope</label>
+                <div class="reels-modal-scope-row">
+                    <div class="custom-dropdown reels-modal-dropdown" id="custom-reels-scope-dropdown">
                         <button type="button" class="dropdown-trigger" id="custom-reels-scope-trigger" aria-haspopup="listbox" aria-expanded="false">
                             <span id="custom-reels-scope-label">With all child pages</span>
                             <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1559,16 +1563,22 @@ python3 install.py</pre>
                             </button>
                         </div>
                     </div>
-                    <button type="button" id="custom-reels-add-url-btn" class="btn btn-secondary" style="padding: 9px 14px; white-space: nowrap; font-size: 13px;">Add URL</button>
+                    <button type="button" id="custom-reels-add-url-btn" class="btn btn-secondary reels-modal-add-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 6px;">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <span>Add URL</span>
+                    </button>
                 </div>
-                <div id="custom-reels-url-tags" class="tag-cloud" style="margin-top: 10px; min-height: 28px;">
+                <div id="custom-reels-url-tags" class="tag-cloud" style="margin-top: 12px; min-height: 28px;">
                     <!-- Tags populated dynamically -->
                 </div>
             </div>
 
-            <div class="confirm-modal-actions" style="flex-direction: row; justify-content: flex-end; gap: 8px; margin-top: 18px;">
-                <button id="custom-reels-cancel-btn" class="btn btn-secondary" type="button" style="width: auto; padding: 9px 18px;">Cancel</button>
-                <button id="custom-reels-save-btn" class="btn btn-primary" type="button" style="width: auto; padding: 9px 20px;">Save Platform</button>
+            <div class="confirm-modal-actions reels-modal-actions">
+                <button id="custom-reels-cancel-btn" class="btn btn-secondary" type="button">Cancel</button>
+                <button id="custom-reels-save-btn" class="btn btn-primary" type="button">Save Platform</button>
             </div>
         </div>
     </div>
