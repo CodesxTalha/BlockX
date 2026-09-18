@@ -1,31 +1,37 @@
 // background.js
-try {
-  importScripts('config.js');
-} catch (e1) {
+if (typeof CONFIG === 'undefined') {
   try {
-    importScripts('/src/config.js');
-  } catch (e2) {
-    console.error('[BlockX] Failed to load config.js:', e2);
+    importScripts('config.js');
+  } catch (e1) {
+    try {
+      importScripts('/src/config.js');
+    } catch (e2) {
+      console.error('[BlockX] Failed to load config.js:', e2);
+    }
   }
 }
 
-try {
-  importScripts('settings-sync.js');
-} catch (e1) {
+if (typeof reconcileSettings === 'undefined') {
   try {
-    importScripts('/src/settings-sync.js');
-  } catch (e2) {
-    console.warn('[BlockX] Settings sync helper not available:', e2);
+    importScripts('settings-sync.js');
+  } catch (e1) {
+    try {
+      importScripts('/src/settings-sync.js');
+    } catch (e2) {
+      console.warn('[BlockX] Settings sync helper not available:', e2);
+    }
   }
 }
 
-try {
-  importScripts('icon-helper.js');
-} catch (e1) {
+if (typeof updateDynamicActionIcon === 'undefined') {
   try {
-    importScripts('/src/icon-helper.js');
-  } catch (e2) {
-    console.warn('[BlockX] Icon helper not available:', e2);
+    importScripts('icon-helper.js');
+  } catch (e1) {
+    try {
+      importScripts('/src/icon-helper.js');
+    } catch (e2) {
+      console.warn('[BlockX] Icon helper not available:', e2);
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-let CONFIG = {
+var CONFIG = {
   // 'blocked_page', 'infinite_hang', 'data_uri'
   BLOCK_METHOD: 'blocked_page',
 
@@ -75,12 +75,14 @@ let CONFIG = {
   CUSTOM_REELS_PLATFORMS: []
 };
 
-const REELS_PATTERNS = {
+var REELS_PATTERNS = {
   instagram: ['instagram.com/reels'],
   youtube: ['youtube.com/shorts'],
   facebook: ['facebook.com/reel', 'facebook.com/reels', 'facebook.com/watch/reels'],
   tiktok: ['tiktok.com']
 };
+
+var REELS_PLATFORMS_META = REELS_PATTERNS;
 
 function getActiveReelsPatterns(cfg = CONFIG) {
   const c = cfg || (typeof CONFIG !== 'undefined' ? CONFIG : null);
@@ -801,6 +803,7 @@ if (typeof globalThis !== 'undefined') {
   globalThis.getGameOrBlockUrl = getGameOrBlockUrl;
   globalThis.getBlockUrl = getBlockUrl;
   globalThis.REELS_PATTERNS = REELS_PATTERNS;
+  globalThis.REELS_PLATFORMS_META = REELS_PLATFORMS_META;
   globalThis.getActiveReelsPatterns = getActiveReelsPatterns;
 }
 
@@ -812,6 +815,7 @@ if (typeof module !== 'undefined' && module.exports) {
     getGameOrBlockUrl,
     getBlockUrl,
     REELS_PATTERNS,
+    REELS_PLATFORMS_META,
     getActiveReelsPatterns
   };
 }
