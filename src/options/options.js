@@ -265,12 +265,14 @@ function renderCustomReelsPlatforms() {
         rowLeft.className = 'reels-row-left';
 
         const iconBox = document.createElement('div');
-        iconBox.className = 'reels-platform-icon';
-        const img = document.createElement('img');
-        img.src = '../../assets/icons/platforms/custom.svg';
-        img.alt = platform.name;
-        img.className = 'reels-platform-img';
-        iconBox.appendChild(img);
+        iconBox.className = 'reels-platform-icon custom-platform-icon';
+        iconBox.innerHTML = `
+            <svg class="reels-platform-globe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+        `;
 
         const info = document.createElement('div');
         info.className = 'reels-row-info';
@@ -350,116 +352,246 @@ function setupCustomReelsModal() {
     const cancelBtn = document.getElementById('custom-reels-cancel-btn');
     const saveBtn = document.getElementById('custom-reels-save-btn');
     const nameInput = document.getElementById('custom-reels-name');
-    const urlInput = document.getElementById('custom-reels-url-input');
-    const addUrlBtn = document.getElementById('custom-reels-add-url-btn');
-    const tagsContainer = document.getElementById('custom-reels-url-tags');
+    const rowsContainer = document.getElementById('custom-reels-rows-container');
+    const addRowBtn = document.getElementById('custom-reels-add-row-btn');
 
-    const scopeDropdown = document.getElementById('custom-reels-scope-dropdown');
-    const scopeTrigger = document.getElementById('custom-reels-scope-trigger');
-    const scopeLabel = document.getElementById('custom-reels-scope-label');
-    const scopeMenu = document.getElementById('custom-reels-scope-menu');
-    const scopeVal = document.getElementById('custom-reels-scope-value');
-
-    let currentPatterns = [];
-
-    const updateTagsUI = () => {
-        if (!tagsContainer) return;
-        tagsContainer.innerHTML = '';
-        currentPatterns.forEach((pat, pIdx) => {
-            const tag = document.createElement('div');
-            tag.className = 'tag';
-            tag.textContent = pat;
-            const del = document.createElement('div');
-            del.className = 'tag-delete';
-            del.title = 'Remove';
-            del.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            `;
-            del.addEventListener('click', () => {
-                currentPatterns.splice(pIdx, 1);
-                updateTagsUI();
-            });
-            tag.appendChild(del);
-            tagsContainer.appendChild(tag);
-        });
-    };
-
-    const addPatternFromInput = () => {
-        if (!urlInput) return;
-        let raw = urlInput.value.trim();
-        if (!raw) return;
-
-        let scope = scopeVal ? scopeVal.value : 'children';
-        let clean = raw.replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '');
-        let finalPattern = clean;
-
-        if (scope === 'domain') {
-            finalPattern = clean.split('/')[0].split('?')[0].split('#')[0];
-        } else if (scope === 'children') {
-            finalPattern = clean.replace(/\/?\*+$/, '').replace(/\/+$/, '');
-        } else if (scope === 'exact') {
-            finalPattern = clean.replace(/\/?\*+$/, '');
-        }
-
-        if (finalPattern && !currentPatterns.includes(finalPattern)) {
-            currentPatterns.push(finalPattern);
-            updateTagsUI();
-            urlInput.value = '';
-        }
-    };
-
-    if (addUrlBtn) {
-        addUrlBtn.addEventListener('click', addPatternFromInput);
+    // URL & domain validator: checks for valid domain/URL and disallows plain keywords
+    function isValidPlatformUrl(raw) {
+        if (!raw || typeof raw !== 'string') return false;
+        let clean = raw.trim().replace(/^[a-z]+:\/\//i, '').replace(/^\/\//, '').replace(/^www\./i, '');
+        if (!clean || /\s/.test(clean)) return false;
+        const hostPart = clean.split('/')[0].split('?')[0].split('#')[0].split(':')[0].toLowerCase();
+        const domainRegex = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+        const ipOrLocalhostRegex = /^(?:localhost|\d{1,3}(?:\.\d{1,3}){3})$/i;
+        return domainRegex.test(hostPart) || ipOrLocalhostRegex.test(hostPart);
     }
-    if (urlInput) {
-        urlInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                addPatternFromInput();
+
+    // Helper to create a single dynamic URL row with its own scope dropdown & remove button
+    function createUrlRow(initialUrl = '', initialScope = 'children') {
+        const row = document.createElement('div');
+        row.className = 'reels-url-row';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'reels-modal-input reels-row-url-input';
+        input.placeholder = 'e.g. web.snapchat.com/reels or snapchat.com';
+        input.value = initialUrl;
+        input.autocomplete = 'off';
+
+        input.addEventListener('blur', () => {
+            const raw = input.value.trim();
+            if (raw && !isValidPlatformUrl(raw)) {
+                input.style.borderColor = '#ef4444';
+            } else {
+                input.style.borderColor = '';
             }
         });
-    }
-
-    if (scopeTrigger && scopeDropdown && scopeMenu) {
-        scopeTrigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            scopeDropdown.classList.toggle('is-open');
+        input.addEventListener('input', () => {
+            if (input.style.borderColor) {
+                const raw = input.value.trim();
+                if (!raw || isValidPlatformUrl(raw)) {
+                    input.style.borderColor = '';
+                }
+            }
         });
-        scopeMenu.querySelectorAll('.dropdown-item').forEach(item => {
+
+        // Custom Scope Dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'custom-dropdown reels-row-scope-dropdown';
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'dropdown-trigger reels-row-scope-trigger';
+        trigger.setAttribute('aria-haspopup', 'listbox');
+        trigger.setAttribute('aria-expanded', 'false');
+
+        const label = document.createElement('span');
+        label.className = 'reels-row-scope-label';
+        const scopeLabels = {
+            children: 'All childs',
+            domain: 'Domain',
+            exact: 'Exact page'
+        };
+        label.textContent = scopeLabels[initialScope] || 'All childs';
+
+        const chevronWrap = document.createElement('span');
+        chevronWrap.innerHTML = `
+            <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        `;
+        const chevron = chevronWrap.firstElementChild;
+
+        trigger.appendChild(label);
+        trigger.appendChild(chevron);
+
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.className = 'reels-row-scope-val';
+        hiddenInput.value = initialScope;
+
+        const menu = document.createElement('div');
+        menu.className = 'dropdown-menu reels-row-scope-menu';
+        menu.setAttribute('role', 'listbox');
+
+        const scopes = [
+            { id: 'children', title: 'All childs' },
+            { id: 'domain', title: 'Domain' },
+            { id: 'exact', title: 'Exact page' }
+        ];
+
+        scopes.forEach(sc => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'dropdown-item' + (sc.id === initialScope ? ' active' : '');
+            item.setAttribute('data-value', sc.id);
+            item.setAttribute('role', 'option');
+            item.setAttribute('aria-selected', sc.id === initialScope ? 'true' : 'false');
+            item.innerHTML = `
+                <span class="dropdown-item-title">${sc.title}</span>
+                <svg class="dropdown-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const val = item.getAttribute('data-value');
-                if (scopeVal) scopeVal.value = val;
-                scopeMenu.querySelectorAll('.dropdown-item').forEach(i => {
-                    const active = i === item;
-                    i.classList.toggle('active', active);
-                    i.setAttribute('aria-selected', active ? 'true' : 'false');
+                hiddenInput.value = sc.id;
+                label.textContent = sc.title;
+                menu.querySelectorAll('.dropdown-item').forEach(other => {
+                    const match = other === item;
+                    other.classList.toggle('active', match);
+                    other.setAttribute('aria-selected', match ? 'true' : 'false');
                 });
-                const title = item.querySelector('.dropdown-item-title');
-                if (scopeLabel && title) scopeLabel.textContent = title.textContent;
-                scopeDropdown.classList.remove('is-open');
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
             });
+
+            menu.appendChild(item);
         });
-        document.addEventListener('click', () => {
-            scopeDropdown.classList.remove('is-open');
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.custom-dropdown.is-open').forEach(d => {
+                if (d !== dropdown) {
+                    d.classList.remove('is-open');
+                    const trig = d.querySelector('.dropdown-trigger');
+                    if (trig) trig.setAttribute('aria-expanded', 'false');
+                }
+            });
+            const isOpen = dropdown.classList.toggle('is-open');
+            trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        dropdown.appendChild(trigger);
+        dropdown.appendChild(hiddenInput);
+        dropdown.appendChild(menu);
+
+        // Remove row button
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'reels-row-remove-btn';
+        removeBtn.title = 'Remove this URL';
+        removeBtn.setAttribute('aria-label', 'Remove this URL');
+        removeBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        `;
+        removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (rowsContainer && rowsContainer.children.length > 1) {
+                row.remove();
+            } else {
+                input.value = '';
+                input.style.borderColor = '';
+                hiddenInput.value = 'children';
+                label.textContent = 'All childs';
+                menu.querySelectorAll('.dropdown-item').forEach(item => {
+                    const match = item.getAttribute('data-value') === 'children';
+                    item.classList.toggle('active', match);
+                    item.setAttribute('aria-selected', match ? 'true' : 'false');
+                });
+            }
+        });
+
+        // Pressing Enter in URL input adds next row and focuses it
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const raw = input.value.trim();
+                if (raw && !isValidPlatformUrl(raw)) {
+                    showToast(`"${raw}" is a keyword, not a valid URL or domain.`);
+                    input.style.borderColor = '#ef4444';
+                    input.focus();
+                    return;
+                }
+                if (rowsContainer) {
+                    const newRow = createUrlRow('', 'children');
+                    rowsContainer.appendChild(newRow);
+                    const newInput = newRow.querySelector('.reels-row-url-input');
+                    if (newInput) newInput.focus();
+                }
+            }
+        });
+
+        row.appendChild(input);
+        row.appendChild(dropdown);
+        row.appendChild(removeBtn);
+
+        return row;
+    }
+
+    // Add URL button
+    if (addRowBtn && rowsContainer) {
+        addRowBtn.addEventListener('click', () => {
+            const newRow = createUrlRow('', 'children');
+            rowsContainer.appendChild(newRow);
+            const input = newRow.querySelector('.reels-row-url-input');
+            if (input) input.focus();
         });
     }
 
-    const openModal = () => {
-        currentPatterns = [];
+    // Dismiss open dropdowns when clicking outside or pressing Escape
+    document.addEventListener('click', () => {
+        if (rowsContainer) {
+            rowsContainer.querySelectorAll('.reels-row-scope-dropdown.is-open').forEach(d => {
+                d.classList.remove('is-open');
+                const trig = d.querySelector('.dropdown-trigger');
+                if (trig) trig.setAttribute('aria-expanded', 'false');
+            });
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && rowsContainer) {
+            rowsContainer.querySelectorAll('.reels-row-scope-dropdown.is-open').forEach(d => {
+                d.classList.remove('is-open');
+                const trig = d.querySelector('.dropdown-trigger');
+                if (trig) trig.setAttribute('aria-expanded', 'false');
+            });
+        }
+    });
+
+    const resetModal = () => {
         if (nameInput) nameInput.value = '';
-        if (urlInput) urlInput.value = '';
-        updateTagsUI();
+        if (rowsContainer) {
+            rowsContainer.innerHTML = '';
+            // Initially exactly one URL row ready
+            rowsContainer.appendChild(createUrlRow('', 'children'));
+        }
+    };
+
+    const openModal = () => {
+        resetModal();
         if (modal) modal.classList.remove('hidden');
         if (nameInput) nameInput.focus();
     };
 
     const closeModal = () => {
         if (modal) modal.classList.add('hidden');
-        currentPatterns = [];
+        resetModal();
     };
 
     if (openModalBtn) openModalBtn.addEventListener('click', openModal);
@@ -474,14 +606,57 @@ function setupCustomReelsModal() {
                 if (nameInput) nameInput.focus();
                 return;
             }
-            if (currentPatterns.length === 0) {
-                if (urlInput && urlInput.value.trim()) {
-                    addPatternFromInput();
+
+            const patterns = [];
+            let invalidKeyword = null;
+            let invalidInput = null;
+
+            if (rowsContainer) {
+                const rows = rowsContainer.querySelectorAll('.reels-url-row');
+                for (const row of rows) {
+                    const input = row.querySelector('.reels-row-url-input');
+                    const scopeVal = row.querySelector('.reels-row-scope-val');
+                    if (!input) continue;
+                    const raw = input.value.trim();
+                    if (!raw) continue;
+
+                    if (!isValidPlatformUrl(raw)) {
+                        invalidKeyword = raw;
+                        invalidInput = input;
+                        break;
+                    }
+
+                    const scope = scopeVal ? scopeVal.value : 'children';
+                    let clean = raw.replace(/^[a-z]+:\/\//i, '').replace(/^\/\//, '').replace(/^www\./i, '');
+                    let finalPattern = clean;
+
+                    if (scope === 'domain') {
+                        finalPattern = clean.split('/')[0].split('?')[0].split('#')[0].split(':')[0];
+                    } else if (scope === 'children') {
+                        finalPattern = clean.replace(/\/?\*+$/, '').replace(/\/+$/, '');
+                    } else if (scope === 'exact') {
+                        finalPattern = clean.replace(/\/?\*+$/, '');
+                    }
+
+                    if (finalPattern && !patterns.includes(finalPattern)) {
+                        patterns.push(finalPattern);
+                    }
                 }
             }
-            if (currentPatterns.length === 0) {
-                showToast('Please add at least one URL or pattern to block.');
-                if (urlInput) urlInput.focus();
+
+            if (invalidKeyword) {
+                showToast(`"${invalidKeyword}" is a keyword, not a valid URL or domain.`);
+                if (invalidInput) {
+                    invalidInput.style.borderColor = '#ef4444';
+                    invalidInput.focus();
+                }
+                return;
+            }
+
+            if (patterns.length === 0) {
+                showToast('Please enter at least one valid URL to block (e.g. snapchat.com/reels).');
+                const firstInput = rowsContainer ? rowsContainer.querySelector('.reels-row-url-input') : null;
+                if (firstInput) firstInput.focus();
                 return;
             }
 
@@ -492,7 +667,7 @@ function setupCustomReelsModal() {
             const newPlatform = {
                 id: 'custom_' + Date.now(),
                 name: name,
-                patterns: [...currentPatterns],
+                patterns: patterns,
                 enabled: true
             };
 
@@ -503,6 +678,9 @@ function setupCustomReelsModal() {
             showToast(`Added ${name} blocker.`);
         });
     }
+
+    // Initialize with 1 default row
+    resetModal();
 }
 
 // ------------------------------------------------------------------

@@ -2604,6 +2604,27 @@ input:checked+.theme-card-inner .selection-check {
     border-radius: 6px;
 }
 
+.reels-platform-icon.custom-platform-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: var(--text-secondary);
+}
+
+.reels-platform-globe-icon {
+    width: 26px;
+    height: 26px;
+    display: block;
+    stroke: currentColor;
+}
+
 
 
 .reels-row-info {
@@ -2676,8 +2697,9 @@ input:checked+.theme-card-inner .selection-check {
 
 /* Custom Reels Modal & Inputs */
 .custom-reels-modal-card {
-    max-width: 520px;
-    padding: 24px;
+    max-width: 660px !important;
+    width: 100% !important;
+    padding: 26px 28px !important;
 }
 
 .custom-reels-modal-header {
@@ -2751,49 +2773,132 @@ input:checked+.theme-card-inner .selection-check {
     box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.reels-modal-scope-row {
+/* Dynamic URL Rows in Modal */
+.reels-rows-container {
     display: flex;
+    flex-direction: column;
     gap: 10px;
-    align-items: stretch;
+    margin-bottom: 8px;
 }
 
-.reels-modal-dropdown {
+.reels-url-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.reels-row-url-input {
     flex: 1;
     min-width: 0;
-}
-
-.reels-modal-dropdown .dropdown-trigger {
-    width: 100%;
+    height: 42px;
     box-sizing: border-box;
-    height: 44px;
-    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--border-base);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.reels-modal-add-btn {
-    height: 44px;
-    padding: 0 18px;
-    font-size: 13.5px;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    border-radius: var(--radius-md);
+.reels-row-url-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.reels-row-scope-dropdown {
+    position: relative;
     flex-shrink: 0;
 }
 
-.reels-modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 24px;
+.reels-row-scope-dropdown .dropdown-trigger {
+    min-width: 135px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
-.reels-modal-actions .btn {
-    width: auto;
-    min-width: 100px;
-    height: 42px;
-    padding: 0 20px;
-    font-size: 14px;
+.reels-row-scope-dropdown .dropdown-menu {
+    min-width: 145px;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 1000;
+}
+
+.reels-row-scope-dropdown .dropdown-item {
+    padding: 9px 12px;
+    font-size: 13px;
+}
+
+.reels-row-scope-dropdown .dropdown-item .dropdown-item-title {
+    font-size: 13px;
+}
+
+.reels-row-remove-btn {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.reels-row-remove-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.reels-add-row-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
     font-weight: 500;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--border-base);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.reels-add-row-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+/* Horizontal Action Buttons in Same Row */
+.confirm-modal-actions.reels-modal-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-top: 26px !important;
+    width: 100% !important;
+}
+
+.confirm-modal-actions.reels-modal-actions .btn {
+    width: auto !important;
+    min-width: 110px !important;
+    height: 42px !important;
+    padding: 0 22px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
 }

@@ -1,11 +1,5 @@
-<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="custom-reels-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4F46E5"/>
-      <stop offset="100%" stop-color="#7C3AED"/>
-    </linearGradient>
-  </defs>
-  <rect width="96" height="96" rx="22" fill="url(#custom-reels-grad)"/>
-  <rect x="25" y="19" width="46" height="58" rx="10" stroke="white" stroke-width="4.5"/>
-  <path d="M42 36.5C42 34.8 43.9 33.8 45.3 34.7L58.3 43.7C59.6 44.5 59.6 46.5 58.3 47.3L45.3 56.3C43.9 57.2 42 56.2 42 54.5V36.5Z" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="10"></circle>
+  <line x1="2" y1="12" x2="22" y2="12"></line>
+  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
 </svg>
